@@ -198,7 +198,7 @@ export default async function AdminDashboard({
               href="/admin/applications"
               className="text-pac-orange-dark hover:underline"
             >
-              Search all applications, back to 2014 &rarr;
+              Search all applications, back to 2015 &rarr;
             </Link>
           </p>
         </section>

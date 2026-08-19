@@ -109,7 +109,7 @@ export default async function AdminApplicationsPage({
           </h1>
           <p className="text-sm text-pac-muted mt-1">
             Every application on record, including the archive recovered from the
-            previous site — back to December 2014.
+            previous site — back to March 2015.
           </p>
         </div>
         <Link href="/admin" className="btn-secondary">

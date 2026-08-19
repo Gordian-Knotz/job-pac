@@ -43,9 +43,9 @@ export default async function SeekerProfilePage({
 
         {cv.kind === "legacy" && (
           <p className="mb-4 text-sm text-pac-muted border border-pac-line rounded-card px-4 py-3">
-            Your CV on file is still held on the previous version of this site.
-            You can open it below — uploading it again here keeps it with your
-            account.
+            We hold a CV for you from the previous version of this site, but it
+            is not readable yet while we move those files across. Uploading it
+            again here is the quickest way to have it attached to your account.
           </p>
         )}
 

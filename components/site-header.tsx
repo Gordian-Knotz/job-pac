@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { dashboardPathFor } from "@/lib/auth";
 import type { UserRole } from "@/types/database";
@@ -22,10 +23,18 @@ export async function SiteHeader() {
   return (
     <header className="border-b border-pac-line bg-pac-paper/95 backdrop-blur sticky top-0 z-40">
       <div className="mx-auto max-w-6xl px-6 h-16 flex items-center justify-between">
-        <Link href="/" className="flex items-baseline gap-2">
-          <span className="font-display text-xl font-700 text-pac-ink tracking-tight">
-            PAC
-          </span>
+        {/* The mark carries a checkmark, which is the same idea as the vetting
+            stamp on the job cards — worth keeping them visually related. */}
+        <Link href="/" className="flex items-center gap-3 shrink-0">
+          <Image
+            src="/pac-logo.png"
+            alt="PAC Africa — Priority Activator Consulting"
+            width={591}
+            height={221}
+            priority
+            className="h-8 w-auto"
+          />
+          <span className="h-5 w-px bg-pac-line" aria-hidden />
           <span className="eyebrow">Jobs</span>
         </Link>
 
