@@ -15,6 +15,8 @@ Run in numerical order. Every file is idempotent — safe to re-run.
 | 009 | `009_storage_cvs_widen.sql` | 60 MB cap, accept doc/docx for the archive | **applied** |
 | 010 | `010_function_grants.sql` | take `EXECUTE` off `anon` where unneeded | **applied** |
 | 011 | `011_stats_not_public.sql` | revoke `stats()` from `anon` — counts are off the hero | **applied** |
+| 012 | `012_job_publish_and_cv_access_guards.sql` | publish bypass, company impersonation, CV read path | **applied** |
+| 013 | `013_tighten_cvs_and_dedupe_applications.sql` | cvs back to 5 MB/PDF, one application per job+email | **applied** |
 
 ## Why these exist
 
