@@ -3,7 +3,7 @@ import { Plus, ExternalLink } from "lucide-react";
 import { requireProfile } from "@/lib/auth";
 import { JobStatusBadge } from "@/components/status-badge";
 import { timeAgo } from "@/lib/utils";
-import { setJobStatus } from "../actions";
+import { setJobStatus, deleteJob } from "../actions";
 import type { JobStatus } from "@/types/database";
 
 interface Row {
@@ -28,7 +28,14 @@ const TABS: { value: string; label: string }[] = [
 export default async function AdminJobsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; created?: string; updated?: string; error?: string }>;
+  searchParams: Promise<{
+    status?: string;
+    created?: string;
+    updated?: string;
+    deleted?: string;
+    lost?: string;
+    error?: string;
+  }>;
 }) {
   const { supabase } = await requireProfile("admin");
   const params = await searchParams;
@@ -82,6 +89,19 @@ export default async function AdminJobsPage({
       {params.updated && !params.error && (
         <p className="mt-6 text-sm text-green-700 border border-green-200 bg-green-50 rounded-card px-4 py-3">
           Listing moved to {params.updated.replace("_", " ")}.
+        </p>
+      )}
+      {params.deleted && !params.error && (
+        <p className="mt-6 text-sm text-pac-ink border border-pac-line bg-pac-stone rounded-card px-4 py-3">
+          Deleted &ldquo;{params.deleted}&rdquo;
+          {Number(params.lost) > 0 && (
+            <>
+              {" "}
+              and {params.lost} application
+              {Number(params.lost) === 1 ? "" : "s"} attached to it
+            </>
+          )}
+          .
         </p>
       )}
 
@@ -168,6 +188,28 @@ export default async function AdminJobsPage({
                   >
                     Edit
                   </Link>
+
+                  {/* Nothing to lose, so delete straight from the list. With
+                      applicants it goes to the confirmation instead — deleting
+                      cascades to their applications. */}
+                  {applicants === 0 ? (
+                    <form action={deleteJob}>
+                      <input type="hidden" name="job_id" value={job.id} />
+                      <button
+                        type="submit"
+                        className="btn press px-3 py-1.5 text-xs border border-pac-line text-pac-muted transition-[transform,color,border-color] duration-150 ease-out hover:border-red-300 hover:text-red-700"
+                      >
+                        Delete
+                      </button>
+                    </form>
+                  ) : (
+                    <Link
+                      href={`/admin/jobs/${job.id}/edit`}
+                      className="btn press px-3 py-1.5 text-xs border border-pac-line text-pac-muted transition-[transform,color,border-color] duration-150 ease-out hover:border-red-300 hover:text-red-700"
+                    >
+                      Delete…
+                    </Link>
+                  )}
                 </div>
               </li>
             );

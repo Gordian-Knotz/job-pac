@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ExternalLink } from "lucide-react";
+import { ArrowLeft, ExternalLink, Trash2 } from "lucide-react";
 import { requireProfile } from "@/lib/auth";
 import { getJobLookups } from "@/lib/lookups";
 import { JobFormFields } from "@/components/job-form-fields";
 import { JobStatusBadge } from "@/components/status-badge";
-import { updateJob } from "../../../actions";
+import { updateJob, deleteJob } from "../../../actions";
 import type { Job } from "@/types/database";
 
 export default async function AdminEditJobPage({
@@ -19,17 +19,22 @@ export default async function AdminEditJobPage({
   const { id } = await params;
   const query = await searchParams;
 
-  const [{ data }, lookups] = await Promise.all([
+  const [{ data }, lookups, { count: applicantCount }] = await Promise.all([
     supabase
       .from("jobs")
       .select("*, company:companies(name, verified)")
       .eq("id", id)
       .single(),
     getJobLookups(),
+    supabase
+      .from("applications")
+      .select("id", { count: "exact", head: true })
+      .eq("job_id", id),
   ]);
 
   if (!data) notFound();
   const job = data as unknown as Job;
+  const applicants = applicantCount ?? 0;
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-10">
@@ -124,6 +129,60 @@ export default async function AdminEditJobPage({
           </Link>
         </div>
       </form>
+
+      {/* DANGER ZONE ---------------------------------------------------
+          Separate form, so a stray Enter in the edit fields above can never
+          submit a delete. */}
+      <section className="mt-12 rounded-card border border-red-200 bg-red-50/50 p-5">
+        <h2 className="font-display text-lg font-600 text-pac-ink mb-1">
+          Delete this listing
+        </h2>
+        <p className="text-sm text-pac-muted mb-4 max-w-xl">
+          {applicants > 0 ? (
+            <>
+              This listing has{" "}
+              <strong className="text-pac-ink">
+                {applicants} application{applicants === 1 ? "" : "s"}
+              </strong>
+              . Deleting it deletes {applicants === 1 ? "that" : "those"} too —
+              names, contact details and CVs — and cannot be undone. If the role
+              is simply no longer open, set the status to{" "}
+              <strong className="text-pac-ink">Closed</strong> above instead:
+              that hides it from the site and keeps the applicants.
+            </>
+          ) : (
+            <>
+              Nobody has applied to this listing, so nothing else is affected.
+              This cannot be undone.
+            </>
+          )}
+        </p>
+
+        <form action={deleteJob} className="space-y-3">
+          <input type="hidden" name="job_id" value={job.id} />
+
+          {applicants > 0 && (
+            <label className="flex items-start gap-2.5 text-sm text-pac-ink">
+              <input
+                type="checkbox"
+                name="acknowledge_applications"
+                required
+                className="mt-0.5 w-4 h-4 accent-red-600"
+              />
+              I understand {applicants} application
+              {applicants === 1 ? "" : "s"} will be permanently deleted
+            </label>
+          )}
+
+          <button
+            type="submit"
+            className="btn press inline-flex items-center gap-2 border border-red-300 bg-white text-red-700 transition-[transform,background-color] duration-150 ease-out hover:bg-red-600 hover:text-white hover:border-red-600"
+          >
+            <Trash2 className="w-4 h-4" aria-hidden />
+            Delete permanently
+          </button>
+        </form>
+      </section>
     </div>
   );
 }

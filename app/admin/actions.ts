@@ -154,6 +154,58 @@ export async function createJobAsAdmin(formData: FormData) {
   redirect(`/admin/jobs?created=${status}`);
 }
 
+/**
+ * Deletes a listing permanently.
+ *
+ * `applications.job_id` and `saved_jobs.job_id` are both `on delete cascade`, so
+ * this destroys every application submitted to the job — not just the listing.
+ * That is real applicant data, of the same kind we spent this rebuild
+ * recovering, so a listing with applicants requires an explicit acknowledgement
+ * naming the count. Closing a role is the usual answer; deleting is for spam,
+ * duplicates and test posts.
+ *
+ * Only admins reach this: RLS gives DELETE on jobs to `jobs_admin_all` alone,
+ * and requireProfile('admin') redirects anyone else before we get here.
+ */
+export async function deleteJob(formData: FormData) {
+  const { supabase } = await requireProfile("admin");
+
+  const jobId = str(formData, "job_id");
+  const acknowledged = formData.get("acknowledge_applications") === "on";
+  if (!jobId) redirect("/admin/jobs?error=Invalid+request");
+
+  const [{ data: job }, { count }] = await Promise.all([
+    supabase.from("jobs").select("title").eq("id", jobId).single(),
+    supabase
+      .from("applications")
+      .select("id", { count: "exact", head: true })
+      .eq("job_id", jobId),
+  ]);
+
+  if (!job) redirect("/admin/jobs?error=That+listing+no+longer+exists");
+
+  const applicants = count ?? 0;
+  if (applicants > 0 && !acknowledged) {
+    redirect(
+      `/admin/jobs/${jobId}/edit?error=${encodeURIComponent(
+        `This listing has ${applicants} application${applicants === 1 ? "" : "s"}, which would be deleted with it. Tick the confirmation box to proceed, or set the status to Closed instead.`
+      )}`
+    );
+  }
+
+  const { error } = await supabase.from("jobs").delete().eq("id", jobId);
+  if (error) {
+    redirect(`/admin/jobs/${jobId}/edit?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePublic();
+  redirect(
+    `/admin/jobs?deleted=${encodeURIComponent(
+      (job as { title: string }).title
+    )}&lost=${applicants}`
+  );
+}
+
 /** Admin edits any listing, including its status. */
 export async function updateJob(formData: FormData) {
   const { supabase } = await requireProfile("admin");
