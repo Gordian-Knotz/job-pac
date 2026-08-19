@@ -64,3 +64,4 @@ Then visit `/admin`.
 Push to GitHub, import into Vercel, add the same env vars from `.env.local`
 in Vercel's project settings, point jobs.pac.africa's DNS at Vercel.
 "# jobs-pac" 
+"# job-pac" 
