@@ -14,6 +14,17 @@ import {
 } from "@/lib/job-form";
 import type { JobStatus } from "@/types/database";
 
+/**
+ * `return_to` arrives in the form body, so it is caller-controlled. Confining it
+ * to a same-site absolute path stops it being used as an off-site redirect —
+ * `//evil.com` and `https://evil.com` are both rejected, since a bare
+ * protocol-relative URL is a valid redirect target.
+ */
+function safeReturnTo(value: string | null): string {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) return "/admin";
+  return value;
+}
+
 /** Publishing touches the public surface, so refresh it too. */
 function revalidatePublic(jobId?: string) {
   revalidatePath("/admin");
@@ -32,7 +43,7 @@ export async function setJobStatus(formData: FormData) {
 
   const jobId = str(formData, "job_id");
   const status = str(formData, "status");
-  const returnTo = str(formData, "return_to") ?? "/admin";
+  const returnTo = safeReturnTo(str(formData, "return_to"));
 
   if (!jobId || !status || !(JOB_STATUSES as string[]).includes(status)) {
     redirect(`${returnTo}?error=Invalid+request`);
@@ -58,7 +69,7 @@ export async function setCompanyVerified(formData: FormData) {
 
   const companyId = str(formData, "company_id");
   const verified = formData.get("verified") === "true";
-  const returnTo = str(formData, "return_to") ?? "/admin";
+  const returnTo = safeReturnTo(str(formData, "return_to"));
 
   if (!companyId) redirect(`${returnTo}?error=Invalid+request`);
 

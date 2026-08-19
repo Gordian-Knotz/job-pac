@@ -1,5 +1,6 @@
 import { MapPin, Clock, Briefcase, BadgeCheck, Signal, CalendarClock } from "lucide-react";
 import { formatSalary, JOB_TYPE_LABELS, timeAgo } from "@/lib/utils";
+import { sanitizeJobHtml } from "@/lib/sanitize";
 import type { Job } from "@/types/database";
 
 const LEVEL_LABELS: Record<string, string> = {
@@ -114,13 +115,14 @@ function Section({ title, html }: { title: string; html: string }) {
   return (
     <section>
       <h3 className="eyebrow mb-2.5">{title}</h3>
-      {/* Trusted admin/employer input today. Once employer-authored listings are
-          a real pathway this needs sanitising — see 07-next-steps P2 #7. */}
+      {/* Employers author this copy, so it is untrusted. Sanitised through an
+          allowlist on every render — see lib/sanitize.ts for why on read rather
+          than on write. */}
       <div
         className="prose prose-sm max-w-none text-pac-ink/90 leading-relaxed
                    prose-headings:font-display prose-headings:text-pac-ink
                    prose-a:text-pac-orange-dark prose-strong:text-pac-ink"
-        dangerouslySetInnerHTML={{ __html: html }}
+        dangerouslySetInnerHTML={{ __html: sanitizeJobHtml(html) }}
       />
     </section>
   );
