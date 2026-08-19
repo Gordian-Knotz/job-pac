@@ -13,6 +13,14 @@ pacafric_wp_jobs.sql
 seed_applications*.sql
 *.sql.gz
 
+# Recovered applicant CVs from the old wp-content/uploads/jobmonster tree.
+# These are the most sensitive files in the project — full names, addresses,
+# ID numbers, employment history. They belong in the private `cvs` Storage
+# bucket, never in version control.
+old-cvs/
+cv-archive/
+*.pdf
+
 # Internal working notes and design references — useful locally, not part of the
 # shipped codebase. context-sessions/ also documents hosting paths, cPanel
 # account names and the incident timeline, which is reconnaissance material we
