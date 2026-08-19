@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireProfile } from "@/lib/auth";
 import { CV_ACCEPT, CV_BUCKET, CV_MAX_BYTES, cvObjectPath } from "@/lib/cv";
+import { normaliseLinkedIn } from "@/lib/profile";
 
 /**
  * Attaches historical applications filed under this user's confirmed email.
@@ -51,7 +52,7 @@ export async function updateProfile(formData: FormData) {
       headline: text("headline"),
       bio: text("bio"),
       address: text("address"),
-      linkedin_url: text("linkedin_url"),
+      linkedin_url: normaliseLinkedIn(text("linkedin_url")),
       skills,
     })
     .eq("id", userId);

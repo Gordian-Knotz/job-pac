@@ -2,6 +2,8 @@ import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
 import { ApplicationStatusBadge } from "@/components/status-badge";
 import { timeAgo, displayApplicant } from "@/lib/utils";
+import { isLegacyCvUrl } from "@/lib/cv";
+import { completeness, profileChecklist } from "@/lib/profile";
 import { claimApplications } from "./actions";
 import type { ApplicationStatus } from "@/types/database";
 
@@ -36,6 +38,11 @@ export default async function SeekerDashboard({
 
   const rows = (applications ?? []) as unknown as Row[];
   const claimableCount = (claimable as number) ?? 0;
+
+  // Checked without signing a URL: a legacy cv_url is not usable, anything else
+  // non-null is. Cheap enough for a page that only needs the count.
+  const hasUsableCv = Boolean(profile.cv_url) && !isLegacyCvUrl(profile.cv_url);
+  const progress = completeness(profileChecklist(profile, hasUsableCv));
 
   return (
     <div>
@@ -83,6 +90,25 @@ export default async function SeekerDashboard({
               Add {claimableCount === 1 ? "it" : "them"} to my account
             </button>
           </form>
+        </div>
+      )}
+
+      {/* An incomplete profile costs the applicant every time they apply, so it
+          is worth surfacing here rather than only on the profile page. */}
+      {progress.percent < 100 && (
+        <div className="mb-8 rounded-card border border-pac-line bg-white p-5 flex flex-wrap items-center justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-pac-ink">
+              Your profile is {progress.percent}% complete
+            </p>
+            <p className="text-xs text-pac-muted mt-0.5">
+              A fuller profile fills in your applications for you — and is what
+              employers see first.
+            </p>
+          </div>
+          <Link href="/dashboard/seeker/profile" className="btn-secondary shrink-0">
+            Finish profile
+          </Link>
         </div>
       )}
 
