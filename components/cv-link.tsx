@@ -1,19 +1,20 @@
 import { FileText, Clock } from "lucide-react";
-import type { CvLink as CvLinkValue } from "@/lib/supabase/storage";
+import type { CvLink as CvLinkValue } from "@/lib/cv";
 
 /**
  * One rendering of a CV link, used by the admin browser, the employer applicant
  * view and the seeker profile.
  *
- * A "legacy" cv_url points at https://jobs.pac.africa/wp-content/uploads/... —
- * and that is now unreachable, because the domain was cut over to Vercel, so
- * those paths hit the Next.js app instead of the old WordPress host and return
- * 403. The files are not lost: they exist in the local archive and are waiting
- * on scripts/migrate-cvs.mjs to move them into the private `cvs` bucket.
+ * "supabase" and "r2" are both openable and look identical to the user — which
+ * backend holds the file is our problem, not theirs. Both are short-lived
+ * presigned links.
  *
- * So a legacy row is deliberately NOT rendered as a link. Offering one that
- * cannot work reads as a broken product; saying the CV is pending migration is
- * accurate and tells whoever is looking that nothing has been lost.
+ * "legacy" is deliberately NOT a link. Those cv_urls point at
+ * https://jobs.pac.africa/wp-content/uploads/... and return 403, because the
+ * domain now resolves to Vercel rather than the old WordPress host. The files
+ * are not lost — they are in the recovered archive, waiting on
+ * scripts/migrate-cvs.mjs. Offering a link that cannot work reads as a broken
+ * product; saying so plainly tells whoever is looking that nothing was lost.
  */
 export function CvLink({
   value,

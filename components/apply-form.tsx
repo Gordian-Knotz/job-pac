@@ -8,7 +8,7 @@ import {
   CV_BUCKET,
   CV_MAX_BYTES,
   cvObjectPath,
-} from "@/lib/supabase/storage";
+} from "@/lib/cv";
 import type { UserRole } from "@/types/database";
 
 export type ApplyViewer = {

@@ -1,5 +1,6 @@
 import { requireProfile } from "@/lib/auth";
-import { cvLink, CV_ACCEPT } from "@/lib/supabase/storage";
+import { cvLink } from "@/lib/cv-access";
+import { CV_ACCEPT } from "@/lib/cv";
 import { CvLink } from "@/components/cv-link";
 import { updateProfile, uploadCv } from "../actions";
 
@@ -67,7 +68,7 @@ export default async function SeekerProfilePage({
             type="submit"
             className="bg-pac-ink text-pac-paper px-4 py-2.5 rounded-card text-sm font-medium hover:bg-pac-orange transition-colors shrink-0"
           >
-            {cv.kind === "storage" ? "Replace CV" : "Upload CV"}
+            {cv.kind === "supabase" || cv.kind === "r2" ? "Replace CV" : "Upload CV"}
           </button>
         </form>
       </section>

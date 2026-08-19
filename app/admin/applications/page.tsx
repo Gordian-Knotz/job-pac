@@ -3,7 +3,8 @@ import { Search, ChevronLeft, ChevronRight, Phone, Mail } from "lucide-react";
 import { requireProfile } from "@/lib/auth";
 import { ApplicationStatusBadge } from "@/components/status-badge";
 import { CvLink } from "@/components/cv-link";
-import { cvLinksBatch, type CvLink as CvLinkValue } from "@/lib/supabase/storage";
+import { cvLinksBatch } from "@/lib/cv-access";
+import type { CvLink as CvLinkValue } from "@/lib/cv";
 import { displayApplicant } from "@/lib/utils";
 import type { ApplicationStatus } from "@/types/database";
 

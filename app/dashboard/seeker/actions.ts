@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireProfile } from "@/lib/auth";
-import { CV_ACCEPT, CV_BUCKET, CV_MAX_BYTES, cvObjectPath } from "@/lib/supabase/storage";
+import { CV_ACCEPT, CV_BUCKET, CV_MAX_BYTES, cvObjectPath } from "@/lib/cv";
 
 /**
  * Attaches historical applications filed under this user's confirmed email.
@@ -92,7 +92,7 @@ export async function uploadCv(formData: FormData) {
     );
   }
 
-  // Store the object path, never a URL — see lib/supabase/storage.ts.
+  // Store the object path, never a URL — see lib/cv.ts.
   const { error } = await supabase
     .from("profiles")
     .update({ cv_url: path })

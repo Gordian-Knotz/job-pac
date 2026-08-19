@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
 import { ApplicationStatusBadge, JobStatusBadge } from "@/components/status-badge";
 import { displayApplicant, timeAgo } from "@/lib/utils";
-import { cvLinksBatch } from "@/lib/supabase/storage";
+import { cvLinksBatch } from "@/lib/cv-access";
 import { CvLink } from "@/components/cv-link";
 import { setApplicationStatus } from "../../actions";
 import type { ApplicationStatus, JobStatus } from "@/types/database";
@@ -60,9 +60,9 @@ export default async function JobApplicantsPage({
 
   // Signed URLs are minted per render and expire in 5 minutes, so a CV link
   // cannot be usefully forwarded. Signed in one batch rather than one call per
-  // row. Rows still pointing at the old WordPress uploads tree come back as
-  // legacy links — those URLs do still resolve, so they are shown as working
-  // and labelled, not as dead.
+  // row, across both storage backends. Rows still pointing at the old WordPress
+  // uploads tree come back as "legacy" and render as pending, because those
+  // URLs 403 since the domain moved.
   const cvLinks = await cvLinksBatch(supabase, rows.map((row) => row.cv_url));
 
   return (
