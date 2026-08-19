@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "migrate:cvs:dry": "node scripts/migrate-cvs.mjs --dry-run",
+    "migrate:cvs": "node scripts/migrate-cvs.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
