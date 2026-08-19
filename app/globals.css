@@ -1,0 +1,34 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  ::selection {
+    background-color: #e8532e;
+    color: #fdfbf8;
+  }
+
+  :focus-visible {
+    outline: 2px solid #e8532e;
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .eyebrow {
+    @apply font-mono text-[11px] uppercase tracking-[0.14em] text-pac-muted;
+  }
+
+  .stamp-corner {
+    position: relative;
+  }
+  .stamp-corner::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 3px;
+    height: 100%;
+    background: #e8532e;
+  }
+}
