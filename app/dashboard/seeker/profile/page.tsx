@@ -1,5 +1,6 @@
 import { requireProfile } from "@/lib/auth";
-import { isLegacyCvUrl, signedCvUrl, CV_ACCEPT } from "@/lib/supabase/storage";
+import { cvLink, CV_ACCEPT } from "@/lib/supabase/storage";
+import { CvLink } from "@/components/cv-link";
 import { updateProfile, uploadCv } from "../actions";
 
 const inputClass =
@@ -13,8 +14,7 @@ export default async function SeekerProfilePage({
   const { supabase, profile } = await requireProfile("seeker");
   const params = await searchParams;
 
-  const cvLink = await signedCvUrl(supabase, profile.cv_url);
-  const cvIsLegacy = isLegacyCvUrl(profile.cv_url);
+  const cv = await cvLink(supabase, profile.cv_url);
 
   return (
     <div>
@@ -41,24 +41,17 @@ export default async function SeekerProfilePage({
         </h2>
         <p className="text-sm text-pac-muted mb-4">PDF, up to 5MB.</p>
 
-        {cvIsLegacy && (
+        {cv.kind === "legacy" && (
           <p className="mb-4 text-sm text-pac-muted border border-pac-line rounded-card px-4 py-3">
-            Your CV on file was stored on the previous version of this site and
-            is no longer retrievable. Please upload it again.
+            Your CV on file is still held on the previous version of this site.
+            You can open it below — uploading it again here keeps it with your
+            account.
           </p>
         )}
 
-        {cvLink && (
+        {cv.kind !== "none" && (
           <p className="mb-4 text-sm">
-            <a
-              href={cvLink}
-              target="_blank"
-              rel="noreferrer"
-              className="text-pac-orange hover:underline font-medium"
-            >
-              View current CV
-            </a>
-            <span className="text-pac-muted"> — link expires in 5 minutes</span>
+            <CvLink value={cv} />
           </p>
         )}
 
@@ -74,7 +67,7 @@ export default async function SeekerProfilePage({
             type="submit"
             className="bg-pac-ink text-pac-paper px-4 py-2.5 rounded-card text-sm font-medium hover:bg-pac-orange transition-colors shrink-0"
           >
-            {profile.cv_url && !cvIsLegacy ? "Replace CV" : "Upload CV"}
+            {cv.kind === "storage" ? "Replace CV" : "Upload CV"}
           </button>
         </form>
       </section>

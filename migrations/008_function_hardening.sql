@@ -48,6 +48,11 @@ $$;
 --
 -- So: keep the function and the event trigger, and simply remove the EXECUTE
 -- grant that triggers the lint. Defence in depth, and it quiets the advisor.
+-- Must revoke from PUBLIC, not from anon/authenticated individually. Postgres
+-- grants EXECUTE on new functions to PUBLIC by default, and every role inherits
+-- that grant — so revoking the named roles leaves the privilege in place, which
+-- is exactly what happened on the first attempt here.
+revoke execute on function public.rls_auto_enable() from public;
 revoke execute on function public.rls_auto_enable() from anon, authenticated;
 
 -- ── Not SQL: do these in the dashboard ───────────────────────

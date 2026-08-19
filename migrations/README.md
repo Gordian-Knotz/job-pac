@@ -11,7 +11,9 @@ Run in numerical order. Every file is idempotent — safe to re-run.
 | 005 | `005_public_stats.sql` | `stats()` aggregate RPC for the homepage | **applied** |
 | 006 | `006_claim_historical.sql` | claim-by-confirmed-email RPCs | **applied** |
 | 007 | `007_storage_cvs.sql` | private `cvs` bucket + policies | **applied** |
-| 008 | `008_function_hardening.sql` | `search_path` fix, revoke a stray grant | **not applied** |
+| 008 | `008_function_hardening.sql` | `search_path` fix, revoke a stray grant | **applied** |
+| 009 | `009_storage_cvs_widen.sql` | 60 MB cap, accept doc/docx for the archive | **applied** |
+| 010 | `010_function_grants.sql` | take `EXECUTE` off `anon` where unneeded | **applied** |
 
 ## Why these exist
 
@@ -84,12 +86,35 @@ Verified by impersonating each role, then cleaned up:
 
 `it@pac.africa` is now confirmed and holds `role = 'admin'`.
 
+## After 008–010
+
+- `update_updated_at` now has `search_path = ''`; its trigger still fires
+  (verified by touching a row and watching `updated_at` advance).
+- `rls_auto_enable` is no longer executable by `anon` or `authenticated`. The
+  first attempt failed silently: it revoked the named roles but not `PUBLIC`,
+  which is where the grant actually came from.
+- **`anon` now holds `EXECUTE` on `stats()` and nothing else.** Migrations
+  001/005/006 had revoked `PUBLIC` and granted the roles that needed it, which
+  looked correct but wasn't — Supabase's `ALTER DEFAULT PRIVILEGES` had already
+  attached an *explicit* `anon` grant to every new function, so revoking PUBLIC
+  never removed it. No exploit: each function returns early when `auth.uid()` is
+  null. Closed in `010`.
+- `handle_new_user`, `update_updated_at` and `guard_company_verified` are
+  trigger-only and unreachable over the API. Their triggers still work —
+  Postgres checks `EXECUTE` when a trigger is created, not when it fires.
+- `guard_company_verified` re-verified against the real company owner (not a
+  random uuid, which RLS rejects before the trigger is reached): an employer
+  gets `verified may only be changed by an admin`, while ordinary edits pass.
+- `cvs` bucket: private, 60 MB, pdf + doc + docx.
+
 ## Still open
 
-- **`008` is not applied.** It pins `search_path` on `update_updated_at` and
-  revokes a stray EXECUTE grant. Neither is urgent — no behaviour depends on it.
-- Two dashboard toggles, listed at the bottom of `008`: keep email confirmation
-  on (migration 006 depends on it), and enable leaked-password protection.
-- The recovered WordPress CVs still need uploading into the `cvs` bucket, with
-  `applications.cv_url` rewritten from the dead `https://jobs.pac.africa/...`
-  URLs to storage object paths. Needs `SUPABASE_SERVICE_ROLE_KEY`.
+- **The CV archive is not migrated.** 4,118 rows still point at
+  `https://jobs.pac.africa/...`. Those URLs do still resolve — wp-content
+  survived the wipe — so the admin and employer views link straight to them and
+  label them as coming from the old site. Run `npm run migrate:cvs:dry`, then
+  `npm run migrate:cvs`, once `SUPABASE_SERVICE_ROLE_KEY` is in `.env.local`.
+  Check the storage quota first: the archive is 1.84 GB.
+- Two dashboard toggles: keep email confirmation on (migration 006 treats a
+  confirmed address as proof of ownership), and enable leaked-password
+  protection — still flagged by the advisor.

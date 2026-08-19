@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
 import { ApplicationStatusBadge, JobStatusBadge } from "@/components/status-badge";
 import { displayApplicant, timeAgo } from "@/lib/utils";
-import { isLegacyCvUrl, signedCvUrl } from "@/lib/supabase/storage";
+import { cvLinksBatch } from "@/lib/supabase/storage";
+import { CvLink } from "@/components/cv-link";
 import { setApplicationStatus } from "../../actions";
 import type { ApplicationStatus, JobStatus } from "@/types/database";
 
@@ -58,10 +59,11 @@ export default async function JobApplicantsPage({
   const rows = (applications ?? []) as AppRow[];
 
   // Signed URLs are minted per render and expire in 5 minutes, so a CV link
-  // cannot be forwarded to someone who should not have it.
-  const cvLinks = await Promise.all(
-    rows.map((row) => signedCvUrl(supabase, row.cv_url))
-  );
+  // cannot be usefully forwarded. Signed in one batch rather than one call per
+  // row. Rows still pointing at the old WordPress uploads tree come back as
+  // legacy links — those URLs do still resolve, so they are shown as working
+  // and labelled, not as dead.
+  const cvLinks = await cvLinksBatch(supabase, rows.map((row) => row.cv_url));
 
   return (
     <div>
@@ -142,22 +144,11 @@ export default async function JobApplicantsPage({
               )}
 
               <p className="text-xs mt-3">
-                {cvLinks[i] ? (
-                  <a
-                    href={cvLinks[i]!}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-pac-orange hover:underline font-medium"
-                  >
-                    Open CV
-                  </a>
-                ) : isLegacyCvUrl(row.cv_url) ? (
-                  <span className="text-pac-muted">
-                    CV archived on the previous site — no longer retrievable
-                  </span>
-                ) : (
-                  <span className="text-pac-muted">No CV attached</span>
-                )}
+                <CvLink
+                  value={
+                    row.cv_url ? (cvLinks.get(row.cv_url) ?? { kind: "none" }) : { kind: "none" }
+                  }
+                />
               </p>
 
               <form

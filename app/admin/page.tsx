@@ -66,7 +66,10 @@ export default async function AdminDashboard({
             Admin dashboard
           </h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Link href="/admin/applications" className="btn-secondary">
+            Applications
+          </Link>
           <Link href="/admin/jobs" className="btn-secondary">
             All listings
           </Link>
@@ -191,8 +194,11 @@ export default async function AdminDashboard({
           </div>
           <p className="text-xs text-pac-muted mt-3">
             Showing the 15 most recent of {(applications.count ?? 0).toLocaleString()}.{" "}
-            <Link href="/jobs" className="text-pac-orange hover:underline">
-              Browse the public site
+            <Link
+              href="/admin/applications"
+              className="text-pac-orange-dark hover:underline"
+            >
+              Search all applications, back to 2014 &rarr;
             </Link>
           </p>
         </section>
