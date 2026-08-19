@@ -1,0 +1,129 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { ArrowLeft, ExternalLink } from "lucide-react";
+import { requireProfile } from "@/lib/auth";
+import { getJobLookups } from "@/lib/lookups";
+import { JobFormFields } from "@/components/job-form-fields";
+import { JobStatusBadge } from "@/components/status-badge";
+import { updateJob } from "../../../actions";
+import type { Job } from "@/types/database";
+
+export default async function AdminEditJobPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ saved?: string; error?: string }>;
+}) {
+  const { supabase } = await requireProfile("admin");
+  const { id } = await params;
+  const query = await searchParams;
+
+  const [{ data }, lookups] = await Promise.all([
+    supabase
+      .from("jobs")
+      .select("*, company:companies(name, verified)")
+      .eq("id", id)
+      .single(),
+    getJobLookups(),
+  ]);
+
+  if (!data) notFound();
+  const job = data as unknown as Job;
+
+  return (
+    <div className="mx-auto max-w-3xl px-6 py-10">
+      <Link
+        href="/admin/jobs"
+        className="inline-flex items-center gap-1.5 text-sm text-pac-muted hover:text-pac-orange-dark transition-colors"
+      >
+        <ArrowLeft className="w-4 h-4" aria-hidden />
+        All listings
+      </Link>
+
+      <div className="flex flex-wrap items-center gap-3 mt-5 mb-1">
+        <h1 className="font-display text-3xl font-700 text-pac-ink">Edit listing</h1>
+        <JobStatusBadge status={job.status} />
+      </div>
+      <p className="text-sm text-pac-muted mb-8">
+        {job.company?.name ?? "Confidential employer"}
+        {job.status === "published" && (
+          <>
+            {" "}
+            &middot;{" "}
+            <Link
+              href={`/jobs/${job.slug}`}
+              className="inline-flex items-center gap-1 text-pac-orange-dark hover:underline"
+            >
+              view live
+              <ExternalLink className="w-3 h-3" aria-hidden />
+            </Link>
+          </>
+        )}
+      </p>
+
+      {query.error && (
+        <p className="mb-6 text-sm text-red-600 border border-red-200 bg-red-50 rounded-card px-4 py-3">
+          {query.error}
+        </p>
+      )}
+      {query.saved && !query.error && (
+        <p className="mb-6 text-sm text-green-700 border border-green-200 bg-green-50 rounded-card px-4 py-3">
+          Listing saved.
+        </p>
+      )}
+
+      <form action={updateJob} className="space-y-5">
+        <input type="hidden" name="job_id" value={job.id} />
+
+        <fieldset className="rounded-card border border-pac-line bg-white p-5 space-y-4">
+          <legend className="eyebrow px-1">The role</legend>
+          <JobFormFields
+            categories={lookups.categories}
+            locations={lookups.locations}
+            job={job}
+          />
+        </fieldset>
+
+        <fieldset className="rounded-card border border-pac-line bg-white p-5 space-y-4">
+          <legend className="eyebrow px-1">Visibility</legend>
+          <div>
+            <label htmlFor="status" className="eyebrow block mb-2">
+              Status
+            </label>
+            <select
+              id="status"
+              name="status"
+              defaultValue={job.status}
+              className="field"
+            >
+              <option value="published">Published — live on the site</option>
+              <option value="pending_review">In review</option>
+              <option value="draft">Draft</option>
+              <option value="closed">Closed</option>
+              <option value="expired">Expired</option>
+            </select>
+          </div>
+          <label className="flex items-center gap-2.5 text-sm text-pac-ink">
+            <input
+              type="checkbox"
+              name="is_featured"
+              defaultChecked={job.is_featured}
+              className="w-4 h-4 accent-pac-orange"
+            />
+            Feature this role
+          </label>
+        </fieldset>
+
+        <div className="flex items-center gap-3">
+          <button type="submit" className="btn-primary">
+            Save changes
+          </button>
+          <Link href="/admin/jobs" className="btn-quiet">
+            Cancel
+          </Link>
+        </div>
+      </form>
+    </div>
+  );
+}

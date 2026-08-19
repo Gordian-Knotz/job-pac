@@ -71,6 +71,23 @@ create policy "cvs_select_employer" on storage.objects
     )
   );
 
+-- The applicant, for a CV attached to an application they own. Needed because
+-- the recovered WordPress CVs are bulk-uploaded by service_role, which leaves
+-- storage.objects.owner NULL — so cvs_select_owner above cannot match them.
+-- Without this, someone who claims their history (migration 006) could see the
+-- application but not open their own CV.
+drop policy if exists "cvs_select_applicant" on storage.objects;
+create policy "cvs_select_applicant" on storage.objects
+  for select to authenticated
+  using (
+    bucket_id = 'cvs'
+    and exists (
+      select 1 from public.applications a
+      where a.cv_url = storage.objects.name
+        and a.applicant_id = (select auth.uid())
+    )
+  );
+
 drop policy if exists "cvs_select_admin" on storage.objects;
 create policy "cvs_select_admin" on storage.objects
   for select to authenticated

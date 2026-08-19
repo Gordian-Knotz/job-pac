@@ -59,10 +59,22 @@ export default async function AdminDashboard({
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-12">
-      <span className="eyebrow">PAC Africa &middot; Internal</span>
-      <h1 className="font-display text-3xl font-700 text-pac-ink mt-2 mb-8">
-        Admin dashboard
-      </h1>
+      <div className="flex flex-wrap items-start justify-between gap-4 mb-8">
+        <div>
+          <span className="eyebrow">PAC Africa &middot; Internal</span>
+          <h1 className="font-display text-3xl font-700 text-pac-ink mt-2">
+            Admin dashboard
+          </h1>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link href="/admin/jobs" className="btn-secondary">
+            All listings
+          </Link>
+          <Link href="/admin/jobs/new" className="btn-primary">
+            Post a job
+          </Link>
+        </div>
+      </div>
 
       {params.error && (
         <p className="mb-6 text-sm text-red-600 border border-red-200 bg-red-50 rounded-card px-4 py-3">

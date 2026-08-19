@@ -3,15 +3,25 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireProfile } from "@/lib/auth";
+import { slugify, randomSuffix } from "@/lib/utils";
+import {
+  JOB_STATUSES,
+  UNIQUE_VIOLATION,
+  insertJobWithUniqueSlug,
+  oneOf,
+  parseJobFields,
+  str,
+} from "@/lib/job-form";
 import type { JobStatus } from "@/types/database";
 
-const ALLOWED: JobStatus[] = [
-  "draft",
-  "pending_review",
-  "published",
-  "expired",
-  "closed",
-];
+/** Publishing touches the public surface, so refresh it too. */
+function revalidatePublic(jobId?: string) {
+  revalidatePath("/admin");
+  revalidatePath("/admin/jobs");
+  if (jobId) revalidatePath(`/admin/jobs/${jobId}/edit`);
+  revalidatePath("/jobs");
+  revalidatePath("/");
+}
 
 /**
  * Moves a listing through the review queue. This is the only route from
@@ -20,15 +30,12 @@ const ALLOWED: JobStatus[] = [
 export async function setJobStatus(formData: FormData) {
   const { supabase } = await requireProfile("admin");
 
-  const jobId = formData.get("job_id");
-  const status = formData.get("status");
+  const jobId = str(formData, "job_id");
+  const status = str(formData, "status");
+  const returnTo = str(formData, "return_to") ?? "/admin";
 
-  if (
-    typeof jobId !== "string" ||
-    typeof status !== "string" ||
-    !(ALLOWED as string[]).includes(status)
-  ) {
-    redirect("/admin?error=Invalid+request");
+  if (!jobId || !status || !(JOB_STATUSES as string[]).includes(status)) {
+    redirect(`${returnTo}?error=Invalid+request`);
   }
 
   const { error } = await supabase
@@ -36,16 +43,10 @@ export async function setJobStatus(formData: FormData) {
     .update({ status: status as JobStatus })
     .eq("id", jobId);
 
-  if (error) {
-    redirect(`/admin?error=${encodeURIComponent(error.message)}`);
-  }
+  if (error) redirect(`${returnTo}?error=${encodeURIComponent(error.message)}`);
 
-  // The listing appears on or disappears from the public pages, so refresh
-  // those too, not just the queue.
-  revalidatePath("/admin");
-  revalidatePath("/jobs");
-  revalidatePath("/");
-  redirect(`/admin?updated=${status}`);
+  revalidatePublic(jobId);
+  redirect(`${returnTo}?updated=${status}`);
 }
 
 /**
@@ -55,23 +56,131 @@ export async function setJobStatus(formData: FormData) {
 export async function setCompanyVerified(formData: FormData) {
   const { supabase } = await requireProfile("admin");
 
-  const companyId = formData.get("company_id");
+  const companyId = str(formData, "company_id");
   const verified = formData.get("verified") === "true";
+  const returnTo = str(formData, "return_to") ?? "/admin";
 
-  if (typeof companyId !== "string") {
-    redirect("/admin?error=Invalid+request");
-  }
+  if (!companyId) redirect(`${returnTo}?error=Invalid+request`);
 
   const { error } = await supabase
     .from("companies")
     .update({ verified })
     .eq("id", companyId);
 
-  if (error) {
-    redirect(`/admin?error=${encodeURIComponent(error.message)}`);
+  if (error) redirect(`${returnTo}?error=${encodeURIComponent(error.message)}`);
+
+  revalidatePublic();
+  redirect(`${returnTo}?updated=verification`);
+}
+
+/**
+ * Finds or creates the company a listing belongs to.
+ *
+ * PAC Africa collects most jobs directly from employers who have no account on
+ * the site — that was true of the old WordPress install too, where only two
+ * real users existed. So an admin can name an employer and get a company record
+ * with `owner_id` NULL. If that employer later registers, an admin can attach
+ * the account by setting owner_id.
+ */
+async function resolveCompany(
+  supabase: Awaited<ReturnType<typeof requireProfile>>["supabase"],
+  formData: FormData
+): Promise<{ companyId: string | null } | { error: string }> {
+  const existing = str(formData, "company_id");
+  if (existing) return { companyId: existing };
+
+  const name = str(formData, "new_company_name");
+  if (!name) {
+    // Allowed: the listing shows "Confidential employer".
+    return { companyId: null };
   }
 
-  revalidatePath("/admin");
-  revalidatePath("/jobs");
-  redirect("/admin?updated=verification");
+  const verified = formData.get("new_company_verified") === "on";
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const slug = attempt === 0 ? slugify(name) : `${slugify(name)}-${randomSuffix()}`;
+    const { data, error } = await supabase
+      .from("companies")
+      .insert({ name, slug, owner_id: null, verified })
+      .select("id")
+      .single();
+
+    if (!error && data) return { companyId: data.id };
+    if (error && error.code !== UNIQUE_VIOLATION) return { error: error.message };
+  }
+  return { error: "Could not create the employer record." };
+}
+
+/**
+ * Admin posts a job directly. Unlike the employer form this can publish in one
+ * step — an admin entering a job they were sent by phone or email has already
+ * done the reviewing, so routing it through their own queue is busywork.
+ */
+export async function createJobAsAdmin(formData: FormData) {
+  const { supabase, userId } = await requireProfile("admin");
+
+  const fields = parseJobFields(formData);
+  if (!fields) {
+    redirect("/admin/jobs/new?error=Title+and+description+are+required");
+  }
+
+  const company = await resolveCompany(supabase, formData);
+  if ("error" in company) {
+    redirect(`/admin/jobs/new?error=${encodeURIComponent(company.error)}`);
+  }
+
+  const status = oneOf(str(formData, "status"), JOB_STATUSES, "published");
+
+  const result = await insertJobWithUniqueSlug(fields.title, (slug) =>
+    supabase
+      .from("jobs")
+      .insert({
+        ...fields,
+        slug,
+        company_id: company.companyId,
+        posted_by: userId,
+        status,
+        is_featured: formData.get("is_featured") === "on",
+      })
+      .select("id")
+      .single()
+  );
+
+  if ("error" in result) {
+    redirect(`/admin/jobs/new?error=${encodeURIComponent(result.error)}`);
+  }
+
+  revalidatePublic(result.id);
+  redirect(`/admin/jobs?created=${status}`);
+}
+
+/** Admin edits any listing, including its status. */
+export async function updateJob(formData: FormData) {
+  const { supabase } = await requireProfile("admin");
+
+  const jobId = str(formData, "job_id");
+  if (!jobId) redirect("/admin/jobs?error=Invalid+request");
+
+  const fields = parseJobFields(formData);
+  if (!fields) {
+    redirect(`/admin/jobs/${jobId}/edit?error=Title+and+description+are+required`);
+  }
+
+  const status = oneOf(str(formData, "status"), JOB_STATUSES, "pending_review");
+
+  const { error } = await supabase
+    .from("jobs")
+    .update({
+      ...fields,
+      status,
+      is_featured: formData.get("is_featured") === "on",
+    })
+    .eq("id", jobId);
+
+  if (error) {
+    redirect(`/admin/jobs/${jobId}/edit?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePublic(jobId);
+  redirect(`/admin/jobs/${jobId}/edit?saved=1`);
 }

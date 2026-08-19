@@ -67,6 +67,34 @@ export function displayApplicant(
   return "Unknown applicant";
 }
 
+/**
+ * Plain-text preview from a job description.
+ *
+ * Descriptions are HTML — the migrated ones came out of WordPress, so they also
+ * carry entities and stray whitespace. Result rows need a readable snippet, and
+ * truncation happens on a word boundary so the last word is never cut in half.
+ */
+export function plainSnippet(html: string | null, maxChars = 165): string {
+  if (!html) return "";
+
+  const text = html
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#0?39;|&apos;|&#8217;/gi, "’")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&[a-z]+;/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (text.length <= maxChars) return text;
+  const cut = text.slice(0, maxChars);
+  const lastSpace = cut.lastIndexOf(" ");
+  return `${(lastSpace > maxChars * 0.6 ? cut.slice(0, lastSpace) : cut).trimEnd()}…`;
+}
+
 export const JOB_TYPE_LABELS: Record<string, string> = {
   full_time: "Full Time",
   part_time: "Part Time",

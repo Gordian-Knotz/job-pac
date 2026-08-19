@@ -3,32 +3,142 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    /* Built-in CSS easings are too weak to read as intentional. */
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  }
+
   ::selection {
     background-color: #e8532e;
     color: #fdfbf8;
   }
 
+  /* Keyboard-first is a hard requirement, so the focus ring is never removed —
+     only made consistent. 3.7:1 against paper, above the 3:1 floor for
+     non-text UI. */
   :focus-visible {
     outline: 2px solid #e8532e;
     outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  /* Large display type reads too loose as it grows; body copy does not.
+     Tracking therefore has to be size-specific rather than one global value. */
+  h1,
+  h2 {
+    letter-spacing: -0.021em;
+  }
+  h3 {
+    letter-spacing: -0.011em;
   }
 }
 
 @layer components {
   .eyebrow {
-    @apply font-mono text-[11px] uppercase tracking-[0.14em] text-pac-muted;
+    @apply font-mono text-[11px] uppercase tracking-label text-pac-muted;
   }
 
-  .stamp-corner {
-    position: relative;
+  /* ── Pressables ────────────────────────────────────────────────────
+     Every control gets the same press feedback: the interface should
+     visibly hear the click on pointer-down rather than only on release.
+     Transform and opacity only — both skip layout and paint. */
+  .press {
+    @apply transition-transform duration-150 ease-out;
   }
-  .stamp-corner::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 3px;
-    height: 100%;
-    background: #e8532e;
+  .press:active {
+    transform: scale(0.97);
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-card px-4 py-2.5
+           text-sm font-medium press
+           disabled:pointer-events-none disabled:opacity-55;
+  }
+
+  /* orange-dark, not orange: white on #E8532E is 3.68:1 and fails AA at this
+     size, while #C9401F is 4.93:1. The brighter orange stays the hover state,
+     where the text is already read. */
+  .btn-primary {
+    @apply btn bg-pac-orange-dark text-white
+           transition-[transform,background-color] duration-150 ease-out;
+  }
+  .btn-secondary {
+    @apply btn border border-pac-line bg-white text-pac-ink
+           transition-[transform,border-color,color] duration-150 ease-out;
+  }
+  .btn-quiet {
+    @apply btn px-3 py-1.5 text-xs text-pac-muted
+           transition-[transform,color] duration-150 ease-out;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .btn-primary:hover {
+      @apply bg-pac-orange;
+    }
+    .btn-secondary:hover {
+      @apply border-pac-orange text-pac-orange-dark;
+    }
+    .btn-quiet:hover {
+      @apply text-pac-orange-dark;
+    }
+  }
+
+  /* ── Filter chips ──────────────────────────────────────────────────
+     165 categories and 65 locations cannot live in a list of links. Chips
+     hold the active filters where they are visible and dismissible. */
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-pac-line
+           bg-white px-3 py-1.5 text-xs font-medium text-pac-ink press
+           transition-[transform,border-color,background-color,color]
+           duration-150 ease-out;
+  }
+  .chip-active {
+    @apply border-pac-orange bg-pac-orange-tint text-pac-orange-dark;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .chip:hover {
+      @apply border-pac-orange;
+    }
+  }
+
+  .field {
+    @apply w-full rounded-card border border-pac-line bg-white px-3 py-2.5
+           text-sm text-pac-ink outline-none
+           transition-colors duration-150 ease-out
+           placeholder:text-pac-faint focus:border-pac-orange;
+  }
+
+  /* ── Scroll edge ───────────────────────────────────────────────────
+     Where content passes under sticky chrome, fade it rather than drawing a
+     hard 1px rule — the divider is only true at the moment of overlap. */
+  .scroll-edge {
+    mask-image: linear-gradient(to bottom, transparent 0, #000 10px);
+  }
+}
+
+@layer utilities {
+  /* Reduced motion means gentler, not none: colour and opacity still carry
+     meaning, so only movement is removed. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+    .press:active {
+      transform: none;
+    }
+  }
+
+  /* Frostier surfaces instead of blur when transparency is unwelcome. */
+  @media (prefers-reduced-transparency: reduce) {
+    .translucent {
+      background-color: #fdfbf8 !important;
+      backdrop-filter: none !important;
+    }
   }
 }

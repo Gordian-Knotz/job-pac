@@ -51,8 +51,22 @@ async function getStats() {
   };
 }
 
+async function getLocations() {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("job_locations")
+    .select("id, name")
+    .order("name")
+    .limit(200);
+  return (data as { id: string; name: string }[]) ?? [];
+}
+
 export default async function HomePage() {
-  const [jobs, stats] = await Promise.all([getFeaturedJobs(), getStats()]);
+  const [jobs, stats, locations] = await Promise.all([
+    getFeaturedJobs(),
+    getStats(),
+    getLocations(),
+  ]);
 
   return (
     <>
@@ -60,7 +74,7 @@ export default async function HomePage() {
       <section className="border-b border-pac-line">
         <div className="mx-auto max-w-6xl px-6 py-20">
           <span className="eyebrow">PAC Africa &middot; Job Board</span>
-          <h1 className="font-display text-4xl md:text-5xl font-700 mt-3 max-w-2xl leading-[1.1] text-pac-ink">
+          <h1 className="font-display text-4xl md:text-5xl font-700 mt-3 max-w-2xl leading-[1.06] tracking-display text-pac-ink">
             Vetted work, verified employers, across Kenya.
           </h1>
           <p className="text-pac-muted mt-4 max-w-lg text-[15px] leading-relaxed">
@@ -68,22 +82,37 @@ export default async function HomePage() {
             checked opportunities — no ghost listings, no recruiter noise.
           </p>
 
-          <form
-            action="/jobs"
-            className="mt-8 flex flex-col sm:flex-row gap-3 max-w-xl"
-          >
+          {/* What and where, the two questions every job search starts with. */}
+          <form action="/jobs" className="mt-8 flex flex-col sm:flex-row gap-2.5 max-w-2xl">
             <div className="relative flex-1">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-pac-muted" />
+              <Search
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-pac-faint"
+                aria-hidden
+              />
+              <label htmlFor="hero-q" className="sr-only">
+                Job title, skill or company
+              </label>
               <input
+                id="hero-q"
                 name="q"
                 placeholder="Job title, skill, or company"
-                className="w-full pl-10 pr-4 py-3 rounded-card border border-pac-line bg-white text-sm focus:border-pac-orange outline-none"
+                className="field pl-10 py-3"
               />
             </div>
-            <button
-              type="submit"
-              className="bg-pac-orange text-white px-6 py-3 rounded-card text-sm font-medium hover:bg-pac-orange-dark transition-colors"
-            >
+            <div className="sm:w-52">
+              <label htmlFor="hero-location" className="sr-only">
+                Location
+              </label>
+              <select id="hero-location" name="location" className="field py-3">
+                <option value="">Anywhere in Kenya</option>
+                {locations.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <button type="submit" className="btn-primary shrink-0 px-6 py-3">
               Search jobs
             </button>
           </form>
@@ -126,13 +155,25 @@ export default async function HomePage() {
         </div>
 
         {jobs.length === 0 ? (
-          <div className="border border-dashed border-pac-line rounded-card py-16 text-center text-pac-muted">
+          /* An empty screen is an invitation to act, so it names the two things
+             a visitor can actually do rather than describing the vacancy. */
+          <div className="border border-dashed border-pac-line rounded-card py-16 px-6 text-center">
             <p className="font-display text-lg text-pac-ink mb-1">
-              No live roles yet
+              No roles are live right now
             </p>
-            <p className="text-sm">
-              Once jobs are published they&apos;ll appear here.
+            <p className="text-sm text-pac-muted mb-5 max-w-md mx-auto">
+              PAC Africa reviews every listing before it publishes. Nothing has
+              cleared review yet — check back shortly, or post a role if you are
+              hiring.
             </p>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <Link href="/auth/register" className="btn-primary">
+                Post a job
+              </Link>
+              <Link href="/jobs" className="btn-secondary">
+                Browse all roles
+              </Link>
+            </div>
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">

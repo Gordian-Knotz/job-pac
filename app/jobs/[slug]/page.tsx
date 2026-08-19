@@ -1,28 +1,45 @@
-import { createClient } from "@/lib/supabase/server";
-import { Job } from "@/types/database";
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import { MapPin, Clock, Briefcase, BadgeCheck } from "lucide-react";
-import { formatSalary, JOB_TYPE_LABELS, timeAgo } from "@/lib/utils";
+import { ArrowLeft } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
+import { JobDetail } from "@/components/job-detail";
 import { ApplyForm } from "@/components/apply-form";
-
-export const revalidate = 60;
+import { formatSalary } from "@/lib/utils";
+import type { Job } from "@/types/database";
+import type { Metadata } from "next";
 
 async function getJob(slug: string): Promise<Job | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("jobs")
-    .select(`
-      *,
-      company:companies(*),
-      category:job_categories(*),
-      location:job_locations(*)
-    `)
+    .select(
+      `*, company:companies(*), category:job_categories(*), location:job_locations(*)`
+    )
     .eq("slug", slug)
     .eq("status", "published")
     .single();
 
   if (error || !data) return null;
   return data as unknown as Job;
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const job = await getJob(slug);
+  if (!job) return { title: "Role not found | PAC Jobs" };
+
+  return {
+    title: `${job.title} at ${job.company?.name ?? "PAC Africa"} | PAC Jobs`,
+    description: `${job.title} — ${job.location?.name ?? "Kenya"}. ${formatSalary(
+      job.salary_min,
+      job.salary_max,
+      job.salary_currency
+    )}.`,
+  };
 }
 
 export default async function JobDetailPage({
@@ -35,81 +52,32 @@ export default async function JobDetailPage({
   if (!job) notFound();
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-12">
-      <div className="grid lg:grid-cols-[1fr_320px] gap-12">
-        {/* MAIN CONTENT */}
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <span className="eyebrow">{job.category?.name ?? "General"}</span>
-            {job.company?.verified && (
-              <span className="flex items-center gap-1 text-xs text-pac-orange font-medium">
-                <BadgeCheck className="w-3.5 h-3.5" /> Verified employer
-              </span>
-            )}
-          </div>
+    <div className="mx-auto max-w-5xl px-6 py-8">
+      <Link
+        href="/jobs"
+        className="inline-flex items-center gap-1.5 text-sm text-pac-muted hover:text-pac-orange-dark transition-colors duration-150 ease-out"
+      >
+        <ArrowLeft className="w-4 h-4" aria-hidden />
+        All roles
+      </Link>
 
-          <h1 className="font-display text-3xl md:text-4xl font-700 text-pac-ink leading-tight">
-            {job.title}
-          </h1>
-          <p className="text-pac-muted mt-2 text-[15px]">
-            {job.company?.name ?? "Confidential Employer"}
-          </p>
+      <div className="grid lg:grid-cols-[minmax(0,1fr)_320px] gap-10 mt-5">
+        <JobDetail job={job} />
 
-          <div className="flex flex-wrap gap-5 mt-6 text-sm text-pac-muted border-y border-pac-line py-4">
-            <span className="flex items-center gap-1.5">
-              <MapPin className="w-4 h-4" />
-              {job.location?.name ?? job.location_text ?? "Nairobi"}
-            </span>
-            <span className="flex items-center gap-1.5">
-              <Briefcase className="w-4 h-4" />
-              {JOB_TYPE_LABELS[job.job_type] ?? job.job_type}
-            </span>
-            <span className="flex items-center gap-1.5">
-              <Clock className="w-4 h-4" />
-              Posted {timeAgo(job.created_at)}
-            </span>
-          </div>
-
-          <div className="mt-8 space-y-6">
-            <section>
-              <h2 className="eyebrow mb-3">About the role</h2>
-              <div
-                className="prose prose-sm max-w-none text-pac-ink/90 leading-relaxed"
-                dangerouslySetInnerHTML={{ __html: job.description }}
-              />
-            </section>
-
-            {job.requirements && (
-              <section>
-                <h2 className="eyebrow mb-3">Requirements</h2>
-                <div
-                  className="prose prose-sm max-w-none text-pac-ink/90 leading-relaxed"
-                  dangerouslySetInnerHTML={{ __html: job.requirements }}
-                />
-              </section>
-            )}
-
-            {job.benefits && (
-              <section>
-                <h2 className="eyebrow mb-3">Benefits</h2>
-                <div
-                  className="prose prose-sm max-w-none text-pac-ink/90 leading-relaxed"
-                  dangerouslySetInnerHTML={{ __html: job.benefits }}
-                />
-              </section>
-            )}
-          </div>
-        </div>
-
-        {/* SIDEBAR — apply card */}
+        {/* The apply card is the one thing on this page that must never scroll
+            out of reach, so it is the only sticky element. */}
         <aside className="lg:sticky lg:top-24 h-fit">
-          <div className="rounded-card border border-pac-line bg-white p-6 shadow-stamp relative overflow-hidden">
-            <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-pac-orange" />
-            <p className="eyebrow mb-1">Compensation</p>
-            <p className="font-display text-lg font-600 text-pac-ink mb-6">
-              {formatSalary(job.salary_min, job.salary_max, job.salary_currency)}
+          <div className="rounded-card border border-pac-line bg-white p-6 shadow-raised relative overflow-hidden">
+            <span
+              aria-hidden
+              className="absolute left-0 top-0 bottom-0 w-[3px] bg-pac-orange"
+            />
+            <h2 className="font-display text-lg font-600 text-pac-ink mb-1">
+              Apply for this role
+            </h2>
+            <p className="text-sm text-pac-muted mb-5">
+              You do not need an account. Attach a CV if you have one ready.
             </p>
-
             <ApplyForm jobId={job.id} jobTitle={job.title} />
           </div>
         </aside>

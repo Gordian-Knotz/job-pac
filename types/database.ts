@@ -4,7 +4,7 @@ export type JobStatus = "draft" | "pending_review" | "published" | "expired" | "
 export type JobType = "full_time" | "part_time" | "freelance" | "contract" | "internship";
 export type EmploymentLevel = "entry" | "mid" | "senior" | "executive";
 
-export interface Profile {
+export type Profile = {
   id: string;
   role: UserRole;
   full_name: string | null;
@@ -22,7 +22,7 @@ export interface Profile {
   updated_at: string;
 }
 
-export interface Company {
+export type Company = {
   id: string;
   owner_id: string | null;
   name: string;
@@ -38,7 +38,7 @@ export interface Company {
   updated_at: string;
 }
 
-export interface JobCategory {
+export type JobCategory = {
   id: string;
   name: string;
   slug: string;
@@ -46,7 +46,7 @@ export interface JobCategory {
   created_at: string;
 }
 
-export interface JobLocation {
+export type JobLocation = {
   id: string;
   name: string;
   slug: string;
@@ -54,7 +54,7 @@ export interface JobLocation {
   created_at: string;
 }
 
-export interface Job {
+export type Job = {
   id: string;
   company_id: string | null;
   posted_by: string | null;
@@ -86,7 +86,7 @@ export interface Job {
   location?: JobLocation;
 }
 
-export interface Application {
+export type Application = {
   id: string;
   job_id: string | null;
   applicant_id: string | null;
@@ -105,16 +105,84 @@ export interface Application {
   job?: Job;
 }
 
-// Minimal Supabase Database type — extend as needed for generated types
+export type SavedJob = {
+  id: string;
+  profile_id: string;
+  job_id: string;
+  created_at: string;
+}
+
+export type JobAlert = {
+  id: string;
+  profile_id: string;
+  email: string;
+  keyword: string | null;
+  category_id: string | null;
+  location_id: string | null;
+  job_type: JobType | null;
+  frequency: string;
+  is_active: boolean;
+  last_sent_at: string | null;
+  created_at: string;
+}
+
+// Hand-maintained to match schema.sql + migrations/. NOT generated, so any
+// schema change needs a matching edit here — or run
+// `supabase gen types typescript --project-id khdvagjfonbiezkybpvh`.
+/**
+ * supabase-js requires every table to carry a `Relationships` key to satisfy its
+ * GenericSchema constraint. Omit it and the client silently resolves every table
+ * to `never`, so `.update({...})` fails with "not assignable to type 'never'"
+ * and even the cookie handlers in lib/supabase/server.ts lose inference.
+ * Empty is fine — it only types the embedded-resource helpers.
+ */
+type Table<Row> = {
+  Row: Row;
+  Insert: Partial<Row>;
+  Update: Partial<Row>;
+  Relationships: [];
+};
+
 export interface Database {
   public: {
     Tables: {
-      profiles: { Row: Profile; Insert: Partial<Profile>; Update: Partial<Profile> };
-      companies: { Row: Company; Insert: Partial<Company>; Update: Partial<Company> };
-      job_categories: { Row: JobCategory; Insert: Partial<JobCategory>; Update: Partial<JobCategory> };
-      job_locations: { Row: JobLocation; Insert: Partial<JobLocation>; Update: Partial<JobLocation> };
-      jobs: { Row: Job; Insert: Partial<Job>; Update: Partial<Job> };
-      applications: { Row: Application; Insert: Partial<Application>; Update: Partial<Application> };
+      profiles: Table<Profile>;
+      companies: Table<Company>;
+      job_categories: Table<JobCategory>;
+      job_locations: Table<JobLocation>;
+      jobs: Table<Job>;
+      applications: Table<Application>;
+      saved_jobs: Table<SavedJob>;
+      job_alerts: Table<JobAlert>;
     };
+    Views: Record<string, never>;
+    // RPCs added by the migrations. Without these declared, supabase.rpc()
+    // calls do not typecheck against this Database generic.
+    Functions: {
+      stats: {
+        Args: Record<string, never>;
+        Returns: { live_jobs: number; applications: number; employers: number }[];
+      };
+      is_admin: {
+        Args: Record<string, never>;
+        Returns: boolean;
+      };
+      count_claimable_applications: {
+        Args: Record<string, never>;
+        Returns: number;
+      };
+      claim_historical_applications: {
+        Args: Record<string, never>;
+        Returns: number;
+      };
+    };
+    Enums: {
+      user_role: UserRole;
+      application_status: ApplicationStatus;
+      job_status: JobStatus;
+      job_type: JobType;
+      employment_level: EmploymentLevel;
+    };
+    CompositeTypes: Record<string, never>;
   };
 }
