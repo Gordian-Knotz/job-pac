@@ -14,6 +14,7 @@ Run in numerical order. Every file is idempotent — safe to re-run.
 | 008 | `008_function_hardening.sql` | `search_path` fix, revoke a stray grant | **applied** |
 | 009 | `009_storage_cvs_widen.sql` | 60 MB cap, accept doc/docx for the archive | **applied** |
 | 010 | `010_function_grants.sql` | take `EXECUTE` off `anon` where unneeded | **applied** |
+| 011 | `011_stats_not_public.sql` | revoke `stats()` from `anon` — counts are off the hero | **applied** |
 
 ## Why these exist
 

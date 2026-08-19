@@ -27,29 +27,14 @@ async function getFeaturedJobs(): Promise<Job[]> {
   return (data as unknown as Job[]) ?? [];
 }
 
-async function getStats() {
-  const supabase = await createClient();
-
-  // Counted through the stats() RPC rather than three head:true queries.
-  // A visitor is not signed in, and RLS correctly hides every application row
-  // from anon — so counting the table directly returned 0 while 4,355 rows sat
-  // in it. stats() is SECURITY DEFINER and returns only aggregates, so the
-  // number is real without any policy exposing applicant names, emails or
-  // phone numbers to the public. See migration 005.
-  const { data, error } = await supabase.rpc("stats").single();
-
-  if (error || !data) {
-    if (error) console.error(error);
-    return { jobs: 0, applications: 0, companies: 0 };
-  }
-
-  const row = data as { live_jobs: number; applications: number; employers: number };
-  return {
-    jobs: Number(row.live_jobs) || 0,
-    applications: Number(row.applications) || 0,
-    companies: Number(row.employers) || 0,
-  };
-}
+// The hero used to show live counts here via the stats() RPC. Removed on
+// request: the application total is commercially sensitive while the board is
+// being rebuilt, and a public "4,355 applications on file" also tells anyone
+// exactly how much personal data sits behind the site.
+//
+// Migration 011 revokes stats() from anon to match — otherwise the numbers were
+// still readable straight off /rest/v1/rpc/stats and taking them off the page
+// would only have hidden them from people who don't look.
 
 async function getLocations() {
   const supabase = await createClient();
@@ -62,11 +47,7 @@ async function getLocations() {
 }
 
 export default async function HomePage() {
-  const [jobs, stats, locations] = await Promise.all([
-    getFeaturedJobs(),
-    getStats(),
-    getLocations(),
-  ]);
+  const [jobs, locations] = await Promise.all([getFeaturedJobs(), getLocations()]);
 
   return (
     <>
@@ -117,26 +98,6 @@ export default async function HomePage() {
             </button>
           </form>
 
-          <div className="flex gap-10 mt-12 font-mono text-xs uppercase tracking-wider text-pac-muted">
-            <div>
-              <span className="block font-display text-2xl text-pac-ink normal-case tracking-normal font-600">
-                {stats.jobs.toLocaleString()}
-              </span>
-              Live roles
-            </div>
-            <div>
-              <span className="block font-display text-2xl text-pac-ink normal-case tracking-normal font-600">
-                {stats.applications.toLocaleString()}
-              </span>
-              Applications on file
-            </div>
-            <div>
-              <span className="block font-display text-2xl text-pac-ink normal-case tracking-normal font-600">
-                {stats.companies.toLocaleString()}
-              </span>
-              Employers
-            </div>
-          </div>
         </div>
       </section>
 
