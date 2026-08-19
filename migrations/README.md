@@ -10,7 +10,7 @@ Run in numerical order. Every file is idempotent — safe to re-run.
 | 004 | `004_applications_access.sql` | guest apply, employer visibility, admin | **applied** |
 | 005 | `005_public_stats.sql` | `stats()` aggregate RPC for the homepage | **applied** |
 | 006 | `006_claim_historical.sql` | claim-by-confirmed-email RPCs | **applied** |
-| 007 | `007_storage_cvs.sql` | private `cvs` bucket + policies | **not applied** |
+| 007 | `007_storage_cvs.sql` | private `cvs` bucket + policies | **applied** |
 | 008 | `008_function_hardening.sql` | `search_path` fix, revoke a stray grant | **not applied** |
 
 ## Why these exist
@@ -70,11 +70,26 @@ Each was probed by impersonating the actual role (`set role` + a synthetic
 All probe fixtures were removed. `applications` ends at 4,355 rows, all
 unclaimed, and `auth.users` at 2.
 
+## After 007
+
+Verified by impersonating each role, then cleaned up:
+
+- `cvs` bucket is private, capped at 5 MB, and restricted to `application/pdf`
+  at the storage layer — not just in the form.
+- `anon` may INSERT into the bucket (guests apply) and has no read, list,
+  update or delete.
+- A published job is visible to a signed-out visitor, including its joined
+  employer and category; a `draft` or `closed` job is not.
+- A guest application against a published job is accepted.
+
+`it@pac.africa` is now confirmed and holds `role = 'admin'`.
+
 ## Still open
 
-- **`it@pac.africa` is unconfirmed.** It needs confirming before it can claim
-  history, and it's the address in `README.md`'s admin-promotion snippet.
-- Admin still has to be granted deliberately:
-  `update profiles set role = 'admin' where email = 'it@pac.africa';`
+- **`008` is not applied.** It pins `search_path` on `update_updated_at` and
+  revokes a stray EXECUTE grant. Neither is urgent — no behaviour depends on it.
 - Two dashboard toggles, listed at the bottom of `008`: keep email confirmation
-  on, enable leaked-password protection.
+  on (migration 006 depends on it), and enable leaked-password protection.
+- The recovered WordPress CVs still need uploading into the `cvs` bucket, with
+  `applications.cv_url` rewritten from the dead `https://jobs.pac.africa/...`
+  URLs to storage object paths. Needs `SUPABASE_SERVICE_ROLE_KEY`.
