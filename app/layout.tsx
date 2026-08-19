@@ -3,6 +3,7 @@ import { Source_Serif_4, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { WebAnalytics } from "@/components/web-analytics";
 
 const sourceSerif = Source_Serif_4({
   subsets: ["latin"],
@@ -41,6 +42,7 @@ export default function RootLayout({
         <SiteHeader />
         <main className="min-h-screen">{children}</main>
         <SiteFooter />
+        <WebAnalytics />
       </body>
     </html>
   );
