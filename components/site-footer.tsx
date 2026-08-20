@@ -17,7 +17,7 @@ export function SiteFooter() {
           <p className="text-sm text-muted">{footer.rights(new Date().getFullYear())}</p>
         </div>
 
-        <nav className="flex items-center gap-5 text-sm">
+        <nav className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
           <Link
             href="/jobs"
             className="text-muted transition-colors duration-150 ease-out hover:text-ink"
@@ -25,10 +25,17 @@ export function SiteFooter() {
             {nav.browse}
           </Link>
           <Link
-            href="/auth/signup"
+            href="/employers"
             className="text-muted transition-colors duration-150 ease-out hover:text-ink"
           >
-            {nav.post}
+            For employers
+          </Link>
+          {/* Required to be reachable from every page — we hold CVs. */}
+          <Link
+            href="/privacy"
+            className="text-muted transition-colors duration-150 ease-out hover:text-ink"
+          >
+            Data &amp; cookies
           </Link>
         </nav>
       </div>

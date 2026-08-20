@@ -37,10 +37,24 @@ export const nav = {
 } as const;
 
 export const home = {
-  headline: "Vetted work, verified employers, across Kenya.",
-  sub: "Real roles from employers we have checked. No ghost listings, no recruiter noise.",
-  browseCta: "Browse Jobs",
+  eyebrow: "PAC Africa · Nairobi",
+  // Split so one fragment can carry the accent colour. Large display text, so
+  // #E8532E clears AA on both surfaces at this size.
+  headlineLead: "Vetted work.",
+  headlineRest: "Real employers. Across Kenya.",
+  sub: "Every role here has been checked by PAC Africa before it went live. No ghost listings, no recruiter noise, no applying into a void.",
+  searchWhat: "Job title, skill, or keyword",
+  searchWhere: "Anywhere in Kenya",
+  searchCta: "Search roles",
+  browseCta: "Browse all roles",
   postCta: "Post a Job",
+  popular: "Popular",
+  // Trust without numbers — the counts were deliberately removed.
+  trust: [
+    "Every listing reviewed before it publishes",
+    "Apply once, track it in one place",
+    "Your CV is never public",
+  ],
   latest: "Latest roles",
   viewAll: "View all jobs",
   emptyTitle: "No roles are live right now",

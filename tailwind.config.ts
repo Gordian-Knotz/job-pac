@@ -45,9 +45,9 @@ const config: Config = {
         },
       },
       fontFamily: {
-        display: ["var(--font-source-serif)", "Georgia", "serif"],
-        body: ["var(--font-plex-sans)", "system-ui", "sans-serif"],
-        mono: ["var(--font-plex-mono)", "monospace"],
+        display: ["var(--font-display)", "system-ui", "sans-serif"],
+        body: ["var(--font-body)", "system-ui", "sans-serif"],
+        mono: ["var(--font-mono)", "ui-monospace", "monospace"],
       },
       fontWeight: { 400: "400", 500: "500", 600: "600", 700: "700" },
       letterSpacing: {

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Source_Serif_4, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
+import { Bricolage_Grotesque, Instrument_Sans, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -8,24 +8,30 @@ import { AmbientBackground } from "@/components/ambient-background";
 import { ThemeProvider } from "@/components/theme";
 import { site } from "@/lib/content";
 
-const sourceSerif = Source_Serif_4({
+/**
+ * All three are variable fonts, so `weight` is omitted and the full axis range
+ * ships in one file — fewer requests than pinning four static cuts.
+ *
+ * Deliberately not a serif display face. A high-contrast serif over a warm
+ * accent is one of the looks generated design keeps arriving at, and Source
+ * Serif over #E8532E sat right in it. Bricolage Grotesque has varying widths
+ * and real oddness at display size — nobody reaches for it by accident.
+ */
+const display = Bricolage_Grotesque({
   subsets: ["latin"],
-  weight: ["500", "600", "700"],
-  variable: "--font-source-serif",
+  variable: "--font-display",
   display: "swap",
 });
 
-const plexSans = IBM_Plex_Sans({
+const body = Instrument_Sans({
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  variable: "--font-plex-sans",
+  variable: "--font-body",
   display: "swap",
 });
 
-const plexMono = IBM_Plex_Mono({
+const mono = Geist_Mono({
   subsets: ["latin"],
-  weight: ["400", "500"],
-  variable: "--font-plex-mono",
+  variable: "--font-mono",
   display: "swap",
 });
 
@@ -42,7 +48,7 @@ export default function RootLayout({
     // class onto <html> before paint, which the server render cannot predict.
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${sourceSerif.variable} ${plexSans.variable} ${plexMono.variable} font-body antialiased`}
+        className={`${display.variable} ${body.variable} ${mono.variable} font-body antialiased`}
       >
         <ThemeProvider>
           <AmbientBackground />
