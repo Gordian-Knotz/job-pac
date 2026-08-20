@@ -37,14 +37,14 @@ export const nav = {
 } as const;
 
 export const home = {
-  // Kicker above the headline, per the hero216 structure.
-  kicker: "Vetted opportunities across Africa",
+  // No kicker above the headline: the three-line headline is the opening
+  // statement and a label over the top of it only diluted it.
   // Three lines, centred, set large. Split so one fragment can carry the accent
   // colour — at display size #E8532E clears AA on both surfaces.
   headlineLead: "African talent.",
   headlineMid: "Africa's future.",
   headlineTail: "Placed right.",
-  sub: "PAC Africa connects skilled professionals across the continent with employers ready to invest in African talent — from Nairobi to Lagos, Accra to Cape Town and beyond.",
+  sub: "PAC Africa connects skilled professionals across the continent with employers ready to invest in African talent from Nairobi to Lagos, Accra to Cape Town and beyond.",
   searchWhat: "Job title, skill, or keyword",
   searchWhere: "Anywhere in Africa",
   searchCta: "Search roles",

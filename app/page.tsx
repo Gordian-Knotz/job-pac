@@ -90,33 +90,29 @@ export default async function HomePage() {
 
   return (
     <>
-      {/* HERO — hero216 structure: kicker, large centred headline, meteor
-          field, rounded secondary CTA with arrow motion, overscaled globe
-          strip below. Built from the described layout rather than the licensed
-          block source. */}
+      {/* HERO — hero216 structure: large centred headline, meteor field,
+          rounded secondary CTA with arrow motion, and an overscaled globe that
+          sits behind the copy rather than below it. Built from the described
+          layout rather than the licensed block source. */}
       <section className="relative overflow-hidden">
         <Meteors className="opacity-70" />
 
         <div className="relative z-[1] mx-auto max-w-4xl px-6 pt-20 text-center md:pt-28">
           <Reveal>
-            <p className="text-sm text-muted">{home.kicker}</p>
-          </Reveal>
-
-          <Reveal delay={0.06}>
-            <h1 className="mx-auto mt-6 max-w-3xl font-display text-[2.75rem] font-700 leading-[0.95] tracking-display text-ink sm:text-6xl lg:text-7xl">
+            <h1 className="mx-auto max-w-3xl font-display text-[2.75rem] font-700 leading-[0.95] tracking-display text-ink sm:text-6xl lg:text-7xl">
               <span className="block text-accent-text">{home.headlineLead}</span>
               <span className="block">{home.headlineMid}</span>
               <span className="block">{home.headlineTail}</span>
             </h1>
           </Reveal>
 
-          <Reveal delay={0.12}>
+          <Reveal delay={0.06}>
             <p className="mx-auto mt-7 max-w-xl text-[15px] leading-relaxed text-muted md:text-base">
               {home.sub}
             </p>
           </Reveal>
 
-          <Reveal delay={0.18}>
+          <Reveal delay={0.12}>
             <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
               {/* Both sides of the marketplace, named for what each visitor
                   wants. A signed-out visitor goes to signup carrying where they
@@ -137,7 +133,7 @@ export default async function HomePage() {
           </Reveal>
 
           {topCategories.length > 0 && (
-            <Reveal delay={0.22}>
+            <Reveal delay={0.18}>
               {/* This row now sits over the globe, so the bare eyebrow was
                   unreadable against the dot field. The whole row gets a
                   translucent backing rather than the label alone — a single
@@ -158,22 +154,38 @@ export default async function HomePage() {
           )}
         </div>
 
-        {/* Overscaled globe, cropped at the bottom and faded into the page so
-            it dissolves rather than ending on a hard edge.
+        {/* Overscaled globe, cropped at the bottom and faded into the page so it
+            dissolves rather than ending on a hard edge.
 
-            The frame is tall enough to show past the sphere's widest point, so
-            it reads as a whole planet rising rather than a shallow arc, and it
-            is pulled up under the copy — a gap between the two made the globe
-            look like a separate band of the page. */}
-        <div className="relative mx-auto -mt-24 h-[360px] max-w-[1060px] overflow-hidden sm:-mt-28 sm:h-[460px] md:-mt-32 md:h-[540px]">
-          {/* The canvas is square but cobe draws the sphere inset within it, so
-              there is roughly 90px of empty canvas above the visible arc at
-              desktop width. Pulling the canvas up by that much closes the gap
-              between the copy and the globe without cropping the sphere — moving
-              the container alone would have left the same dead space. */}
+            It now sits BEHIND the copy rather than under it: the negative margin
+            pulls the frame up past the CTA row, and the copy block above carries
+            z-[1] so the headline stays on top. Two knobs, because they do
+            different things — the margin moves the whole frame up the page, and
+            the canvas offset moves the sphere up within that frame, which is
+            what closes the dead space cobe leaves above the visible arc.
+
+            The popular-categories row ends up over the dot field, which is why
+            it has a translucent backing. */}
+        {/* Full-bleed, not max-width. The frame used to be capped at 1060px,
+            which was invisible until the scrim below was added — a gradient to
+            the page colour inside a narrower box drew its own rectangle against
+            the ambient mesh, side edges and all. The globe itself is unaffected:
+            the canvas has fixed widths and is centred on the frame. */}
+        <div className="relative -mt-[13rem] h-[420px] overflow-hidden sm:-mt-[15rem] sm:h-[520px] md:-mt-[17rem] md:h-[600px]">
           <div className="absolute left-1/2 top-[-70px] w-[600px] -translate-x-1/2 sm:top-[-85px] sm:w-[800px] md:top-[-100px] md:w-[980px]">
             <Globe />
           </div>
+          {/* Top scrim. Raising the globe this far put the dot field directly
+              behind the sub-paragraph, and muted grey body text over a dotted
+              sphere is not readable. Dimming the sphere where the text sits — a
+              gradient back to the page colour, strongest at the top and gone by
+              the time it reaches Africa — keeps the globe high AND the sentence
+              legible. The alternative was pushing the globe back down, which is
+              the thing being asked for in reverse. */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-bg via-bg/75 to-transparent md:h-72"
+          />
           <div
             aria-hidden
             className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-bg to-transparent"
