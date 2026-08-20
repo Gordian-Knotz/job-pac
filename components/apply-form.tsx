@@ -1,15 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useFormStatus } from "react-dom";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
-import {
-  CV_ACCEPT,
-  CV_BUCKET,
-  CV_MAX_BYTES,
-  cvObjectPath,
-  looksLikePdf,
-} from "@/lib/cv";
+import { CV_ACCEPT } from "@/lib/cv";
+import { gate } from "@/lib/content";
+import { submitApplication } from "@/app/jobs/actions";
 import type { UserRole } from "@/types/database";
 
 export type ApplyViewer = {
@@ -22,128 +18,89 @@ export type ApplyViewer = {
   cvUrl: string | null;
 };
 
+/**
+ * The apply card.
+ *
+ * Posts to a server action rather than writing to Supabase from the browser.
+ * That is a security change, not a refactor: the old version carried the anon
+ * key and inserted directly, which meant the write endpoint was open to anyone
+ * who read the page source, and no rate limit could reach it because the request
+ * never touched our origin. See app/jobs/actions.ts and migration 024.
+ *
+ * A side effect worth having: the form now works with JavaScript disabled. The
+ * only thing client-side state still does is toggle which CV to send.
+ */
 export function ApplyForm({
-  jobId,
+  slug,
   jobTitle,
   viewer,
   appliedAt,
+  justApplied = false,
+  error,
 }: {
-  jobId: string;
+  slug: string;
   jobTitle: string;
   viewer: ApplyViewer | null;
   /** Set when this viewer already has an application on this job. */
   appliedAt?: string | null;
+  /** From ?applied=1 — the only way to show a guest their submission landed. */
+  justApplied?: boolean;
+  /**
+   * A CODE from ?apply_error, not a message. Resolved against gate.applyErrors
+   * below and dropped if unrecognised, so the query string cannot put words of
+   * its own choosing inside this card — see app/jobs/actions.ts.
+   */
+  error?: string | null;
 }) {
-  const [status, setStatus] = useState<"idle" | "submitting" | "done" | "error">(
-    "idle"
-  );
-  const [message, setMessage] = useState("");
-  const [cv, setCv] = useState<File | null>(null);
-  // Signed-in applicants with a CV on file default to reusing it — the whole
-  // point of having an account is not re-uploading the same document.
-  const [reuseCv, setReuseCv] = useState(Boolean(viewer?.cvUrl));
-  const [form, setForm] = useState({
-    name: viewer?.fullName ?? "",
-    email: viewer?.email ?? "",
-    phone: viewer?.phone ?? "",
-    cover_letter: "",
-  });
+  const errorMessage = error ? (gate.applyErrors[error] ?? null) : null;
+  // Signed-in applicants with a usable CV on file default to reusing it — the
+  // whole point of having an account is not re-uploading the same document.
+  const hasProfileCv = Boolean(viewer?.cvUrl && !viewer.cvUrl.startsWith("http"));
+  const [reuseCv, setReuseCv] = useState(hasProfileCv);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setMessage("");
-
-    const uploading = cv && !(reuseCv && viewer?.cvUrl);
-    if (uploading) {
-      if (cv!.type !== CV_ACCEPT) {
-        setStatus("error");
-        setMessage("Your CV needs to be a PDF.");
-        return;
-      }
-      if (cv!.size > CV_MAX_BYTES) {
-        setStatus("error");
-        setMessage("Your CV needs to be under 5MB.");
-        return;
-      }
-      // The declared content type can say anything — check the actual bytes.
-      if (!(await looksLikePdf(cv!))) {
-        setStatus("error");
-        setMessage("That file is not a PDF, even though it is named like one.");
-        return;
-      }
-    }
-
-    setStatus("submitting");
-    const supabase = createClient();
-
-    // Upload first: an application row pointing at a file that failed to upload
-    // is worse than no row at all. Guests may upload too — the bucket policy
-    // allows anon insert (migration 007).
-    let cvPath: string | null = null;
-    if (reuseCv && viewer?.cvUrl) {
-      // Same bucket, same object — reference it rather than copying bytes.
-      cvPath = viewer.cvUrl;
-    } else if (cv) {
-      const path = cvObjectPath(cv.name);
-      const { error: uploadError } = await supabase.storage
-        .from(CV_BUCKET)
-        .upload(path, cv, { contentType: CV_ACCEPT, upsert: false });
-
-      if (uploadError) {
-        setStatus("error");
-        setMessage("We couldn't upload your CV. Please try again.");
-        return;
-      }
-      cvPath = path;
-    }
-
-    const { error } = await supabase.from("applications").insert({
-      job_id: jobId,
-      applicant_id: viewer?.id ?? null,
-      applicant_name: form.name.trim() || null,
-      // A signed-in applicant files under their account address. Identity and
-      // the claim-history flow both key on it, so it is not a free-text field.
-      applicant_email: viewer?.email ?? form.email,
-      applicant_phone: form.phone.trim() || null,
-      cover_letter: form.cover_letter.trim() || null,
-      cv_url: cvPath,
-      wp_job_title: jobTitle,
-      status: "pending",
-    });
-
-    if (error) {
-      setStatus("error");
-      setMessage(
-        error.code === "23505"
-          ? "You have already applied for this role."
-          : "Something went wrong. Please try again."
-      );
-      return;
-    }
-    setStatus("done");
+  // ── Sent ─────────────────────────────────────────────────────────────
+  if (justApplied) {
+    return (
+      <div className="text-sm">
+        <p className="mb-1 font-display text-base font-600 text-ink">
+          {gate.sent.title}
+        </p>
+        <p className="text-muted">
+          {viewer ? gate.sent.bodySignedIn : gate.sent.bodyGuest}
+        </p>
+        {viewer && (
+          <Link
+            href="/dashboard/seeker/applications"
+            className="btn-secondary mt-4 w-full justify-center"
+          >
+            {gate.alreadyApplied.action}
+          </Link>
+        )}
+      </div>
+    );
   }
 
   // ── Already applied ──────────────────────────────────────────────────
-  if (appliedAt && status !== "done") {
+  if (appliedAt) {
     return (
       <div className="text-sm">
-        <p className="font-display text-base font-600 text-pac-ink mb-1">
-          You have applied for this role
+        <p className="mb-1 font-display text-base font-600 text-ink">
+          {gate.alreadyApplied.title}
         </p>
-        <p className="text-pac-muted">
-          Submitted{" "}
-          {new Date(appliedAt).toLocaleDateString("en-KE", {
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-          })}
-          .
+        <p className="text-muted">
+          {gate.alreadyApplied.submittedOn(
+            new Date(appliedAt).toLocaleDateString("en-KE", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })
+          )}
         </p>
         <Link
-          href="/dashboard/seeker"
-          className="btn-secondary w-full mt-4 justify-center"
+          href="/dashboard/seeker/applications"
+          className="btn-secondary mt-4 w-full justify-center"
         >
-          Track your applications
+          {gate.alreadyApplied.action}
         </Link>
       </div>
     );
@@ -151,107 +108,78 @@ export function ApplyForm({
 
   // ── Employers and admins do not apply ────────────────────────────────
   if (viewer && viewer.role !== "seeker") {
+    const copy = viewer.role === "admin" ? gate.adminViewing : gate.employerCannotApply;
     return (
       <div className="text-sm">
-        <p className="font-display text-base font-600 text-pac-ink mb-1">
-          Signed in as {viewer.role === "admin" ? "an administrator" : "an employer"}
-        </p>
-        <p className="text-pac-muted">
-          Applications are for job seekers. This is how the listing looks to one.
-        </p>
+        <p className="mb-1 font-display text-base font-600 text-ink">{copy.title}</p>
+        <p className="text-muted">{copy.body}</p>
         <Link
           href={viewer.role === "admin" ? "/admin" : "/dashboard/employer"}
-          className="btn-secondary w-full mt-4 justify-center"
+          className="btn-secondary mt-4 w-full justify-center"
         >
-          Back to your dashboard
+          {copy.action}
         </Link>
-      </div>
-    );
-  }
-
-  if (status === "done") {
-    return (
-      <div className="text-sm">
-        <p className="font-display text-base font-600 text-pac-ink mb-1">
-          Application sent
-        </p>
-        <p className="text-pac-muted">
-          {viewer
-            ? "It is now in your dashboard, and you will hear from us by email if the employer responds."
-            : "We'll notify you by email if the employer responds."}
-        </p>
-        {viewer && (
-          <Link
-            href="/dashboard/seeker"
-            className="btn-secondary w-full mt-4 justify-center"
-          >
-            Track your applications
-          </Link>
-        )}
       </div>
     );
   }
 
   // ── The form ─────────────────────────────────────────────────────────
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
+    <form action={submitApplication} className="space-y-3">
+      <input type="hidden" name="slug" value={slug} />
+      <input type="hidden" name="job_title" value={jobTitle} />
+
+      {/* Honeypot. Off-screen rather than display:none — some bots skip hidden
+          fields but fill positioned ones, and a real screen reader is told to
+          ignore it. Never shown, never valid to fill. */}
+      <div aria-hidden className="absolute left-[-9999px] top-auto h-px w-px overflow-hidden">
+        <label htmlFor="apply-website">Leave this field empty</label>
+        <input id="apply-website" name="website" type="text" tabIndex={-1} autoComplete="off" />
+      </div>
+
       {viewer ? (
-        <div className="rounded-card bg-pac-stone px-3 py-2.5">
-          <p className="eyebrow mb-0.5">Applying as</p>
-          <p className="text-sm text-pac-ink font-medium truncate">
+        <div className="clay-inset px-3 py-2.5">
+          <p className="eyebrow mb-0.5">{gate.applyingAs}</p>
+          <p className="truncate text-sm font-500 text-ink">
             {viewer.fullName?.trim() || viewer.email}
           </p>
           {viewer.fullName?.trim() && (
-            <p className="text-xs text-pac-muted truncate">{viewer.email}</p>
+            <p className="truncate text-xs text-muted">{viewer.email}</p>
           )}
         </div>
       ) : (
-        <>
-          <div>
-            <label htmlFor="apply-name" className="sr-only">
-              Full name
-            </label>
-            <input
-              id="apply-name"
-              required
-              placeholder="Full name"
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="field"
-            />
-          </div>
-          <div>
-            <label htmlFor="apply-email" className="sr-only">
-              Email address
-            </label>
-            <input
-              id="apply-email"
-              required
-              type="email"
-              placeholder="Email address"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className="field"
-            />
-          </div>
-        </>
-      )}
-
-      {viewer && !viewer.fullName?.trim() && (
         <div>
-          <label htmlFor="apply-name" className="sr-only">
-            Full name
+          <label htmlFor="apply-email" className="sr-only">
+            Email address
           </label>
           <input
-            id="apply-name"
+            id="apply-email"
+            name="applicant_email"
             required
-            placeholder="Full name"
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            type="email"
+            autoComplete="email"
+            placeholder="Email address"
             className="field"
           />
         </div>
       )}
+
+      {/* Asked of everyone whose profile has no name on it — including signed-in
+          users, since the employer sees this rather than an email address. */}
+      <div>
+        <label htmlFor="apply-name" className="sr-only">
+          Full name
+        </label>
+        <input
+          id="apply-name"
+          name="applicant_name"
+          required
+          autoComplete="name"
+          defaultValue={viewer?.fullName ?? ""}
+          placeholder="Full name"
+          className="field"
+        />
+      </div>
 
       <div>
         <label htmlFor="apply-phone" className="sr-only">
@@ -259,9 +187,10 @@ export function ApplyForm({
         </label>
         <input
           id="apply-phone"
+          name="applicant_phone"
+          autoComplete="tel"
+          defaultValue={viewer?.phone ?? ""}
           placeholder="Phone number"
-          value={form.phone}
-          onChange={(e) => setForm({ ...form, phone: e.target.value })}
           className="field"
         />
       </div>
@@ -272,65 +201,54 @@ export function ApplyForm({
         </label>
         <textarea
           id="apply-cover"
+          name="cover_letter"
           placeholder="Cover letter (optional)"
           rows={4}
-          value={form.cover_letter}
-          onChange={(e) => setForm({ ...form, cover_letter: e.target.value })}
           className="field resize-none"
         />
       </div>
 
       {/* CV ---------------------------------------------------------- */}
-      {viewer?.cvUrl ? (
+      {hasProfileCv ? (
         <div className="space-y-2">
           <span className="eyebrow block">CV</span>
-          <label className="flex items-start gap-2.5 text-sm text-pac-ink">
+          <label className="flex items-start gap-2.5 text-sm text-ink">
             <input
-              type="radio"
-              name="cv-choice"
+              type="checkbox"
+              name="reuse_cv"
               checked={reuseCv}
-              onChange={() => setReuseCv(true)}
-              className="mt-0.5 accent-pac-orange"
+              onChange={(e) => setReuseCv(e.target.checked)}
+              className="mt-0.5 accent-accent"
             />
             Use the CV on my profile
-          </label>
-          <label className="flex items-start gap-2.5 text-sm text-pac-ink">
-            <input
-              type="radio"
-              name="cv-choice"
-              checked={!reuseCv}
-              onChange={() => setReuseCv(false)}
-              className="mt-0.5 accent-pac-orange"
-            />
-            Attach a different one
           </label>
           {!reuseCv && (
             <input
               type="file"
+              name="cv"
               accept={CV_ACCEPT}
-              onChange={(e) => setCv(e.target.files?.[0] ?? null)}
-              className="w-full text-xs text-pac-ink file:mr-3 file:px-3 file:py-1.5 file:rounded-card file:border file:border-pac-line file:bg-pac-stone file:text-pac-ink file:text-xs file:font-medium hover:file:border-pac-orange file:cursor-pointer"
+              className="w-full text-xs text-ink file:mr-3 file:cursor-pointer file:rounded-card file:border file:border-line file:bg-surface-raised file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-ink hover:file:border-accent"
             />
           )}
         </div>
       ) : (
         <div>
-          <label htmlFor="apply-cv" className="eyebrow block mb-2">
+          <label htmlFor="apply-cv" className="eyebrow mb-2 block">
             CV (PDF, optional)
           </label>
           <input
             id="apply-cv"
             type="file"
+            name="cv"
             accept={CV_ACCEPT}
-            onChange={(e) => setCv(e.target.files?.[0] ?? null)}
-            className="w-full text-xs text-pac-ink file:mr-3 file:px-3 file:py-1.5 file:rounded-card file:border file:border-pac-line file:bg-pac-stone file:text-pac-ink file:text-xs file:font-medium hover:file:border-pac-orange file:cursor-pointer"
+            className="w-full text-xs text-ink file:mr-3 file:cursor-pointer file:rounded-card file:border file:border-line file:bg-surface-raised file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-ink hover:file:border-accent"
           />
           {viewer && (
-            <p className="text-xs text-pac-muted mt-1.5">
+            <p className="mt-1.5 text-xs text-muted">
               Adding it to{" "}
               <Link
                 href="/dashboard/seeker/profile"
-                className="text-pac-orange-dark hover:underline"
+                className="text-accent-text hover:underline"
               >
                 your profile
               </Link>{" "}
@@ -340,29 +258,32 @@ export function ApplyForm({
         </div>
       )}
 
-      <button
-        type="submit"
-        disabled={status === "submitting"}
-        className="btn-primary w-full"
-      >
-        {status === "submitting" ? "Sending…" : "Apply now"}
-      </button>
+      <SubmitButton />
 
-      {status === "error" && (
-        <p className="text-xs text-red-600">
-          {message || "Something went wrong. Please try again."}
+      {errorMessage && (
+        <p role="alert" className="text-xs text-red-600 dark:text-red-400">
+          {errorMessage}
         </p>
       )}
 
       {!viewer && (
-        <p className="text-xs text-pac-muted text-center">
+        <p className="text-center text-xs text-muted">
           Have an account?{" "}
-          <Link href="/auth/login" className="text-pac-orange-dark hover:underline">
+          <Link href="/auth/login" className="text-accent-text hover:underline">
             Sign in
           </Link>{" "}
           to apply faster and track it.
         </p>
       )}
     </form>
+  );
+}
+
+function SubmitButton() {
+  const { pending } = useFormStatus();
+  return (
+    <button type="submit" disabled={pending} className="btn-accent w-full">
+      {pending ? "Sending…" : "Apply now"}
+    </button>
   );
 }

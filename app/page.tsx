@@ -83,6 +83,11 @@ export default async function HomePage() {
   }
   const topCategories = [...counts.values()].sort((a, b) => b.n - a.n).slice(0, 6);
 
+  // The seeker CTA's twin of postJobHref: signup for a stranger, the listings
+  // for someone already signed in. `next` is a fixed literal, so there is no
+  // open-redirect surface here.
+  const seekerHref = role ? "/jobs" : "/auth/signup?next=/jobs";
+
   return (
     <>
       {/* HERO — hero216 structure: kicker, large centred headline, meteor
@@ -92,7 +97,7 @@ export default async function HomePage() {
       <section className="relative overflow-hidden">
         <Meteors className="opacity-70" />
 
-        <div className="relative mx-auto max-w-4xl px-6 pb-4 pt-20 text-center md:pt-28">
+        <div className="relative z-[1] mx-auto max-w-4xl px-6 pt-20 text-center md:pt-28">
           <Reveal>
             <p className="text-sm text-muted">{home.kicker}</p>
           </Reveal>
@@ -113,12 +118,16 @@ export default async function HomePage() {
 
           <Reveal delay={0.18}>
             <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
-              <Link href="/jobs" className="btn-accent px-7 py-3">
-                {home.browseCta}
+              {/* Both sides of the marketplace, named for what each visitor
+                  wants. A signed-out visitor goes to signup carrying where they
+                  were headed; a signed-in one skips it and lands on the page
+                  that is actually useful to them. */}
+              <Link href={seekerHref} className="btn-accent px-7 py-3">
+                {home.seekerCta}
               </Link>
               {/* Rounded secondary with the arrow nudge, per the reference. */}
               <Link href={postJobHref(role)} className="btn-primary group px-7 py-3">
-                {home.postCta}
+                {home.employerCta}
                 <ArrowRight
                   className="h-4 w-4 transition-transform duration-200 ease-out group-hover:translate-x-1 motion-safe:animate-nudge motion-safe:group-hover:animate-none"
                   aria-hidden
@@ -129,13 +138,21 @@ export default async function HomePage() {
 
           {topCategories.length > 0 && (
             <Reveal delay={0.22}>
-              <div className="mt-7 flex flex-wrap items-center justify-center gap-2">
-                <span className="eyebrow">{home.popular}</span>
-                {topCategories.map((c) => (
-                  <Link key={c.id} href={`/jobs?category=${c.id}`} className="chip">
-                    {c.name}
-                  </Link>
-                ))}
+              {/* This row now sits over the globe, so the bare eyebrow was
+                  unreadable against the dot field. The whole row gets a
+                  translucent backing rather than the label alone — a single
+                  floating strip reads as deliberate, one patched word does not.
+                  `.translucent` opts it into the reduced-transparency override
+                  in globals.css. */}
+              <div className="mt-7 flex justify-center">
+                <div className="translucent flex flex-wrap items-center justify-center gap-2 rounded-pill bg-bg/65 px-3 py-2 backdrop-blur-md">
+                  <span className="eyebrow">{home.popular}</span>
+                  {topCategories.map((c) => (
+                    <Link key={c.id} href={`/jobs?category=${c.id}`} className="chip">
+                      {c.name}
+                    </Link>
+                  ))}
+                </div>
               </div>
             </Reveal>
           )}
@@ -148,8 +165,13 @@ export default async function HomePage() {
             it reads as a whole planet rising rather than a shallow arc, and it
             is pulled up under the copy — a gap between the two made the globe
             look like a separate band of the page. */}
-        <div className="relative mx-auto -mt-6 h-[350px] max-w-[1060px] overflow-hidden sm:-mt-8 sm:h-[450px] md:h-[530px]">
-          <div className="absolute left-1/2 top-0 w-[600px] -translate-x-1/2 sm:w-[800px] md:w-[980px]">
+        <div className="relative mx-auto -mt-24 h-[360px] max-w-[1060px] overflow-hidden sm:-mt-28 sm:h-[460px] md:-mt-32 md:h-[540px]">
+          {/* The canvas is square but cobe draws the sphere inset within it, so
+              there is roughly 90px of empty canvas above the visible arc at
+              desktop width. Pulling the canvas up by that much closes the gap
+              between the copy and the globe without cropping the sphere — moving
+              the container alone would have left the same dead space. */}
+          <div className="absolute left-1/2 top-[-70px] w-[600px] -translate-x-1/2 sm:top-[-85px] sm:w-[800px] md:top-[-100px] md:w-[980px]">
             <Globe />
           </div>
           <div

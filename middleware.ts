@@ -50,15 +50,34 @@ const CSP_ENFORCE = true;
  */
 const DEV = process.env.NODE_ENV === "development";
 
+/**
+ * Captcha provider origins. Both providers are listed rather than only the
+ * configured one: the provider is a NEXT_PUBLIC_ env var read in the browser,
+ * and a policy that silently stops matching when someone flips it is a worse
+ * failure than a spare host here. None of them can execute anything on this
+ * origin — they serve a sandboxed iframe containing their own challenge.
+ *
+ * frame-src is the one that matters. It was 'none', which blocks the widget
+ * outright: the challenge renders in an iframe, so enabling captcha in Supabase
+ * without this line takes sign-in down with no visible cause.
+ *
+ * Named exactly rather than as `*.hcaptcha.com`: a wildcard over someone
+ * else's subdomain space is a standing bet on their DNS hygiene, and only these
+ * two hosts are ever needed.
+ */
+const CAPTCHA_HOSTS =
+  "https://challenges.cloudflare.com https://newassets.hcaptcha.com https://api.hcaptcha.com";
+
 function buildCsp(nonce: string): string {
   return [
     `default-src 'self'`,
     // strict-dynamic lets Next's nonced bootstrap load its own chunks without
-    // enumerating them. In supporting browsers it also makes host allowlists
-    // for scripts redundant, which is the point.
+    // enumerating them, and in supporting browsers it makes host allowlists for
+    // scripts redundant. The captcha hosts are named anyway, for the browsers
+    // that ignore strict-dynamic and fall back to the list.
     DEV
-      ? `script-src 'self' 'unsafe-eval' 'unsafe-inline'`
-      : `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
+      ? `script-src 'self' 'unsafe-eval' 'unsafe-inline' ${CAPTCHA_HOSTS}`
+      : `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' ${CAPTCHA_HOSTS}`,
     // 'unsafe-inline' for styles is a deliberate, bounded concession: Framer
     // Motion and next-themes both write inline styles, and style injection is a
     // far weaker primitive than script injection.
@@ -72,10 +91,12 @@ function buildCsp(nonce: string): string {
     // ws: is the dev server's HMR socket. R2 is presigned-GET only, and those
     // URLs are opened in a new tab rather than fetched, so no host is needed.
     DEV
-      ? `connect-src 'self' ws: wss: https://*.supabase.co`
-      : `connect-src 'self' https://*.supabase.co wss://*.supabase.co`,
+      ? `connect-src 'self' ws: wss: https://*.supabase.co ${CAPTCHA_HOSTS}`
+      : `connect-src 'self' https://*.supabase.co wss://*.supabase.co ${CAPTCHA_HOSTS}`,
+    // Still 'none' for framing US — clickjacking protection is unchanged.
     `frame-ancestors 'none'`,
-    `frame-src 'none'`,
+    // The captcha challenge is an iframe, so this can no longer be 'none'.
+    `frame-src ${CAPTCHA_HOSTS}`,
     `object-src 'none'`,
     `base-uri 'self'`,
     // Every mutation is a server action posting back here.

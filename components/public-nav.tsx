@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
+import { Logo } from "@/components/logo";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion, useMotionValueEvent, useScroll } from "framer-motion";
@@ -56,14 +56,7 @@ export function PublicNav({ postHref, dashboardHref, signedIn }: NavLinks) {
             className="flex shrink-0 items-center gap-3"
             aria-label={`${site.name} home`}
           >
-            <Image
-              src="/pac-logo.png"
-              alt={site.owner}
-              width={591}
-              height={221}
-              priority
-              className="h-7 w-auto"
-            />
+            <Logo height={32} priority />
             <span className="hidden h-5 w-px bg-line sm:block" aria-hidden />
             <span className="eyebrow hidden sm:block">Jobs</span>
           </Link>
@@ -125,13 +118,7 @@ export function PublicNav({ postHref, dashboardHref, signedIn }: NavLinks) {
               className="flex h-full flex-col p-6"
             >
               <div className="flex items-center justify-between">
-                <Image
-                  src="/pac-logo.png"
-                  alt={site.owner}
-                  width={591}
-                  height={221}
-                  className="h-7 w-auto"
-                />
+                <Logo height={32} />
                 <button
                   type="button"
                   onClick={() => setMenuOpen(false)}

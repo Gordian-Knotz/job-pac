@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { cn, safeNextPath } from "@/lib/utils";
+import { authErrorMessage } from "@/lib/auth-errors";
+import { Captcha, captchaConfigured, type CaptchaHandle } from "@/components/captcha";
 import type { UserRole } from "@/types/database";
 
 /**
@@ -24,22 +26,37 @@ export function SignUpForm() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const captcha = useRef<CaptchaHandle>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
     setError("");
 
+    if (captchaConfigured && !captchaToken) {
+      setError("Please complete the security check first.");
+      return;
+    }
+
+    setLoading(true);
     const supabase = createClient();
     const { data, error: signUpError } = await supabase.auth.signUp({
       email: form.email,
       password: form.password,
-      options: { data: { full_name: form.name, role } },
+      options: {
+        data: { full_name: form.name, role },
+        // The trigger whitelists `role` to seeker/employer regardless of what
+        // is sent here (migration 003) — this is a convenience, not a grant.
+        ...(captchaToken ? { captchaToken } : {}),
+      },
     });
 
     if (signUpError) {
-      setError(signUpError.message);
+      setError(authErrorMessage(signUpError.message));
       setLoading(false);
+      // Single-use token, already spent by the failed attempt.
+      captcha.current?.reset();
+      setCaptchaToken(null);
       return;
     }
 
@@ -129,11 +146,17 @@ export function SignUpForm() {
             className="field"
           />
 
+          <Captcha ref={captcha} onToken={setCaptchaToken} />
+
           <button type="submit" disabled={loading} className="btn-accent w-full">
             {loading ? "Creating account…" : "Create account"}
           </button>
 
-          {error && <p className="text-xs text-red-500">{error}</p>}
+          {error && (
+            <p role="alert" className="text-xs text-red-600 dark:text-red-400">
+              {error}
+            </p>
+          )}
         </form>
 
         <p className="mt-6 text-sm text-muted">

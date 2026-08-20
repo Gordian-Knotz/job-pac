@@ -52,6 +52,8 @@ const MARKERS: Marker[] = [
   { location: [-26.2041, 28.0473], size: 0.021 }, // Johannesburg
   { location: [9.032, 38.7469], size: 0.021 }, // Addis Ababa
   { location: [5.6037, -0.187], size: 0.018 }, // Accra
+  // Named in the hero copy, so it is on the globe — the two should agree.
+  { location: [-33.9249, 18.4241], size: 0.018 }, // Cape Town
   { location: [-6.7924, 39.2083], size: 0.018 }, // Dar es Salaam
   // Middle East
   { location: [25.2048, 55.2708], size: 0.021 }, // Dubai

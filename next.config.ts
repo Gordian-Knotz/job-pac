@@ -77,6 +77,18 @@ const nextConfig: NextConfig = {
     ],
   },
   poweredByHeader: false,
+  experimental: {
+    serverActions: {
+      // A CV may be up to 5 MB (lib/cv.ts) and the apply form now posts it
+      // through a server action rather than uploading from the browser, so the
+      // 1 MB default would reject most real CVs with "Body exceeded 1 MB limit".
+      // 6 MB leaves headroom for the rest of the multipart body. The size is
+      // still checked in the action, and the storage bucket enforces 5 MB
+      // independently, so this raises the ceiling without widening what is
+      // accepted.
+      bodySizeLimit: "6mb",
+    },
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

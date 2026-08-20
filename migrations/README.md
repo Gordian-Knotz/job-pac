@@ -203,6 +203,86 @@ hole and were not:
    because `is distinct from` is false. A no-op is not a bypass — make the
    values actually differ.
 
+## After 024–025 (closing the write surface, and what that review found)
+
+**024** removed the anonymous write surface. `applications_insert_public` (004)
+granted INSERT to `anon` because the apply form ran in the browser, which made
+`POST /rest/v1/applications` an open, unauthenticated write endpoint on the most
+sensitive table here — and one nothing at the edge could protect, because the
+request goes to Supabase and never reaches Vercel. Storage was the same:
+`cvs_insert` let `anon` upload. Both are gone. Signed-in applicants now insert
+under a policy; guests go through a server action that writes with the service
+role via `submit_guest_application()`, which fixes the column list and forces
+`applicant_id` to null.
+
+**025 is the important one, and it did not come from planned work.** A security
+review of 024 found a privilege escalation that had been live since migration
+001:
+
+> `profiles_update` was `using (auth.uid() = id or is_admin())` with the same
+> WITH CHECK. That constrains the **row** and RLS has no column granularity, so
+> any registered user could send
+>
+>     PATCH /rest/v1/profiles?id=eq.<own-uid>   {"role":"admin"}
+>
+> with the public anon key and their own token. `handle_new_user` (003)
+> whitelists the role supplied at *signup*, so the insert was covered and the
+> update was not.
+
+Verified against the live database before fixing: a seeker promoted itself and
+read **4,355 of 4,356** application rows. That unlocks every admin policy,
+`cvs_select_admin`, the publish bypass in `guard_job_status`, and all of
+`/admin`. It is the most serious defect found in this rebuild.
+
+`guard_profile_columns()` now blocks non-admin changes to `role` and `email`,
+and confines `company_id` to a company the caller owns.
+
+**Why a trigger and not `revoke update (role)`.** The column revoke looks
+tighter and is wrong here: Supabase admins *are* the `authenticated` role, so a
+column privilege cannot tell them apart from a seeker, and revoking the column
+would also stop an admin changing a role or suspending an account. Column
+privileges cannot see who is asking; a trigger calling `is_admin()` can.
+
+025 also tightened two things the same review surfaced:
+
+- `applications_insert_own` constrained `status` to `pending` and added the
+  seeker-only gate the application code had assumed was already there — without
+  it any authenticated account, including an employer, could POST an application
+  already marked `hired`.
+- `cvs_select_employer` (007) matched on `a.cv_url = storage.objects.name` with
+  no constraint on who wrote that row, so an employer could insert an
+  application against their own job with `cv_url` set to a path they had seen
+  elsewhere and gain indefinite read on it — the shape 012 closed for applicants
+  and left open here. Rows the caller filed themselves are now excluded.
+
+### Verified by probe, after 025
+
+| behaviour | result |
+|---|---|
+| seeker sets own `role = 'admin'` | blocked |
+| seeker rewrites own `email` | blocked |
+| seeker points `company_id` at another company | blocked |
+| seeker edits name/phone/headline | still works |
+| insert an application with `status = 'hired'` | blocked |
+| employer files an application | blocked |
+| seeker files their own application | still works |
+| admin changes someone's role | still works |
+| `anon` inserts an application | permission denied for table |
+| `anon` calls `submit_guest_application` | permission denied for function |
+| `anon` uploads to `cvs` | RLS violation |
+| `service_role` writes a guest application | 1 row |
+
+### Two lessons worth keeping
+
+1. **RLS is row-level. It says nothing about columns.** Every policy of the form
+   `auth.uid() = id` on a table that holds a privilege column needs a trigger
+   beside it. This one shipped as part of the migration that *fixed* the RLS
+   recursion, and survived a prior security review.
+2. **A comment asserting an invariant is not the invariant.** `app/jobs/actions.ts`
+   claimed a signed-in applicant's address "is never read from the form", which
+   was true and beside the point: it was read from `profiles.email`, which the
+   same user could rewrite. It now comes from `auth.users` via the session.
+
 ## Still open
 
 - **Leaked-password protection** is still off (Supabase → Auth → Policies). The

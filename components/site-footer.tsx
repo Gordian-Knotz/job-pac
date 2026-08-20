@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Image from "next/image";
+import { Logo } from "@/components/logo";
 import { footer, nav, site } from "@/lib/content";
 
 export function SiteFooter() {
@@ -7,13 +7,7 @@ export function SiteFooter() {
     <footer className="mt-24 px-4 pb-6">
       <div className="clay mx-auto flex max-w-6xl flex-col gap-6 px-6 py-8 md:flex-row md:items-center md:justify-between">
         <div>
-          <Image
-            src="/pac-logo.png"
-            alt={site.owner}
-            width={591}
-            height={221}
-            className="mb-3 h-9 w-auto"
-          />
+          <Logo height={42} className="mb-3" />
           <p className="text-sm text-muted">{footer.rights(new Date().getFullYear())}</p>
         </div>
 

@@ -37,7 +37,7 @@ const mono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: `Jobs | ${site.owner}`,
-  description: "Vetted opportunities across Kenya and East Africa — from PAC Africa.",
+  description: "Vetted opportunities across Africa — from PAC Africa.",
 };
 
 export default function RootLayout({

@@ -145,10 +145,16 @@ async function getRelated(job: Job): Promise<Job[]> {
 
 export default async function JobDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  // The apply action redirects back here with one or the other. A guest has no
+  // session and no dashboard, so this is the only place their submission can be
+  // confirmed.
+  searchParams: Promise<{ applied?: string; apply_error?: string }>;
 }) {
   const { slug } = await params;
+  const query = await searchParams;
   const job = await getJob(slug);
   if (!job) notFound();
 
@@ -193,10 +199,12 @@ export default async function JobDetailPage({
             </p>
 
             <ApplyForm
-              jobId={job.id}
+              slug={job.slug}
               jobTitle={job.title}
               viewer={viewer}
               appliedAt={appliedAt}
+              justApplied={query.applied === "1"}
+              error={query.apply_error}
             />
 
             <div className="mt-5 space-y-2 border-t border-line pt-5">

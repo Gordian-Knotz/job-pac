@@ -38,16 +38,21 @@ export const nav = {
 
 export const home = {
   // Kicker above the headline, per the hero216 structure.
-  kicker: "Connecting Kenyan talent with employers we have checked",
+  kicker: "Vetted opportunities across Africa",
   // Three lines, centred, set large. Split so one fragment can carry the accent
   // colour — at display size #E8532E clears AA on both surfaces.
-  headlineLead: "Vetted work.",
-  headlineMid: "Real employers.",
-  headlineTail: "Across Kenya.",
-  sub: "Every role here is reviewed by PAC Africa before it goes live. No ghost listings, no recruiter noise, no applying into a void.",
+  headlineLead: "African talent.",
+  headlineMid: "Africa's future.",
+  headlineTail: "Placed right.",
+  sub: "PAC Africa connects skilled professionals across the continent with employers ready to invest in African talent — from Nairobi to Lagos, Accra to Cape Town and beyond.",
   searchWhat: "Job title, skill, or keyword",
-  searchWhere: "Anywhere in Kenya",
+  searchWhere: "Anywhere in Africa",
   searchCta: "Search roles",
+  // Both lead to signup for a visitor who is not signed in, carrying where they
+  // were headed so they land there afterwards (brief §7). Someone already signed
+  // in goes straight to the useful page instead of being asked to register again.
+  seekerCta: "Find your next opportunity",
+  employerCta: "Hire top African talent",
   browseCta: "Browse roles",
   postCta: "Post a job",
   popular: "Popular",
@@ -170,6 +175,30 @@ export const gate = {
     submittedOn: (date: string) => `Submitted ${date}.`,
     action: "Track your applications",
   },
+  /**
+   * Apply failures, keyed by code.
+   *
+   * The action redirects with `?apply_error=<code>`, never with a message. It
+   * used to pass the sentence itself, which meant anyone could put arbitrary
+   * copy inside the apply card on a real jobs.pac.africa listing URL —
+   * `?apply_error=Email your CV and ID to verify@…` needs no login and no
+   * interaction beyond clicking a link. React escaped it, so it was never XSS,
+   * but on a site asking job seekers to upload identity documents it was a
+   * usable phishing primitive. A code cannot say anything we did not write.
+   */
+  applyErrors: {
+    invalid_request: "Something went wrong. Please try again.",
+    closed: "That role is no longer open for applications.",
+    signed_out: "Please sign in again and retry.",
+    not_seeker: "Applications are for job seeker accounts.",
+    name_required: "Please enter your name.",
+    email_invalid: "Please enter a valid email address.",
+    cv_too_large: "Your CV needs to be under 5MB.",
+    cv_not_pdf: "That file is not a PDF, even though it may be named like one.",
+    cv_upload_failed: "We could not upload your CV. Please try again.",
+    duplicate: "You have already applied for this role.",
+    failed: "Something went wrong. Please try again.",
+  } as Record<string, string>,
   applyingAs: "Applying as",
   signInToApplyFaster: "Sign in to apply faster and track it.",
   noAccountNeeded: "You do not need an account. Attach a CV if you have one ready.",
@@ -242,7 +271,7 @@ export const cv = {
 
 export const footer = {
   rights: (year: number) =>
-    `© ${year} ${site.owner}. Connecting Kenyan talent with vetted employers.`,
+    `© ${year} ${site.owner}. Connecting African talent with vetted employers.`,
 } as const;
 
 /**

@@ -209,6 +209,18 @@ export interface Database {
         Args: { app_ids: string[] };
         Returns: { application_id: string; headline: string | null; avatar_url: string | null }[];
       };
+      submit_guest_application: {
+        Args: {
+          p_job_id: string;
+          p_name: string | null;
+          p_email: string;
+          p_phone: string | null;
+          p_cover_letter: string | null;
+          p_cv_url: string | null;
+          p_job_title: string | null;
+        };
+        Returns: string;
+      };
       increment_job_view: {
         Args: { job: string };
         Returns: undefined;
