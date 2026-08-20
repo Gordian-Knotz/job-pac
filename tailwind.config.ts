@@ -1,30 +1,47 @@
 import type { Config } from "tailwindcss";
 
+/**
+ * Colours are CSS variables holding raw RGB triples, so `rgb(var(--x) /
+ * <alpha-value>)` keeps Tailwind's opacity modifiers working (`bg-surface/60`).
+ * Values live in app/globals.css under :root and .dark.
+ *
+ * The legacy `pac-*` names are deliberately kept and re-pointed at the same
+ * variables. Every page written before this redesign becomes theme-aware with
+ * no edits, so the dashboards keep working while the public pages are rebuilt
+ * one at a time rather than the app sitting broken in between.
+ */
 const config: Config = {
-  content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}"],
+  darkMode: "class",
+  content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./lib/**/*.{ts,tsx}"],
   theme: {
     extend: {
       colors: {
-        // PAC Africa brand system.
+        bg: "rgb(var(--bg) / <alpha-value>)",
+        surface: "rgb(var(--surface) / <alpha-value>)",
+        "surface-raised": "rgb(var(--surface-raised) / <alpha-value>)",
+        line: "rgb(var(--line) / <alpha-value>)",
+        ink: "rgb(var(--text) / <alpha-value>)",
+        muted: "rgb(var(--text-muted) / <alpha-value>)",
+        faint: "rgb(var(--text-faint) / <alpha-value>)",
+
+        // The brand orange. `accent` is for fills, borders, rings and icons.
+        // `accent-text` is the same hue adjusted per mode so orange TEXT clears
+        // 4.5:1 — #E8532E is 4.82:1 on the dark surface but only 3.68:1 on
+        // white, which would fail the AA requirement in light mode.
+        accent: "rgb(var(--accent) / <alpha-value>)",
+        "accent-text": "rgb(var(--accent-text) / <alpha-value>)",
+
+        // Legacy aliases — same variables, so old pages theme correctly.
         pac: {
-          // Orange stays the single accent. `orange` is for borders, icons,
-          // large text and the stamp; `orange-dark` is the only one that may
-          // carry white text at body size — #E8532E on white is 3.68:1, which
-          // fails AA for normal text, while #C9401F is 4.93:1 and passes.
-          orange: "#E8532E",
-          "orange-dark": "#C9401F",
-          "orange-tint": "#FDF0EC",
-
-          ink: "#161412",
-          paper: "#FDFBF8",
-          stone: "#F4F1EC",
-          line: "#E4DFD6",
-
-          // Secondary text. Darkened from #8A8378, which was 3.46:1 on paper
-          // and failed AA everywhere it was used for body copy. #6B655C is
-          // 5.29:1. The old value survives as `faint`, for non-text use only.
-          muted: "#6B655C",
-          faint: "#8A8378",
+          orange: "rgb(var(--accent) / <alpha-value>)",
+          "orange-dark": "rgb(var(--accent-text) / <alpha-value>)",
+          "orange-tint": "rgb(var(--accent-tint) / <alpha-value>)",
+          ink: "rgb(var(--text) / <alpha-value>)",
+          paper: "rgb(var(--bg) / <alpha-value>)",
+          stone: "rgb(var(--surface-raised) / <alpha-value>)",
+          line: "rgb(var(--line) / <alpha-value>)",
+          muted: "rgb(var(--text-muted) / <alpha-value>)",
+          faint: "rgb(var(--text-faint) / <alpha-value>)",
         },
       },
       fontFamily: {
@@ -32,50 +49,45 @@ const config: Config = {
         body: ["var(--font-plex-sans)", "system-ui", "sans-serif"],
         mono: ["var(--font-plex-mono)", "monospace"],
       },
-      // The markup throughout uses font-600 / font-700. Tailwind 3.4 ships only
-      // named weights, so those classes silently did nothing and every heading
-      // rendered at normal weight. Registering the numerics fixes it without
-      // touching any markup.
-      fontWeight: {
-        400: "400",
-        500: "500",
-        600: "600",
-        700: "700",
-      },
+      fontWeight: { 400: "400", 500: "500", 600: "600", 700: "700" },
       letterSpacing: {
-        // Tracking is size-specific: large type reads too loose as it grows,
-        // small type needs a little air. One global value is wrong somewhere.
         display: "-0.021em",
         tight: "-0.011em",
         label: "0.14em",
       },
       borderRadius: {
-        card: "6px",
+        clay: "16px",
+        card: "12px",
+        pill: "9999px",
       },
       boxShadow: {
-        stamp: "0 1px 2px rgba(22, 20, 18, 0.06), 0 1px 0 rgba(22, 20, 18, 0.04)",
-        // Larger surfaces read as thicker than small chips.
-        raised: "0 4px 16px -4px rgba(22, 20, 18, 0.10), 0 1px 2px rgba(22, 20, 18, 0.05)",
+        clay: "var(--clay-shadow)",
+        "clay-lifted": "var(--clay-shadow-lifted)",
+        "clay-inset": "var(--clay-shadow-inset)",
       },
       transitionTimingFunction: {
-        // The built-in CSS easings are too weak to feel intentional.
-        // Never ease-in on UI: it delays the first frame, which is exactly
-        // when the user is watching.
         out: "cubic-bezier(0.23, 1, 0.32, 1)",
         "in-out": "cubic-bezier(0.77, 0, 0.175, 1)",
       },
       keyframes: {
-        "pane-in": {
-          from: { opacity: "0", transform: "translateY(3px)" },
+        "mesh-drift": {
+          "0%,100%": { transform: "translate3d(0,0,0) scale(1)" },
+          "33%": { transform: "translate3d(3%,-2%,0) scale(1.06)" },
+          "66%": { transform: "translate3d(-2%,3%,0) scale(1.03)" },
+        },
+        "fade-up": {
+          from: { opacity: "0", transform: "translateY(8px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
       },
       animation: {
-        "pane-in": "pane-in 180ms cubic-bezier(0.23, 1, 0.32, 1) both",
+        // 12s cycle, per the brief.
+        "mesh-drift": "mesh-drift 12s ease-in-out infinite",
+        "fade-up": "fade-up 320ms cubic-bezier(0.23, 1, 0.32, 1) both",
       },
     },
   },
-  plugins: [],
+  plugins: [require("tailwindcss-animate")],
 };
 
 export default config;

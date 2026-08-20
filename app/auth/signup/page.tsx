@@ -1,13 +1,9 @@
 import { Suspense } from "react";
-import { LoginForm } from "@/components/login-form";
+import { SignUpForm } from "@/components/signup-form";
 import { states } from "@/lib/content";
 
-/**
- * The form reads `?next=` with useSearchParams, which Next cannot prerender
- * without a Suspense boundary — the build fails outright otherwise. Server
- * shell here, client form inside.
- */
-export default function LoginPage() {
+/** Same Suspense requirement as login — the form reads ?next=. */
+export default function SignUpPage() {
   return (
     <Suspense
       fallback={
@@ -18,7 +14,7 @@ export default function LoginPage() {
         </div>
       }
     >
-      <LoginForm />
+      <SignUpForm />
     </Suspense>
   );
 }

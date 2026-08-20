@@ -41,14 +41,16 @@ export type JobFields = {
   title: string;
   description: string;
   requirements: string | null;
-  benefits: string | null;
+  /** Replaced `benefits` in migration 015 — same slot, better prompt. */
+  qualifications: string | null;
+  /** Optional. Null on both means the listing says nothing about pay. */
+  salary_min: number | null;
+  salary_max: number | null;
   category_id: string | null;
   location_id: string | null;
   location_text: string | null;
   job_type: JobType;
   employment_level: EmploymentLevel;
-  salary_min: number | null;
-  salary_max: number | null;
   is_remote: boolean;
   application_deadline: string | null;
 };
@@ -62,29 +64,26 @@ export function parseJobFields(formData: FormData): JobFields | null {
   const description = str(formData, "description");
   if (!title || !description) return null;
 
-  const salary_min = int(formData, "salary_min");
-  const salary_max = int(formData, "salary_max");
+  // Salary is optional — both fields may be blank, and a listing with no pay
+  // information shows nothing about pay rather than a placeholder.
+  const salaryMin = int(formData, "salary_min");
+  const salaryMax = int(formData, "salary_max");
+  // Swapped rather than rejected: someone typing 120000 then 80000 meant a
+  // range, and storing it backwards would break the salary sort silently.
+  const flip = salaryMin !== null && salaryMax !== null && salaryMin > salaryMax;
 
   return {
     title,
     description,
     requirements: str(formData, "requirements"),
-    benefits: str(formData, "benefits"),
+    qualifications: str(formData, "qualifications"),
+    salary_min: flip ? salaryMax : salaryMin,
+    salary_max: flip ? salaryMin : salaryMax,
     category_id: str(formData, "category_id"),
     location_id: str(formData, "location_id"),
     location_text: str(formData, "location_text"),
     job_type: oneOf(str(formData, "job_type"), JOB_TYPES, "full_time"),
     employment_level: oneOf(str(formData, "employment_level"), LEVELS, "mid"),
-    // Swap them rather than reject: someone typing 120000 then 80000 meant a
-    // range, and silently storing it backwards would break the salary sort.
-    salary_min:
-      salary_min !== null && salary_max !== null && salary_min > salary_max
-        ? salary_max
-        : salary_min,
-    salary_max:
-      salary_min !== null && salary_max !== null && salary_min > salary_max
-        ? salary_min
-        : salary_max,
     is_remote: formData.get("is_remote") === "on",
     application_deadline: str(formData, "application_deadline"),
   };

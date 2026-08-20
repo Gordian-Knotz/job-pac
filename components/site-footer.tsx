@@ -1,35 +1,34 @@
 import Link from "next/link";
 import Image from "next/image";
+import { footer, nav, site } from "@/lib/content";
 
 export function SiteFooter() {
   return (
-    <footer className="border-t border-pac-line mt-24">
-      <div className="mx-auto max-w-6xl px-6 py-10 flex flex-col md:flex-row md:items-center justify-between gap-6 text-sm text-pac-muted">
+    <footer className="mt-24 px-4 pb-6">
+      <div className="clay mx-auto flex max-w-6xl flex-col gap-6 px-6 py-8 md:flex-row md:items-center md:justify-between">
         <div>
-          {/* Larger here than in the header, where the strapline would be
-              illegible at nav height. */}
           <Image
             src="/pac-logo.png"
-            alt="PAC Africa — Priority Activator Consulting"
+            alt={site.owner}
             width={591}
             height={221}
-            className="h-10 w-auto mb-3"
+            className="mb-3 h-9 w-auto"
           />
-          <p>
-            &copy; {new Date().getFullYear()} PAC Africa. Connecting Kenyan
-            talent with vetted employers since 2014.
-          </p>
+          <p className="text-sm text-muted">{footer.rights(new Date().getFullYear())}</p>
         </div>
 
-        <nav className="flex items-center gap-6">
-          <Link href="/jobs" className="hover:text-pac-orange-dark transition-colors">
-            Browse jobs
+        <nav className="flex items-center gap-5 text-sm">
+          <Link
+            href="/jobs"
+            className="text-muted transition-colors duration-150 ease-out hover:text-ink"
+          >
+            {nav.browse}
           </Link>
           <Link
-            href="/auth/register"
-            className="hover:text-pac-orange-dark transition-colors"
+            href="/auth/signup"
+            className="text-muted transition-colors duration-150 ease-out hover:text-ink"
           >
-            Post a job
+            {nav.post}
           </Link>
         </nav>
       </div>

@@ -1,6 +1,19 @@
 export type UserRole = "seeker" | "employer" | "admin";
-export type ApplicationStatus = "pending" | "shortlisted" | "rejected" | "hired";
-export type JobStatus = "draft" | "pending_review" | "published" | "expired" | "closed";
+// Order matches the enums in Postgres, which are in workflow order so
+// `order by status` sorts the way a person reads it. See migration 014.
+export type ApplicationStatus =
+  | "pending"
+  | "under_review"
+  | "shortlisted"
+  | "rejected"
+  | "hired";
+export type JobStatus =
+  | "draft"
+  | "pending_review"
+  | "published"
+  | "paused"
+  | "expired"
+  | "closed";
 export type JobType = "full_time" | "part_time" | "freelance" | "contract" | "internship";
 export type EmploymentLevel = "entry" | "mid" | "senior" | "executive";
 
@@ -62,7 +75,7 @@ export type Job = {
   slug: string;
   description: string;
   requirements: string | null;
-  benefits: string | null;
+  qualifications: string | null;
   category_id: string | null;
   location_id: string | null;
   location_text: string | null;

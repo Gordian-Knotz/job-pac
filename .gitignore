@@ -32,3 +32,6 @@ Indeed-design/
 *.local.md
 scratch/
 
+
+# Exports containing applicant PII
+*.csv

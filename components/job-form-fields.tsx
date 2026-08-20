@@ -72,14 +72,15 @@ export function JobFormFields({
       </div>
 
       <div>
-        <label htmlFor="benefits" className="eyebrow block mb-2">
-          Benefits
+        <label htmlFor="qualifications" className="eyebrow block mb-2">
+          Qualifications
         </label>
         <textarea
-          id="benefits"
-          name="benefits"
-          rows={3}
-          defaultValue={job?.benefits ?? ""}
+          id="qualifications"
+          name="qualifications"
+          rows={4}
+          defaultValue={job?.qualifications ?? ""}
+          placeholder="Certifications, education, licences"
           className="field resize-y"
         />
       </div>
@@ -173,7 +174,10 @@ export function JobFormFields({
         </div>
       </div>
 
-      <div className="grid sm:grid-cols-3 gap-4">
+      {/* Salary is optional. Left blank, nothing about pay appears on the
+          listing at all — no "salary not disclosed" placeholder, which reads as
+          a gap rather than a choice. */}
+      <div className="grid gap-4 sm:grid-cols-3">
         <div>
           <label htmlFor="salary_min" className="eyebrow block mb-2">
             Salary from (KES)
@@ -182,6 +186,7 @@ export function JobFormFields({
             id="salary_min"
             name="salary_min"
             inputMode="numeric"
+            placeholder="Optional"
             defaultValue={job?.salary_min ?? ""}
             className="field"
           />
@@ -194,6 +199,7 @@ export function JobFormFields({
             id="salary_max"
             name="salary_max"
             inputMode="numeric"
+            placeholder="Optional"
             defaultValue={job?.salary_max ?? ""}
             className="field"
           />

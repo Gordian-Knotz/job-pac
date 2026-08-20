@@ -95,6 +95,19 @@ export function plainSnippet(html: string | null, maxChars = 165): string {
   return `${(lastSpace > maxChars * 0.6 ? cut.slice(0, lastSpace) : cut).trimEnd()}…`;
 }
 
+/**
+ * Confines a `?next=` value to a same-site path.
+ *
+ * The parameter is attacker-supplied, so an unchecked value turns every auth
+ * link into an open redirect. `//evil.com` is rejected as well as
+ * `https://evil.com` — a protocol-relative URL is a valid redirect target and
+ * passes a naive `startsWith("/")` check.
+ */
+export function safeNextPath(value: string | null | undefined, fallback = "/"): string {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) return fallback;
+  return value;
+}
+
 export const JOB_TYPE_LABELS: Record<string, string> = {
   full_time: "Full Time",
   part_time: "Part Time",

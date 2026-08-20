@@ -12,6 +12,20 @@ export function dashboardPathFor(role: UserRole): string {
 }
 
 /**
+ * Where "Post a Job" should go for a given role (brief §7).
+ *
+ * Computed server-side so the gate is settled on first paint — the nav and the
+ * homepage hero both use this, and neither needs client logic to work out where
+ * the button points.
+ */
+export function postJobHref(role: UserRole | null): string {
+  if (role === "employer") return "/dashboard/employer/post";
+  if (role === "admin") return "/admin/jobs/new";
+  if (role === "seeker") return "/post-a-job";
+  return "/auth/signup?next=/post-a-job";
+}
+
+/**
  * Requires a signed-in user with a profile row, and hands back the Supabase
  * client so callers do not construct a second one.
  *

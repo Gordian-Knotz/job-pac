@@ -4,6 +4,9 @@ import "./globals.css";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { WebAnalytics } from "@/components/web-analytics";
+import { AmbientBackground } from "@/components/ambient-background";
+import { ThemeProvider } from "@/components/theme";
+import { site } from "@/lib/content";
 
 const sourceSerif = Source_Serif_4({
   subsets: ["latin"],
@@ -27,7 +30,7 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Jobs | PAC Africa",
+  title: `Jobs | ${site.owner}`,
   description: "Vetted opportunities across Kenya and East Africa — from PAC Africa.",
 };
 
@@ -35,14 +38,19 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
+    // suppressHydrationWarning is required by next-themes: it writes the theme
+    // class onto <html> before paint, which the server render cannot predict.
+    <html lang="en" suppressHydrationWarning>
       <body
-        className={`${sourceSerif.variable} ${plexSans.variable} ${plexMono.variable} font-body bg-pac-paper text-pac-ink antialiased`}
+        className={`${sourceSerif.variable} ${plexSans.variable} ${plexMono.variable} font-body antialiased`}
       >
-        <SiteHeader />
-        <main className="min-h-screen">{children}</main>
-        <SiteFooter />
-        <WebAnalytics />
+        <ThemeProvider>
+          <AmbientBackground />
+          <SiteHeader />
+          <main className="min-h-screen">{children}</main>
+          <SiteFooter />
+          <WebAnalytics />
+        </ThemeProvider>
       </body>
     </html>
   );

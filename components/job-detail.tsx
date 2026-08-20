@@ -1,21 +1,23 @@
-import { MapPin, Clock, Briefcase, BadgeCheck, Signal, CalendarClock } from "lucide-react";
-import { formatSalary, JOB_TYPE_LABELS, timeAgo } from "@/lib/utils";
+import { MapPin, Clock, Briefcase, Signal, CalendarClock, ShieldCheck } from "lucide-react";
+import { formatSalary, timeAgo } from "@/lib/utils";
 import { sanitizeJobHtml } from "@/lib/sanitize";
+import { job as jobCopy, employmentLevelLabels, jobTypeLabels } from "@/lib/content";
 import type { Job } from "@/types/database";
 
-const LEVEL_LABELS: Record<string, string> = {
-  entry: "Entry level",
-  mid: "Mid level",
-  senior: "Senior",
-  executive: "Executive",
-};
-
 /**
- * The job body, shared by the standalone /jobs/[slug] page and the detail pane
- * of the two-pane search. One source of truth so the two can never drift.
+ * The job body, shared by the standalone detail page and anywhere else a role is
+ * shown in full. One source of truth so they cannot drift.
  *
- * `apply` is a slot rather than a prop-driven form: the standalone page renders
- * the form inline, the pane renders a link across to it.
+ * NO EMPLOYER AND NO SALARY, by design:
+ *
+ *  - The company behind a role is admin-only. PAC sits between the applicant and
+ *    the employer, so there is no company name, logo, verified badge or "About
+ *    the company" section here. `postedVia` states who the listing comes from,
+ *    which makes the absence read as deliberate rather than as missing data.
+ *  - Salaries were removed from the product. The columns still exist in the
+ *    database (see migration 015) but nothing writes or reads them.
+ *
+ * `qualifications` replaced `benefits` — same slot, better prompt.
  */
 export function JobDetail({
   job,
@@ -30,47 +32,42 @@ export function JobDetail({
 
   return (
     <article>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-2">
-        <span className="eyebrow">{job.category?.name ?? "General"}</span>
-        {job.company?.verified && (
-          <span className="inline-flex items-center gap-1 text-xs font-medium text-pac-orange-dark">
-            <BadgeCheck className="w-3.5 h-3.5" aria-hidden />
-            Verified employer
-          </span>
-        )}
-      </div>
+      <span className="eyebrow">{job.category?.name ?? "General"}</span>
 
-      <Heading className="font-display text-2xl md:text-3xl font-700 text-pac-ink leading-[1.12] tracking-display">
+      <Heading className="mt-2 font-display text-3xl font-700 leading-[1.1] tracking-display text-ink md:text-4xl">
         {job.title}
       </Heading>
-      <p className="text-pac-muted mt-1.5 text-[15px]">
-        {job.company?.name ?? "Confidential employer"}
+
+      <p className="mt-2 inline-flex items-center gap-1.5 text-sm text-muted">
+        <ShieldCheck className="h-4 w-4 text-accent-text" aria-hidden />
+        {jobCopy.postedVia}
       </p>
 
-      {/* Pay first: it is the thing applicants look for, and "not disclosed" is
-          itself useful information rather than an absence to hide. */}
-      <p className="font-display text-lg font-600 text-pac-ink mt-5">
-        {formatSalary(job.salary_min, job.salary_max, job.salary_currency)}
-      </p>
+      {/* Only when set. An unpriced role simply says nothing about pay. */}
+      {(job.salary_min || job.salary_max) && (
+        <p className="mt-5 font-display text-xl font-600 text-ink">
+          {formatSalary(job.salary_min, job.salary_max, job.salary_currency)}
+        </p>
+      )}
 
-      <dl className="flex flex-wrap gap-x-5 gap-y-2 mt-4 text-sm text-pac-muted border-y border-pac-line py-3.5">
-        <Meta icon={<MapPin className="w-4 h-4" aria-hidden />} label="Location">
+      <dl className="mt-6 flex flex-wrap gap-x-6 gap-y-3 border-y border-line py-4 text-sm text-muted">
+        <Meta icon={<MapPin className="h-4 w-4" aria-hidden />} label="Location">
           {job.is_remote
             ? "Remote"
             : (job.location?.name ?? job.location_text ?? "Kenya")}
         </Meta>
-        <Meta icon={<Briefcase className="w-4 h-4" aria-hidden />} label="Job type">
-          {JOB_TYPE_LABELS[job.job_type] ?? job.job_type}
+        <Meta icon={<Briefcase className="h-4 w-4" aria-hidden />} label="Job type">
+          {jobTypeLabels[job.job_type] ?? job.job_type}
         </Meta>
-        <Meta icon={<Signal className="w-4 h-4" aria-hidden />} label="Seniority">
-          {LEVEL_LABELS[job.employment_level] ?? job.employment_level}
+        <Meta icon={<Signal className="h-4 w-4" aria-hidden />} label="Seniority">
+          {employmentLevelLabels[job.employment_level] ?? job.employment_level}
         </Meta>
-        <Meta icon={<Clock className="w-4 h-4" aria-hidden />} label="Posted">
+        <Meta icon={<Clock className="h-4 w-4" aria-hidden />} label="Posted">
           {timeAgo(job.original_date ?? job.created_at)}
         </Meta>
         {job.application_deadline && (
           <Meta
-            icon={<CalendarClock className="w-4 h-4" aria-hidden />}
+            icon={<CalendarClock className="h-4 w-4" aria-hidden />}
             label="Closes"
           >
             {new Date(job.application_deadline).toLocaleDateString("en-KE", {
@@ -84,10 +81,14 @@ export function JobDetail({
 
       {apply && <div className="mt-6">{apply}</div>}
 
-      <div className="mt-8 space-y-6">
-        <Section title="About the role" html={job.description} />
-        {job.requirements && <Section title="Requirements" html={job.requirements} />}
-        {job.benefits && <Section title="Benefits" html={job.benefits} />}
+      <div className="mt-8 space-y-7">
+        <Section title={jobCopy.about} html={job.description} />
+        {job.requirements && (
+          <Section title={jobCopy.requirements} html={job.requirements} />
+        )}
+        {job.qualifications && (
+          <Section title={jobCopy.qualifications} html={job.qualifications} />
+        )}
       </div>
     </article>
   );
@@ -115,13 +116,13 @@ function Section({ title, html }: { title: string; html: string }) {
   return (
     <section>
       <h3 className="eyebrow mb-2.5">{title}</h3>
-      {/* Employers author this copy, so it is untrusted. Sanitised through an
-          allowlist on every render — see lib/sanitize.ts for why on read rather
-          than on write. */}
+      {/* Employers author this copy, so it is untrusted — sanitised through an
+          allowlist on every render. See lib/sanitize.ts. */}
       <div
-        className="prose prose-sm max-w-none text-pac-ink/90 leading-relaxed
-                   prose-headings:font-display prose-headings:text-pac-ink
-                   prose-a:text-pac-orange-dark prose-strong:text-pac-ink"
+        className="prose prose-sm max-w-none leading-relaxed text-ink/90
+                   prose-headings:font-display prose-headings:text-ink
+                   prose-strong:text-ink prose-a:text-accent-text
+                   dark:prose-invert"
         dangerouslySetInnerHTML={{ __html: sanitizeJobHtml(html) }}
       />
     </section>
