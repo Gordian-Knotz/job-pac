@@ -196,6 +196,134 @@
     border-color: rgb(var(--accent) / 0.35);
   }
 
+  /* ── Job body copy ────────────────────────────────────────────
+     The single definition of how authored job copy looks. Applied to BOTH the
+     rich-text editor's editing surface and the rendered listing, which is what
+     makes the editor honest: the same stylesheet lays out both, so what an
+     employer arranges is what an applicant reads.
+
+     Written by hand rather than pulling in @tailwindcss/typography. Two reasons:
+     the brief rules out new libraries, and this needs about ten elements rather
+     than the plugin's full essay treatment. It also fixes the actual bug — the
+     `prose` classes on the listing were inert because that plugin was never
+     installed, and Tailwind's preflight zeroes list markers and paragraph
+     margins, so every bullet list rendered as an unindented run-on block no
+     matter what was typed. */
+  .prose-job {
+    @apply text-[15px] leading-relaxed text-ink/90;
+  }
+  .prose-job > :first-child {
+    margin-top: 0;
+  }
+  .prose-job > :last-child {
+    margin-bottom: 0;
+  }
+  .prose-job p {
+    margin: 0 0 0.85em;
+  }
+  .prose-job ul,
+  .prose-job ol {
+    margin: 0 0 0.9em;
+    padding-left: 1.35em;
+  }
+  .prose-job ul {
+    list-style: disc;
+  }
+  .prose-job ol {
+    list-style: decimal;
+  }
+  .prose-job ul ul {
+    list-style: circle;
+  }
+  .prose-job li {
+    margin: 0.3em 0;
+    padding-left: 0.15em;
+  }
+  .prose-job li::marker {
+    color: rgb(var(--accent));
+  }
+  .prose-job ol li::marker {
+    color: rgb(var(--text-faint));
+    font-variant-numeric: tabular-nums;
+  }
+  .prose-job strong,
+  .prose-job b {
+    @apply font-600 text-ink;
+  }
+  .prose-job em,
+  .prose-job i {
+    font-style: italic;
+  }
+  .prose-job u {
+    text-decoration-color: rgb(var(--accent) / 0.6);
+    text-underline-offset: 2px;
+  }
+  .prose-job a {
+    @apply text-accent-text underline;
+    text-underline-offset: 2px;
+  }
+  .prose-job h2,
+  .prose-job h3,
+  .prose-job h4 {
+    @apply font-display font-600 text-ink;
+    margin: 1.4em 0 0.5em;
+    line-height: 1.25;
+  }
+  .prose-job h2 {
+    font-size: 1.15em;
+  }
+  .prose-job h3 {
+    font-size: 1.05em;
+  }
+  .prose-job h4 {
+    font-size: 1em;
+  }
+  .prose-job blockquote {
+    @apply text-muted;
+    margin: 0 0 0.9em;
+    padding-left: 0.9em;
+    border-left: 2px solid rgb(var(--accent) / 0.35);
+  }
+  .prose-job hr {
+    @apply border-line;
+    margin: 1.3em 0;
+  }
+  .prose-job table {
+    margin: 0 0 0.9em;
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .prose-job th,
+  .prose-job td {
+    @apply border-line;
+    border-width: 1px;
+    padding: 0.4em 0.6em;
+    text-align: left;
+  }
+  .prose-job th {
+    @apply font-600 text-ink;
+  }
+
+  /* The editing surface. Same .prose-job typography, plus a well to type in. */
+  .prose-editor {
+    @apply w-full rounded-b-card px-3.5 py-3 outline-none;
+    background-color: rgb(var(--surface-raised));
+    box-shadow: var(--clay-shadow-inset);
+    min-height: 9rem;
+  }
+  .prose-editor:focus-visible {
+    outline: 2px solid rgb(var(--accent));
+    outline-offset: -2px;
+  }
+  /* Placeholder for an empty contenteditable. `:empty` alone does not fire once
+     the browser has put a stray <br> or <p> in there, so the component sets
+     data-empty itself. */
+  .prose-editor[data-empty="true"]::before {
+    content: attr(data-placeholder);
+    @apply text-faint;
+    pointer-events: none;
+  }
+
   /* ── Inputs sit pressed into the surface ──────────────────────── */
   .field {
     @apply w-full rounded-card px-3.5 py-2.5 text-sm text-ink outline-none

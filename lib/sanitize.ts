@@ -26,7 +26,12 @@ import sanitizeHtml from "sanitize-html";
  */
 const OPTIONS: sanitizeHtml.IOptions = {
   allowedTags: [
-    "p", "br", "hr",
+    // `div` is allowed only so it can be rewritten to `p` below. Some browsers
+    // still emit a div per line from contenteditable regardless of
+    // defaultParagraphSeparator, and dropping the tag would keep the text while
+    // silently losing the line break — the exact format loss this is meant to
+    // prevent.
+    "p", "div", "br", "hr",
     "strong", "b", "em", "i", "u", "s",
     "ul", "ol", "li",
     "h2", "h3", "h4",
@@ -35,13 +40,24 @@ const OPTIONS: sanitizeHtml.IOptions = {
     "table", "thead", "tbody", "tr", "th", "td",
   ],
   allowedAttributes: {
-    a: ["href", "title"],
+    // `rel` and `target` have to be listed here even though the transform below
+    // is what sets them: sanitize-html runs transformTags FIRST and then filters
+    // attributes against this list, so without them the transform's own output
+    // was being stripped straight back off. Every external link in job copy has
+    // therefore been rendering without noopener since this file was written —
+    // a reverse-tabnabbing path that the comment below claimed was closed.
+    a: ["href", "title", "rel", "target"],
   },
-  // http/https/mailto/tel only — blocks javascript: and data: URLs.
+  // No style attribute anywhere, which is what strips the `mso-*` and font
+  // wrappers a paste from Word carries. `span` and `font` are absent from the
+  // allowlist entirely, so their text survives and their styling does not.
   allowedSchemes: ["http", "https", "mailto", "tel"],
   allowedSchemesAppliedToAttributes: ["href"],
-  // Untrusted links leave the site, so do not hand over window.opener.
   transformTags: {
+    // A block is a block. Nested divs become nested `p`, which the browser's
+    // parser auto-closes into siblings — the right result either way.
+    div: "p",
+    // Untrusted links leave the site, so do not hand over window.opener.
     a: (tagName, attribs) => ({
       tagName,
       attribs: { ...attribs, rel: "nofollow noopener noreferrer", target: "_blank" },

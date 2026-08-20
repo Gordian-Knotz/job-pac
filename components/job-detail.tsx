@@ -1,6 +1,7 @@
 import { MapPin, Clock, Briefcase, Signal, CalendarClock, ShieldCheck } from "lucide-react";
 import { formatSalary, timeAgo } from "@/lib/utils";
 import { sanitizeJobHtml } from "@/lib/sanitize";
+import { toRichHtml } from "@/lib/rich-text";
 import { job as jobCopy, employmentLevelLabels, jobTypeLabels } from "@/lib/content";
 import type { Job } from "@/types/database";
 
@@ -116,14 +117,22 @@ function Section({ title, html }: { title: string; html: string }) {
   return (
     <section>
       <h3 className="eyebrow mb-2.5">{title}</h3>
-      {/* Employers author this copy, so it is untrusted — sanitised through an
-          allowlist on every render. See lib/sanitize.ts. */}
+      {/* Two steps, in this order:
+          1. toRichHtml gives structure to listings stored as plain text — every
+             one entered through the old textareas. Without it those newlines
+             collapse and a bullet list renders as one run-on paragraph.
+          2. sanitizeJobHtml then strips anything an employer should not be able
+             to put on a public page. Sanitising last means the inferred markup
+             is checked too, not trusted because we generated it.
+
+          `.prose-job` is the same class the editor's surface uses, so this is
+          what the author saw while writing. It replaced `prose prose-sm`, which
+          did nothing at all — @tailwindcss/typography is not installed, so those
+          classes were inert and Tailwind's preflight had already stripped the
+          list markers and paragraph margins. */}
       <div
-        className="prose prose-sm max-w-none leading-relaxed text-ink/90
-                   prose-headings:font-display prose-headings:text-ink
-                   prose-strong:text-ink prose-a:text-accent-text
-                   dark:prose-invert"
-        dangerouslySetInnerHTML={{ __html: sanitizeJobHtml(html) }}
+        className="prose-job max-w-none"
+        dangerouslySetInnerHTML={{ __html: sanitizeJobHtml(toRichHtml(html)) }}
       />
     </section>
   );

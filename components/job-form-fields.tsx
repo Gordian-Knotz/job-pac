@@ -1,5 +1,6 @@
 import { JOB_TYPE_LABELS } from "@/lib/utils";
 import { job as jobCopy } from "@/lib/content";
+import { RichTextEditor } from "@/components/rich-text-editor";
 import type { Job, JobCategory, JobLocation } from "@/types/database";
 
 const LEVELS = [
@@ -42,50 +43,56 @@ export function JobFormFields({
         />
       </div>
 
+      {/* The three body fields are rich text. Each editing surface carries the
+          same `.prose-job` styles as the published listing, so the layout an
+          author builds here is the layout an applicant reads. */}
       <div>
-        <label htmlFor="description" className="eyebrow block mb-2">
+        <span id="description-label" className="eyebrow mb-2 block">
           About the role *
-        </label>
-        <textarea
-          id="description"
+        </span>
+        <RichTextEditor
           name="description"
-          rows={8}
+          labelledBy="description-label"
+          defaultValue={job?.description}
+          placeholder="What the role is, who it reports to, and why it exists."
           required
-          defaultValue={job?.description ?? ""}
-          className="field resize-y"
+          minHeight={190}
         />
-        <p className="text-xs text-pac-muted mt-1.5">
-          Basic HTML is preserved. Plain paragraphs are fine.
+        <p className="mt-1.5 text-xs text-muted">
+          Use the toolbar for bold, italic and lists. Pasted text keeps its lines
+          and bullets but drops the source&apos;s fonts and colours.
         </p>
       </div>
 
       <div>
-        {/* Label from the content module, so the form and the public listing
-            cannot disagree about what this field is called. */}
-        <label htmlFor="requirements" className="eyebrow block mb-2">
+        {/* Label text from the content module, so the form and the public
+            listing cannot disagree about what this field is called. */}
+        <span id="requirements-label" className="eyebrow mb-2 block">
           {jobCopy.requirements}
-        </label>
-        <textarea
-          id="requirements"
+        </span>
+        <RichTextEditor
           name="requirements"
-          rows={5}
-          defaultValue={job?.requirements ?? ""}
-          placeholder="What the person will actually be doing, day to day"
-          className="field resize-y"
+          labelledBy="requirements-label"
+          defaultValue={job?.requirements}
+          placeholder="One bullet per task — what the person will actually be doing, day to day."
+          // Starts as a bullet list: this field is a list in practice, so the
+          // author should not have to reach for the button first.
+          startAsList
+          minHeight={150}
         />
       </div>
 
       <div>
-        <label htmlFor="qualifications" className="eyebrow block mb-2">
-          Qualifications
-        </label>
-        <textarea
-          id="qualifications"
+        <span id="qualifications-label" className="eyebrow mb-2 block">
+          {jobCopy.qualifications}
+        </span>
+        <RichTextEditor
           name="qualifications"
-          rows={4}
-          defaultValue={job?.qualifications ?? ""}
-          placeholder="Certifications, education, licences"
-          className="field resize-y"
+          labelledBy="qualifications-label"
+          defaultValue={job?.qualifications}
+          placeholder="Certifications, education, licences — one per bullet."
+          startAsList
+          minHeight={130}
         />
       </div>
 

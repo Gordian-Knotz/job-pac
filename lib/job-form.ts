@@ -1,4 +1,6 @@
 import { slugify, randomSuffix } from "@/lib/utils";
+import { sanitizeJobHtml } from "@/lib/sanitize";
+import { isBlankHtml, toRichHtml } from "@/lib/rich-text";
 import type { EmploymentLevel, JobStatus, JobType } from "@/types/database";
 
 export const UNIQUE_VIOLATION = "23505";
@@ -37,6 +39,22 @@ export function oneOf<T extends string>(value: string | null, allowed: T[], fall
   return (allowed as string[]).includes(value ?? "") ? (value as T) : fallback;
 }
 
+/**
+ * One of the rich-text body fields.
+ *
+ * Structure is inferred first (so a value typed into the old textareas, or
+ * pasted as plain text, still becomes real markup), then run through the
+ * allowlist. `isBlankHtml` catches the `<p><br></p>` a cleared contenteditable
+ * leaves behind — stored as-is that renders a stray blank line on the listing
+ * and makes an empty field look filled in.
+ */
+function richField(formData: FormData, key: string): string | null {
+  const raw = str(formData, key);
+  if (!raw) return null;
+  const clean = sanitizeJobHtml(toRichHtml(raw));
+  return isBlankHtml(clean) ? null : clean;
+}
+
 export type JobFields = {
   title: string;
   description: string;
@@ -61,7 +79,13 @@ export type JobFields = {
  */
 export function parseJobFields(formData: FormData): JobFields | null {
   const title = str(formData, "title");
-  const description = str(formData, "description");
+  // The three body fields now arrive as HTML from the rich-text editor, so they
+  // are sanitised on the way in as well as on the way out. Render-time
+  // sanitising is still the guarantee — it also covers the migrated WordPress
+  // copy and anything written straight through PostgREST — but storing markup
+  // that has already been through the allowlist means the database does not
+  // hold a payload waiting for a future template that forgets to sanitise.
+  const description = richField(formData, "description");
   if (!title || !description) return null;
 
   // Salary is optional — both fields may be blank, and a listing with no pay
@@ -75,8 +99,8 @@ export function parseJobFields(formData: FormData): JobFields | null {
   return {
     title,
     description,
-    requirements: str(formData, "requirements"),
-    qualifications: str(formData, "qualifications"),
+    requirements: richField(formData, "requirements"),
+    qualifications: richField(formData, "qualifications"),
     salary_min: flip ? salaryMax : salaryMin,
     salary_max: flip ? salaryMin : salaryMax,
     category_id: str(formData, "category_id"),
