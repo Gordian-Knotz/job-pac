@@ -1,10 +1,20 @@
 import Link from "next/link";
 import { Search, ChevronLeft, ChevronRight, Phone, Mail } from "lucide-react";
 import { requireProfile } from "@/lib/auth";
+import { PageHead } from "@/components/dashboard-shell";
+import { EmptyState, Flash } from "@/components/dashboard-ui";
 import { ApplicationStatusBadge } from "@/components/status-badge";
 import { CvLink } from "@/components/cv-link";
-import { cvLinksBatch } from "@/lib/cv-access";
+import { Drawer } from "@/components/drawer";
+import {
+  ApplicationDetailBody,
+  type ApplicationDetail,
+  type ApplicationEventItem,
+} from "@/components/application-detail";
+import { cvLink, cvLinksBatch } from "@/lib/cv-access";
+import { applicantCards } from "@/lib/applicant-cards";
 import type { CvLink as CvLinkValue } from "@/lib/cv";
+import { dash } from "@/lib/content";
 import { displayApplicant } from "@/lib/utils";
 import type { ApplicationStatus } from "@/types/database";
 
@@ -38,6 +48,8 @@ interface Params {
   /** Whether the applicant has an account attached to the record. */
   claimed?: string;
   page?: string;
+  /** Open drawer. */
+  id?: string;
 }
 
 // under_review is included now that migration 014 added it.
@@ -175,35 +187,62 @@ export default async function AdminApplicationsPage({
   );
   const employers = (employerRows as { id: string; name: string }[] | null) ?? [];
 
-  return (
-    <div className="mx-auto max-w-6xl px-6 py-10">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <span className="eyebrow">PAC Africa &middot; Internal</span>
-          <h1 className="font-display text-3xl font-700 text-pac-ink mt-2">
-            Applications
-          </h1>
-          <p className="text-sm text-pac-muted mt-1">
-            Every application on record, including the archive recovered from the
-            previous site — back to March 2015.
-          </p>
-        </div>
-        <Link href="/admin" className="btn-secondary">
-          Dashboard
-        </Link>
-      </div>
+  // DRAWER — read-only. Moving an application through its stages is the
+  // employer's decision, per the brief, so there is no status control here.
+  const openId = params.id ?? null;
+  let detail: ApplicationDetail | null = null;
+  let events: ApplicationEventItem[] = [];
+  let drawerCv: Awaited<ReturnType<typeof cvLink>> = { kind: "none" };
+  let drawerCard: { headline: string | null; avatarSrc: string | null } | undefined;
 
-      {error && (
-        <p className="mt-6 text-sm text-red-600 border border-red-200 bg-red-50 rounded-card px-4 py-3">
-          {error.message}
-        </p>
-      )}
+  if (openId) {
+    const [{ data: one }, { data: log }, cards] = await Promise.all([
+      supabase
+        .from("applications")
+        .select(
+          `id, applicant_name, applicant_email, applicant_phone, cover_letter, cv_url,
+           status, employer_note, applied_at, wp_post_id, wp_job_title,
+           job:jobs(id, title, slug)`
+        )
+        .eq("id", openId)
+        .maybeSingle(),
+      supabase
+        .from("application_events")
+        .select("id, from_status, to_status, created_at, note")
+        .eq("application_id", openId)
+        .order("created_at", { ascending: false }),
+      applicantCards(supabase, [openId]),
+    ]);
+
+    if (one) {
+      const row = one as unknown as ApplicationDetail & { cv_url: string | null };
+      drawerCard = cards.get(openId);
+      detail = {
+        ...row,
+        applicant: drawerCard
+          ? { headline: drawerCard.headline, avatar_url: null }
+          : null,
+      };
+      events = (log ?? []) as unknown as ApplicationEventItem[];
+      drawerCv = await cvLink(supabase, row.cv_url, 60);
+    }
+  }
+
+  return (
+    <div>
+      <PageHead
+        eyebrow="PAC Africa · Internal"
+        title={dash.admin.applicationsTitle}
+        sub={dash.admin.applicationsSub}
+      />
+
+      <Flash error={error?.message} />
 
       {/* SEARCH ------------------------------------------------------- */}
       <form action="/admin/applications" className="flex flex-col sm:flex-row gap-2.5 mt-6">
         <div className="relative flex-1">
           <Search
-            className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-pac-faint"
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-faint"
             aria-hidden
           />
           <label htmlFor="q" className="sr-only">
@@ -285,46 +324,47 @@ export default async function AdminApplicationsPage({
 
       {/* FILTERS ------------------------------------------------------ */}
       <div className="flex flex-wrap items-center gap-2 mt-4">
-        <FilterChip label="All" active={!params.status} to={href(params, { status: null, page: null })} />
+        <FilterChip label="All" active={!params.status} to={href(params, { status: null, page: null, id: null })} />
         {STATUSES.map((s) => (
           <FilterChip
             key={s}
             label={s}
             active={params.status === s}
-            to={href(params, { status: s, page: null })}
+            to={href(params, { status: s, page: null, id: null })}
           />
         ))}
-        <span className="w-px h-5 bg-pac-line mx-1" aria-hidden />
+        <span className="w-px h-5 bg-line mx-1" aria-hidden />
         <FilterChip
           label="Archive"
           active={params.source === "historical"}
           to={href(params, {
             source: params.source === "historical" ? null : "historical",
             page: null,
+            id: null,
           })}
         />
         <FilterChip
           label="Since relaunch"
           active={params.source === "new"}
-          to={href(params, { source: params.source === "new" ? null : "new", page: null })}
+          to={href(params, { source: params.source === "new" ? null : "new", page: null, id: null })}
         />
-        <span className="w-px h-5 bg-pac-line mx-1" aria-hidden />
+        <span className="w-px h-5 bg-line mx-1" aria-hidden />
         <FilterChip
           label="CV on old site"
           active={params.cv === "legacy"}
-          to={href(params, { cv: params.cv === "legacy" ? null : "legacy", page: null })}
+          to={href(params, { cv: params.cv === "legacy" ? null : "legacy", page: null, id: null })}
         />
         <FilterChip
           label="CV migrated"
           active={params.cv === "migrated"}
-          to={href(params, { cv: params.cv === "migrated" ? null : "migrated", page: null })}
+          to={href(params, { cv: params.cv === "migrated" ? null : "migrated", page: null, id: null })}
         />
         <FilterChip
           label="No CV"
           active={params.cv === "none"}
-          to={href(params, { cv: params.cv === "none" ? null : "none", page: null })}
+          to={href(params, { cv: params.cv === "none" ? null : "none", page: null, id: null })}
         />
-        <span className="w-px h-5 bg-pac-line mx-1" aria-hidden />
+        <span className="w-px h-5 bg-line mx-1" aria-hidden />
         {/* Every archive row starts unclaimed, so this is how you find who has
             come back and reconnected their history. */}
         <FilterChip
@@ -333,6 +373,7 @@ export default async function AdminApplicationsPage({
           to={href(params, {
             claimed: params.claimed === "yes" ? null : "yes",
             page: null,
+            id: null,
           })}
         />
         <FilterChip
@@ -341,6 +382,7 @@ export default async function AdminApplicationsPage({
           to={href(params, {
             claimed: params.claimed === "no" ? null : "no",
             page: null,
+            id: null,
           })}
         />
 
@@ -351,14 +393,14 @@ export default async function AdminApplicationsPage({
           params.claimed ||
           params.year ||
           params.employer) && (
-          <Link href="/admin/applications" className="btn-quiet ml-auto">
+          <Link href="/admin/applications" className="btn-ghost ml-auto text-xs">
             Clear all
           </Link>
         )}
       </div>
 
       <div className="flex items-baseline justify-between gap-4 mt-6 mb-3">
-        <p className="text-sm text-pac-muted">
+        <p className="text-sm text-muted">
           {total.toLocaleString()} application{total === 1 ? "" : "s"}
           {total > 0 && (
             <>
@@ -371,17 +413,17 @@ export default async function AdminApplicationsPage({
       </div>
 
       {rows.length === 0 ? (
-        <div className="border border-dashed border-pac-line rounded-card py-16 px-6 text-center">
-          <p className="font-display text-lg text-pac-ink mb-1">Nothing matches</p>
-          <p className="text-sm text-pac-muted mb-5">
-            Try a shorter search term or clear the filters.
-          </p>
-          <Link href="/admin/applications" className="btn-secondary">
-            Clear filters
-          </Link>
-        </div>
+        <EmptyState
+          title="Nothing matches"
+          body="Try a shorter search term, or clear the filters."
+          action={
+            <Link href="/admin/applications" className="btn-secondary">
+              Clear filters
+            </Link>
+          }
+        />
       ) : (
-        <ul className="border border-pac-line rounded-card divide-y divide-pac-line bg-white">
+        <ul className="clay divide-y divide-line">
           {rows.map((row) => {
             const link: CvLinkValue = row.cv_url
               ? (cvLinks.get(row.cv_url) ?? { kind: "none" })
@@ -389,19 +431,27 @@ export default async function AdminApplicationsPage({
             const role = row.job?.title ?? row.wp_job_title;
 
             return (
-              <li key={row.id} className="p-4">
-                <div className="flex flex-wrap items-start justify-between gap-3">
+              <li key={row.id} className="relative p-4 transition-colors duration-150 hover:bg-surface-raised/50">
+                {/* Stretched over the row, under the contact links and CV link,
+                    which are separate destinations and stay clickable. */}
+                <Link
+                  href={href(params, { id: row.id })}
+                  scroll={false}
+                  aria-label={displayApplicant(row.applicant_name, row.applicant_email)}
+                  className="absolute inset-0 z-0"
+                />
+                <div className="pointer-events-none relative z-[1] flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-pac-ink">
+                    <p className="text-sm font-500 text-ink">
                       {displayApplicant(row.applicant_name, row.applicant_email)}
                       {row.wp_post_id !== null && (
                         <span className="eyebrow ml-2">archive</span>
                       )}
                     </p>
-                    <p className="text-xs text-pac-muted mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <p className="pointer-events-auto mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
                       <a
                         href={`mailto:${row.applicant_email}`}
-                        className="inline-flex items-center gap-1 hover:text-pac-orange-dark"
+                        className="inline-flex items-center gap-1 hover:text-accent-text"
                       >
                         <Mail className="w-3.5 h-3.5" aria-hidden />
                         {row.applicant_email}
@@ -409,19 +459,19 @@ export default async function AdminApplicationsPage({
                       {row.applicant_phone && (
                         <a
                           href={`tel:${row.applicant_phone.replace(/\s+/g, "")}`}
-                          className="inline-flex items-center gap-1 hover:text-pac-orange-dark"
+                          className="inline-flex items-center gap-1 hover:text-accent-text"
                         >
                           <Phone className="w-3.5 h-3.5" aria-hidden />
                           {row.applicant_phone}
                         </a>
                       )}
                     </p>
-                    <p className="text-xs text-pac-muted mt-1">
+                    <p className="text-xs text-muted mt-1">
                       {role ? (
                         row.job ? (
                           <Link
                             href={`/jobs/${row.job.slug}`}
-                            className="hover:text-pac-orange-dark"
+                            className="hover:text-accent-text"
                           >
                             {role}
                           </Link>
@@ -429,7 +479,7 @@ export default async function AdminApplicationsPage({
                           role
                         )
                       ) : (
-                        <span className="text-pac-faint">Role not recorded</span>
+                        <span className="text-faint">Role not recorded</span>
                       )}
                       {" · "}
                       {new Date(row.applied_at).toLocaleDateString("en-KE", {
@@ -438,49 +488,59 @@ export default async function AdminApplicationsPage({
                         year: "numeric",
                       })}
                       {row.applicant_id === null && row.wp_post_id !== null && (
-                        <span className="text-pac-faint"> · unclaimed</span>
+                        <span className="text-faint"> · unclaimed</span>
                       )}
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-3 shrink-0">
+                  <div className="pointer-events-auto flex shrink-0 items-center gap-3">
                     <CvLink value={link} compact />
                     <ApplicationStatusBadge status={row.status} />
                   </div>
                 </div>
 
-                {(row.cover_letter || row.employer_note) && (
-                  <details className="mt-2.5 group">
-                    <summary className="text-xs text-pac-muted cursor-pointer hover:text-pac-ink list-none marker:hidden">
-                      <span className="group-open:hidden">Show cover letter</span>
-                      <span className="hidden group-open:inline">Hide</span>
-                    </summary>
-                    {row.cover_letter && (
-                      <p className="text-[13px] text-pac-ink/90 leading-relaxed whitespace-pre-line mt-2 border-l-2 border-pac-line pl-3">
-                        {row.cover_letter}
-                      </p>
-                    )}
-                    {row.employer_note && (
-                      <p className="text-[13px] text-pac-muted mt-2 border-l-2 border-pac-orange/40 pl-3">
-                        <span className="eyebrow block mb-0.5">Internal note</span>
-                        {row.employer_note}
-                      </p>
-                    )}
-                  </details>
-                )}
               </li>
             );
           })}
         </ul>
       )}
 
-      <div className="flex justify-between items-center mt-4">
-        <p className="text-xs text-pac-muted">
+      <div className="mt-4 flex items-center justify-between">
+        <p className="text-xs text-muted">
           Showing {rows.length === 0 ? 0 : from + 1}–{from + rows.length} of{" "}
           {total.toLocaleString()}
         </p>
         <Pager params={params} page={page} lastPage={lastPage} />
       </div>
+
+      <Drawer
+        open={Boolean(detail)}
+        closeHref={href(params, { id: null })}
+        title={
+          detail
+            ? displayApplicant(detail.applicant_name, detail.applicant_email)
+            : dash.admin.applicationsTitle
+        }
+        footer={
+          <p className="text-xs leading-relaxed text-muted">
+            {dash.admin.applicationsReadOnly}
+          </p>
+        }
+      >
+        {detail && (
+          <ApplicationDetailBody
+            application={detail}
+            events={events}
+            cv={drawerCv}
+            avatarSrc={drawerCard?.avatarSrc}
+            showContact
+            // Visible, not editable: an admin should be able to see what an
+            // employer wrote when a candidate complains, without being able to
+            // rewrite it.
+            showNote
+          />
+        )}
+      </Drawer>
     </div>
   );
 }

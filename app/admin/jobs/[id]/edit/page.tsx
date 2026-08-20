@@ -37,20 +37,20 @@ export default async function AdminEditJobPage({
   const applicants = applicantCount ?? 0;
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-10">
+    <div className="max-w-3xl">
       <Link
         href="/admin/jobs"
-        className="inline-flex items-center gap-1.5 text-sm text-pac-muted hover:text-pac-orange-dark transition-colors"
+        className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-accent-text transition-colors"
       >
         <ArrowLeft className="w-4 h-4" aria-hidden />
         All listings
       </Link>
 
       <div className="flex flex-wrap items-center gap-3 mt-5 mb-1">
-        <h1 className="font-display text-3xl font-700 text-pac-ink">Edit listing</h1>
+        <h1 className="font-display text-3xl font-700 text-ink">Edit listing</h1>
         <JobStatusBadge status={job.status} />
       </div>
-      <p className="text-sm text-pac-muted mb-8">
+      <p className="text-sm text-muted mb-8">
         {job.company?.name ?? "Confidential employer"}
         {job.status === "published" && (
           <>
@@ -58,7 +58,7 @@ export default async function AdminEditJobPage({
             &middot;{" "}
             <Link
               href={`/jobs/${job.slug}`}
-              className="inline-flex items-center gap-1 text-pac-orange-dark hover:underline"
+              className="inline-flex items-center gap-1 text-accent-text hover:underline"
             >
               view live
               <ExternalLink className="w-3 h-3" aria-hidden />
@@ -81,50 +81,54 @@ export default async function AdminEditJobPage({
       <form action={updateJob} className="space-y-5">
         <input type="hidden" name="job_id" value={job.id} />
 
-        <fieldset className="rounded-card border border-pac-line bg-white p-5 space-y-4">
-          <legend className="eyebrow px-1">The role</legend>
-          <JobFormFields
-            categories={lookups.categories}
-            locations={lookups.locations}
-            job={job}
-          />
+        <fieldset className="clay p-5">
+          <legend className="eyebrow float-left mb-3 w-full">The role</legend>
+          <div className="clear-both space-y-4">
+            <JobFormFields
+              categories={lookups.categories}
+              locations={lookups.locations}
+              job={job}
+            />
+          </div>
         </fieldset>
 
-        <fieldset className="rounded-card border border-pac-line bg-white p-5 space-y-4">
-          <legend className="eyebrow px-1">Visibility</legend>
-          <div>
-            <label htmlFor="status" className="eyebrow block mb-2">
-              Status
+        <fieldset className="clay p-5">
+          <legend className="eyebrow float-left mb-3 w-full">Visibility</legend>
+          <div className="clear-both space-y-4">
+            <div>
+              <label htmlFor="status" className="eyebrow block mb-2">
+                Status
+              </label>
+              <select
+                id="status"
+                name="status"
+                defaultValue={job.status}
+                className="field"
+              >
+                <option value="published">Published — live on the site</option>
+                <option value="pending_review">In review</option>
+                <option value="draft">Draft</option>
+                <option value="closed">Closed</option>
+                <option value="expired">Expired</option>
+              </select>
+            </div>
+            <label className="flex items-center gap-2.5 text-sm text-ink">
+              <input
+                type="checkbox"
+                name="is_featured"
+                defaultChecked={job.is_featured}
+                className="w-4 h-4 accent-accent"
+              />
+              Feature this role
             </label>
-            <select
-              id="status"
-              name="status"
-              defaultValue={job.status}
-              className="field"
-            >
-              <option value="published">Published — live on the site</option>
-              <option value="pending_review">In review</option>
-              <option value="draft">Draft</option>
-              <option value="closed">Closed</option>
-              <option value="expired">Expired</option>
-            </select>
           </div>
-          <label className="flex items-center gap-2.5 text-sm text-pac-ink">
-            <input
-              type="checkbox"
-              name="is_featured"
-              defaultChecked={job.is_featured}
-              className="w-4 h-4 accent-pac-orange"
-            />
-            Feature this role
-          </label>
         </fieldset>
 
         <div className="flex items-center gap-3">
           <button type="submit" className="btn-primary">
             Save changes
           </button>
-          <Link href="/admin/jobs" className="btn-quiet">
+          <Link href="/admin/jobs" className="btn-ghost">
             Cancel
           </Link>
         </div>
@@ -134,20 +138,20 @@ export default async function AdminEditJobPage({
           Separate form, so a stray Enter in the edit fields above can never
           submit a delete. */}
       <section className="mt-12 rounded-card border border-red-200 bg-red-50/50 p-5">
-        <h2 className="font-display text-lg font-600 text-pac-ink mb-1">
+        <h2 className="font-display text-lg font-600 text-ink mb-1">
           Delete this listing
         </h2>
-        <p className="text-sm text-pac-muted mb-4 max-w-xl">
+        <p className="text-sm text-muted mb-4 max-w-xl">
           {applicants > 0 ? (
             <>
               This listing has{" "}
-              <strong className="text-pac-ink">
+              <strong className="text-ink">
                 {applicants} application{applicants === 1 ? "" : "s"}
               </strong>
               . Deleting it deletes {applicants === 1 ? "that" : "those"} too —
               names, contact details and CVs — and cannot be undone. If the role
               is simply no longer open, set the status to{" "}
-              <strong className="text-pac-ink">Closed</strong> above instead:
+              <strong className="text-ink">Closed</strong> above instead:
               that hides it from the site and keeps the applicants.
             </>
           ) : (
@@ -162,7 +166,7 @@ export default async function AdminEditJobPage({
           <input type="hidden" name="job_id" value={job.id} />
 
           {applicants > 0 && (
-            <label className="flex items-start gap-2.5 text-sm text-pac-ink">
+            <label className="flex items-start gap-2.5 text-sm text-ink">
               <input
                 type="checkbox"
                 name="acknowledge_applications"
@@ -176,7 +180,7 @@ export default async function AdminEditJobPage({
 
           <button
             type="submit"
-            className="btn press inline-flex items-center gap-2 border border-red-300 bg-white text-red-700 transition-[transform,background-color] duration-150 ease-out hover:bg-red-600 hover:text-white hover:border-red-600"
+            className="btn press inline-flex items-center gap-2 border border-red-300 bg-transparent text-red-700 transition-[transform,background-color] duration-150 ease-out hover:bg-red-600 hover:text-white hover:border-red-600"
           >
             <Trash2 className="w-4 h-4" aria-hidden />
             Delete permanently

@@ -1,4 +1,5 @@
 import { JOB_TYPE_LABELS } from "@/lib/utils";
+import { job as jobCopy } from "@/lib/content";
 import type { Job, JobCategory, JobLocation } from "@/types/database";
 
 const LEVELS = [
@@ -59,14 +60,17 @@ export function JobFormFields({
       </div>
 
       <div>
+        {/* Label from the content module, so the form and the public listing
+            cannot disagree about what this field is called. */}
         <label htmlFor="requirements" className="eyebrow block mb-2">
-          Requirements
+          {jobCopy.requirements}
         </label>
         <textarea
           id="requirements"
           name="requirements"
           rows={5}
           defaultValue={job?.requirements ?? ""}
+          placeholder="What the person will actually be doing, day to day"
           className="field resize-y"
         />
       </div>

@@ -38,13 +38,27 @@ import { NextResponse, type NextRequest } from "next/server";
  */
 const CSP_ENFORCE = true;
 
+/**
+ * Next's dev server compiles with eval (react-refresh) and injects unnoced
+ * inline scripts, both of which this policy blocks — which meant `next dev`
+ * served a page whose client JavaScript never ran at all: no theme toggle, no
+ * globe, and every Reveal stuck at opacity 0. The production build does neither,
+ * so the concession is confined to development.
+ *
+ * Keyed on NODE_ENV, which Next sets and a request cannot influence. It is
+ * "development" only under `next dev`; `next build` hardcodes "production".
+ */
+const DEV = process.env.NODE_ENV === "development";
+
 function buildCsp(nonce: string): string {
   return [
     `default-src 'self'`,
     // strict-dynamic lets Next's nonced bootstrap load its own chunks without
     // enumerating them. In supporting browsers it also makes host allowlists
     // for scripts redundant, which is the point.
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
+    DEV
+      ? `script-src 'self' 'unsafe-eval' 'unsafe-inline'`
+      : `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
     // 'unsafe-inline' for styles is a deliberate, bounded concession: Framer
     // Motion and next-themes both write inline styles, and style injection is a
     // far weaker primitive than script injection.
@@ -55,7 +69,11 @@ function buildCsp(nonce: string): string {
     `font-src 'self'`,
     // Supabase REST, realtime and Storage. Vercel Analytics posts to
     // /_vercel/insights on this origin, so 'self' already covers it.
-    `connect-src 'self' https://*.supabase.co wss://*.supabase.co`,
+    // ws: is the dev server's HMR socket. R2 is presigned-GET only, and those
+    // URLs are opened in a new tab rather than fetched, so no host is needed.
+    DEV
+      ? `connect-src 'self' ws: wss: https://*.supabase.co`
+      : `connect-src 'self' https://*.supabase.co wss://*.supabase.co`,
     `frame-ancestors 'none'`,
     `frame-src 'none'`,
     `object-src 'none'`,

@@ -142,9 +142,14 @@ export default async function HomePage() {
         </div>
 
         {/* Overscaled globe, cropped at the bottom and faded into the page so
-            it dissolves rather than ending on a hard edge. */}
-        <div className="relative mx-auto h-[300px] max-w-[1000px] overflow-hidden sm:h-[380px] md:h-[440px]">
-          <div className="absolute left-1/2 top-0 w-[560px] -translate-x-1/2 sm:w-[760px] md:w-[940px]">
+            it dissolves rather than ending on a hard edge.
+
+            The frame is tall enough to show past the sphere's widest point, so
+            it reads as a whole planet rising rather than a shallow arc, and it
+            is pulled up under the copy — a gap between the two made the globe
+            look like a separate band of the page. */}
+        <div className="relative mx-auto -mt-6 h-[350px] max-w-[1060px] overflow-hidden sm:-mt-8 sm:h-[450px] md:h-[530px]">
+          <div className="absolute left-1/2 top-0 w-[600px] -translate-x-1/2 sm:w-[800px] md:w-[980px]">
             <Globe />
           </div>
           <div

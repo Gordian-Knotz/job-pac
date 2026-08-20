@@ -10,6 +10,12 @@ import {
   cvObjectPath,
   looksLikePdf,
 } from "@/lib/cv";
+import {
+  AVATAR_BUCKET,
+  IMAGE_MAX_BYTES,
+  avatarObjectPath,
+  looksLikeImage,
+} from "@/lib/avatar";
 import { normaliseLinkedIn } from "@/lib/profile";
 
 /**
@@ -119,4 +125,51 @@ export async function uploadCv(formData: FormData) {
 
   revalidatePath("/dashboard/seeker/profile");
   redirect("/dashboard/seeker/profile?cv=1");
+}
+
+const PROFILE = "/dashboard/seeker/profile";
+const fail = (message: string) => redirect(`${PROFILE}?error=${encodeURIComponent(message)}`);
+
+/**
+ * Profile photo (brief §8).
+ *
+ * The old object is deleted after the new one is recorded, not before: if the
+ * upload succeeds and the profile update fails, the account keeps a photo that
+ * works rather than losing both.
+ */
+export async function uploadAvatar(formData: FormData) {
+  const { supabase, userId, profile } = await requireProfile("seeker");
+
+  const file = formData.get("avatar");
+  if (!(file instanceof File) || file.size === 0) fail("Choose an image to upload.");
+  const image = file as File;
+
+  if (image.size > IMAGE_MAX_BYTES) fail("That image is larger than 2MB.");
+  // Reads the bytes rather than trusting the content type the browser reported.
+  if (!(await looksLikeImage(image))) {
+    fail("That file is not a JPEG, PNG or WebP image.");
+  }
+
+  const path = avatarObjectPath(userId, image.name);
+  const { error: uploadError } = await supabase.storage
+    .from(AVATAR_BUCKET)
+    .upload(path, image, { contentType: image.type, upsert: false });
+
+  if (uploadError) fail(uploadError.message);
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ avatar_url: path })
+    .eq("id", userId);
+
+  if (error) fail(error.message);
+
+  // Best effort. A stale object costs 2MB of storage; failing the request over
+  // it would cost the user their new photo.
+  if (profile.avatar_url && profile.avatar_url !== path) {
+    await supabase.storage.from(AVATAR_BUCKET).remove([profile.avatar_url]);
+  }
+
+  revalidatePath(PROFILE);
+  redirect(`${PROFILE}?avatar=1`);
 }

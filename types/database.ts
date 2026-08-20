@@ -31,6 +31,8 @@ export type Profile = {
   linkedin_url: string | null;
   cv_url: string | null;
   company_id: string | null;
+  /** Set by an admin only (migration 017). */
+  suspended_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -47,6 +49,7 @@ export type Company = {
   location: string | null;
   size: string | null;
   verified: boolean;
+  suspended_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -89,6 +92,9 @@ export type Job = {
   is_featured: boolean;
   application_deadline: string | null;
   views: number;
+  rejection_reason: string | null;
+  /** Stamped when an admin publishes; cleared when a non-admin edits (migration 019). */
+  approved_at: string | null;
   wp_post_id: number | null;
   original_date: string | null;
   created_at: string;
@@ -116,6 +122,16 @@ export type Application = {
   updated_at: string;
   // joined
   job?: Job;
+}
+
+export type ApplicationEvent = {
+  id: string;
+  application_id: string;
+  from_status: ApplicationStatus | null;
+  to_status: ApplicationStatus;
+  actor_id: string | null;
+  note: string | null;
+  created_at: string;
 }
 
 export type SavedJob = {
@@ -165,6 +181,7 @@ export interface Database {
       job_locations: Table<JobLocation>;
       jobs: Table<Job>;
       applications: Table<Application>;
+      application_events: Table<ApplicationEvent>;
       saved_jobs: Table<SavedJob>;
       job_alerts: Table<JobAlert>;
     };
@@ -187,6 +204,14 @@ export interface Database {
       claim_historical_applications: {
         Args: Record<string, never>;
         Returns: number;
+      };
+      applicant_cards: {
+        Args: { app_ids: string[] };
+        Returns: { application_id: string; headline: string | null; avatar_url: string | null }[];
+      };
+      increment_job_view: {
+        Args: { job: string };
+        Returns: undefined;
       };
     };
     Enums: {

@@ -98,6 +98,22 @@ async function getViewerContext(jobId: string): Promise<{
   };
 }
 
+/**
+ * Bumps the view counter through the SECURITY DEFINER RPC — an anonymous
+ * visitor has no UPDATE on jobs and is not going to be given one.
+ *
+ * Errors are swallowed on purpose. This is a vanity number on an employer's
+ * dashboard; nothing about the page depends on it.
+ */
+async function recordView(jobId: string): Promise<void> {
+  try {
+    const supabase = await createClient();
+    await supabase.rpc("increment_job_view", { job: jobId });
+  } catch {
+    // Intentionally ignored.
+  }
+}
+
 /** Three more roles in the same category, or failing that the same location. */
 async function getRelated(job: Job): Promise<Job[]> {
   const supabase = await createClient();
@@ -140,6 +156,12 @@ export default async function JobDetailPage({
     getViewerContext(job.id),
     getRelated(job),
   ]);
+
+  // The Views figure on the employer's My Jobs page. Fire-and-forget, and
+  // deliberately not awaited into the render: a failed counter must never cost
+  // the visitor the listing. It counts reloads and crawlers, which is why the
+  // employer's column carries a tooltip saying so (migration 017).
+  await recordView(job.id);
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-10">

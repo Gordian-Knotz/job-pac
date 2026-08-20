@@ -52,7 +52,15 @@ export async function requireUser(): Promise<{
 
   if (!profile) redirect("/auth/login?error=missing-profile");
 
-  return { supabase, userId: user.id, profile: profile as Profile };
+  const row = profile as Profile;
+
+  // A suspended account is told so, rather than being shown a dashboard where
+  // every action quietly fails. The refusal itself is enforced in the database
+  // (migration 022) — this is the part that explains it. Admins are exempt:
+  // suspending the account that does the suspending would lock the product.
+  if (row.suspended_at && row.role !== "admin") redirect("/auth/suspended");
+
+  return { supabase, userId: user.id, profile: row };
 }
 
 /**

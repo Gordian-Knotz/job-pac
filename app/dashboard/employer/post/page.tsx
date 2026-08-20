@@ -2,6 +2,9 @@ import { redirect } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
 import { getJobLookups } from "@/lib/lookups";
 import { JobFormFields } from "@/components/job-form-fields";
+import { PageHead } from "@/components/dashboard-shell";
+import { Flash } from "@/components/dashboard-ui";
+import { dash } from "@/lib/content";
 import { createJob } from "../actions";
 
 export default async function PostJobPage({
@@ -23,26 +26,25 @@ export default async function PostJobPage({
 
   return (
     <div>
-      <span className="eyebrow">Employer</span>
-      <h1 className="font-display text-3xl font-700 text-pac-ink mt-2 mb-2">
-        Post a job
-      </h1>
-      <p className="text-sm text-pac-muted mb-8">
-        PAC Africa reviews every listing before it goes live.
-      </p>
+      <PageHead
+        eyebrow="Employer"
+        title={dash.employer.newJob}
+        sub="PAC Africa reads every listing before it goes live. Save a draft if you are not finished."
+      />
 
-      {params.error && (
-        <p className="mb-6 text-sm text-red-600 border border-red-200 bg-red-50 rounded-card px-4 py-3">
-          {params.error}
-        </p>
-      )}
+      <Flash error={params.error} />
 
-      <form action={createJob} className="space-y-4 max-w-2xl">
+      <form action={createJob} className="clay max-w-2xl space-y-5 p-6">
         <JobFormFields categories={lookups.categories} locations={lookups.locations} />
 
-        <div className="pt-2">
-          <button type="submit" className="btn-primary">
+        <div className="flex flex-wrap items-center gap-3 border-t border-line pt-5">
+          <button type="submit" name="intent" value="review" className="btn-accent">
             Submit for review
+          </button>
+          {/* Same form, different intent — a draft is not a different kind of
+              listing, just one that has not been sent yet. */}
+          <button type="submit" name="intent" value="draft" className="btn-secondary">
+            Save as draft
           </button>
         </div>
       </form>

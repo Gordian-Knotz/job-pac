@@ -110,14 +110,117 @@ Verified by impersonating each role, then cleaned up:
   gets `verified may only be changed by an admin`, while ordinary edits pass.
 - `cvs` bucket: private, 60 MB, pdf + doc + docx.
 
+## After 011–016
+
+- `stats()` revoked from `anon`, then the landing-page counts removed. **`anon`
+  could execute nothing in `public` at this point** — 017 and 023 each added one
+  back, deliberately; see below.
+- 012 closed an employer publish-bypass: `guard_job_status()` made every route
+  into `published` admin-only, and the `company_id` predicate in the jobs
+  policy was constrained so an employer could not attach a listing to someone
+  else's company.
+- 013 put `cvs` back to 5 MB PDF-only once R2 held the archive, and added a
+  partial unique index so the same address cannot be filed against the same
+  listing twice. The 4,355 archive rows have `job_id` NULL and are excluded.
+- 015 renamed `benefits` → `qualifications`, matching a product decision.
+- 016 dropped `companies_select_public`. The employer behind a role became
+  admin-only information — which 017 then depended on without noticing, and 023
+  had to repair.
+
+## After 017–023 (the dashboards)
+
+Four things the brief's dashboards needed and the schema lacked (017), plus what
+building on them exposed.
+
+- **`application_events` + `log_application_status()`** — the drawer's history.
+  Written by trigger, not by the app, so it is complete even for a change made
+  through the API or a SQL console.
+- **Suspension** (`suspended_at` on `profiles` and `companies`) started as a
+  label. 022 made it bite: a suspended seeker cannot insert an application and a
+  suspended employer cannot insert or update a listing, both by trigger, so the
+  refusal holds against a direct API call rather than only against the UI.
+- **023 is a fix, and the most instructive item here.** 017's suspension check
+  lived inside `jobs_select_published` as a subquery against `companies`. A
+  policy subquery runs with the **caller's** privileges, and 016 had just removed
+  public read on `companies` — so for `anon` it returned zero rows regardless,
+  `not exists` was always true, and a suspended employer's listings stayed
+  public. The check now lives in `company_suspended()`, a `security definer`
+  function returning one boolean.
+
+  **A policy predicate must not depend on RLS the caller does not have.**
+- **019 + 021 reopened two doors 012 had closed too far.** `approved_at` is
+  stamped on publish and cleared by any non-admin edit to reviewed content, which
+  lets an employer resume a listing they paused without re-review while keeping
+  "nothing public without review" true. 021 lets an employer insert a `draft`,
+  which the post form's save-as-draft needs; `draft` is not publicly visible.
+- **020 exists because `profiles` is row-level.** The inbox shows an applicant's
+  headline and avatar, both on `profiles`, whose policy is own-row-or-admin.
+  Widening it would have handed over phone, address, bio, LinkedIn and
+  `cv_url` too. `applicant_cards(uuid[])` returns those two columns, only for
+  applications on jobs the caller owns, and takes application ids rather than a
+  person — so there is no way to ask it about someone.
+- **018 added two buckets.** `avatars` is private and read-scoped like a CV;
+  `logos` is public because a corporate mark is branding. Both key their
+  policies on the first path segment rather than on `storage.objects.owner`,
+  which is NULL for service-role writes — the trap 007 hit with the CV archive.
+
+### Verified by probe, as the real roles
+
+Each of these was run with `set_config('role', …)` plus synthetic
+`request.jwt.claims`, never from a superuser session:
+
+| behaviour | result |
+|---|---|
+| employer inserts a draft | stays `draft`, `approved_at` null |
+| employer publishes their own draft | blocked — "only an administrator can publish" |
+| admin publishes | `approved_at` stamped |
+| employer pauses then resumes | allowed |
+| employer edits the title | `approved_at` cleared |
+| employer resumes after editing | blocked — "edited since it was approved" |
+| guest application | one `application_events` row written |
+| employer moves it twice | history reads `new→pending, pending→under_review, under_review→shortlisted` |
+| employer suspends another account | 0 rows — RLS never reaches the trigger |
+| employer suspends their own company | blocked by trigger |
+| suspended employer clears their own suspension | blocked by trigger; suspension survives |
+| suspended seeker applies | blocked — "this account is suspended" |
+| anon views a suspended employer's listing | 0 rows |
+| after reinstating | 1 row |
+| employer requests 2 applicant cards, owns 1 | gets 1 |
+| applicant requests their own 2 | gets 2 |
+| admin requests both | gets 2 |
+
+Three probe mistakes of my own, recorded because they each read as a security
+hole and were not:
+
+1. `insert … returning` **as `anon`** fails with "new row violates row-level
+   security policy" — `RETURNING` needs a SELECT policy, and a guest has none.
+   The real apply form does a bare insert, so it works. The error message names
+   the wrong cause.
+2. An employer updating another user's row reports **success with 0 rows
+   affected**. RLS denies by matching nothing, so asserting on "no error" reads a
+   denial as a bypass. Assert on `row_count`.
+3. Setting `suspended_at` from null **to null** does not trip the guard,
+   because `is distinct from` is false. A no-op is not a bypass — make the
+   values actually differ.
+
 ## Still open
 
-- **The CV archive is not migrated.** 4,118 rows still point at
-  `https://jobs.pac.africa/...`. Those URLs do still resolve — wp-content
-  survived the wipe — so the admin and employer views link straight to them and
-  label them as coming from the old site. Run `npm run migrate:cvs:dry`, then
-  `npm run migrate:cvs`, once `SUPABASE_SERVICE_ROLE_KEY` is in `.env.local`.
-  Check the storage quota first: the archive is 1.84 GB.
-- Two dashboard toggles: keep email confirmation on (migration 006 treats a
-  confirmed address as proof of ownership), and enable leaked-password
-  protection — still flagged by the advisor.
+- **Leaked-password protection** is still off (Supabase → Auth → Policies). The
+  only advisor finding that is not a deliberate design choice.
+- **Keep email confirmation on.** Migration 006 treats a confirmed address as
+  proof of ownership, so turning it off would make the claim flow an
+  account-takeover path onto a decade of other people's contact details.
+- **`types/database.ts` is hand-maintained** across 23 migrations. Replace it
+  with `supabase gen types typescript --project-id khdvagjfonbiezkybpvh`.
+- **No automated assertion of any of the above.** The probe table is a snapshot
+  of one afternoon, not a regression test.
+
+### Resolved
+
+- The CV archive is migrated: 3,936 rows repointed to R2, 0 failures, 1,214 MB.
+  178 rows remain unrecoverable — they reference 2015–2019 uploads and the
+  recovered archive starts 2023-04-01.
+- The legacy `https://jobs.pac.africa/wp-content/...` URLs do **not** resolve.
+  That was recorded here as "they do still resolve", which was wrong: the domain
+  moved to Vercel, so those paths hit Next.js and 404. Anything still holding one
+  renders as "pending migration" rather than as a dead link.

@@ -1,16 +1,20 @@
 import { requireProfile } from "@/lib/auth";
-import { upsertCompany } from "../actions";
+import { PageHead } from "@/components/dashboard-shell";
+import { Flash } from "@/components/dashboard-ui";
+import { IMAGE_ACCEPT, logoUrl } from "@/lib/avatar";
+import { dash } from "@/lib/content";
+import { upsertCompany, uploadLogo } from "../actions";
 import type { Company } from "@/types/database";
 
-const inputClass =
-  "w-full px-3 py-2.5 rounded-card border border-pac-line text-sm focus:border-pac-orange outline-none bg-white";
-
 const SIZES = ["1-10", "11-50", "51-200", "201-500", "500+"];
+
+/** Brief §9: "About us (short text, 300 char limit)". */
+const ABOUT_LIMIT = 300;
 
 export default async function CompanyProfilePage({
   searchParams,
 }: {
-  searchParams: Promise<{ saved?: string; error?: string }>;
+  searchParams: Promise<{ saved?: string; logo?: string; error?: string }>;
 }) {
   const { supabase, profile } = await requireProfile("employer");
   const params = await searchParams;
@@ -25,27 +29,75 @@ export default async function CompanyProfilePage({
     company = (data as Company) ?? null;
   }
 
+  const logo = logoUrl(supabase, company?.logo_url);
+
   return (
     <div>
-      <span className="eyebrow">Employer</span>
-      <h1 className="font-display text-3xl font-700 text-pac-ink mt-2 mb-8">
-        {company ? "Company profile" : "Add your company"}
-      </h1>
+      <PageHead
+        eyebrow="Employer"
+        title={company ? dash.employer.companyTitle : "Add your company"}
+        sub={dash.employer.companySub}
+      />
 
-      {params.error && (
-        <p className="mb-6 text-sm text-red-600 border border-red-200 bg-red-50 rounded-card px-4 py-3">
-          {params.error}
-        </p>
-      )}
-      {params.saved && !params.error && (
-        <p className="mb-6 text-sm text-green-700 border border-green-200 bg-green-50 rounded-card px-4 py-3">
-          Company profile saved.
-        </p>
+      <Flash
+        error={params.error}
+        success={
+          params.error
+            ? null
+            : params.logo
+              ? "Logo updated."
+              : params.saved
+                ? "Company profile saved."
+                : null
+        }
+      />
+
+      {/* LOGO — only once the company row exists, because the object path is
+          keyed on its id (migration 018). */}
+      {company && (
+        <section className="clay mb-8 p-6">
+          <h2 className="font-display text-lg font-600 text-ink">Logo</h2>
+          <p className="mb-4 mt-1 max-w-lg text-sm text-muted">
+            Used by PAC Africa internally and on your own dashboard. It does not appear on
+            your listings — applicants do not see which employer a role belongs to.
+          </p>
+          <form action={uploadLogo} className="flex flex-wrap items-center gap-4">
+            <span className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-card bg-surface-raised font-mono text-xs uppercase text-muted">
+              {logo ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={logo}
+                  alt=""
+                  width={56}
+                  height={56}
+                  className="h-full w-full object-contain"
+                />
+              ) : (
+                company.name.slice(0, 2)
+              )}
+            </span>
+            <label htmlFor="logo" className="sr-only">
+              Choose a logo
+            </label>
+            <input
+              id="logo"
+              type="file"
+              name="logo"
+              accept={IMAGE_ACCEPT}
+              required
+              className="min-w-0 flex-1 text-sm text-ink file:mr-3 file:cursor-pointer file:rounded-card file:border file:border-line file:bg-surface-raised file:px-3 file:py-2 file:text-sm file:font-medium file:text-ink hover:file:border-accent"
+            />
+            <button type="submit" className="btn-secondary shrink-0">
+              {company.logo_url ? "Replace logo" : "Upload logo"}
+            </button>
+          </form>
+          <p className="mt-2 text-xs text-muted">JPEG, PNG or WebP, up to 2MB.</p>
+        </section>
       )}
 
-      <form action={upsertCompany} className="space-y-4 max-w-xl">
+      <form action={upsertCompany} className="clay max-w-2xl space-y-5 p-6">
         <div>
-          <label htmlFor="name" className="eyebrow block mb-2">
+          <label htmlFor="name" className="eyebrow mb-2 block">
             Company name *
           </label>
           <input
@@ -53,37 +105,42 @@ export default async function CompanyProfilePage({
             name="name"
             required
             defaultValue={company?.name ?? ""}
-            className={inputClass}
+            className="field"
           />
         </div>
 
         <div>
-          <label htmlFor="description" className="eyebrow block mb-2">
-            What the company does
+          <label htmlFor="description" className="eyebrow mb-2 block">
+            About us
           </label>
           <textarea
             id="description"
             name="description"
-            rows={5}
+            rows={4}
+            maxLength={ABOUT_LIMIT}
             defaultValue={company?.description ?? ""}
-            className={`${inputClass} resize-none`}
+            aria-describedby="description-hint"
+            className="field resize-y"
           />
+          <p id="description-hint" className="mt-1.5 text-xs text-muted">
+            Up to {ABOUT_LIMIT} characters. One paragraph on what the company does.
+          </p>
         </div>
 
-        <div className="grid sm:grid-cols-2 gap-4">
+        <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label htmlFor="industry" className="eyebrow block mb-2">
+            <label htmlFor="industry" className="eyebrow mb-2 block">
               Industry
             </label>
             <input
               id="industry"
               name="industry"
               defaultValue={company?.industry ?? ""}
-              className={inputClass}
+              className="field"
             />
           </div>
           <div>
-            <label htmlFor="location" className="eyebrow block mb-2">
+            <label htmlFor="location" className="eyebrow mb-2 block">
               Head office
             </label>
             <input
@@ -91,21 +148,21 @@ export default async function CompanyProfilePage({
               name="location"
               placeholder="e.g. Nairobi"
               defaultValue={company?.location ?? ""}
-              className={inputClass}
+              className="field"
             />
           </div>
         </div>
 
-        <div className="grid sm:grid-cols-2 gap-4">
+        <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label htmlFor="size" className="eyebrow block mb-2">
+            <label htmlFor="size" className="eyebrow mb-2 block">
               Headcount
             </label>
             <select
               id="size"
               name="size"
               defaultValue={company?.size ?? ""}
-              className={inputClass}
+              className="field"
             >
               <option value="">Not specified</option>
               {SIZES.map((s) => (
@@ -116,7 +173,7 @@ export default async function CompanyProfilePage({
             </select>
           </div>
           <div>
-            <label htmlFor="website" className="eyebrow block mb-2">
+            <label htmlFor="website" className="eyebrow mb-2 block">
               Website
             </label>
             <input
@@ -125,20 +182,17 @@ export default async function CompanyProfilePage({
               type="url"
               placeholder="https://…"
               defaultValue={company?.website ?? ""}
-              className={inputClass}
+              className="field"
             />
           </div>
         </div>
 
-        <div className="flex items-center gap-4 pt-2">
-          <button
-            type="submit"
-            className="bg-pac-orange text-white px-5 py-2.5 rounded-card text-sm font-medium hover:bg-pac-orange-dark transition-colors"
-          >
-            {company ? "Save changes" : "Create company profile"}
+        <div className="flex flex-wrap items-center gap-4 border-t border-line pt-5">
+          <button type="submit" className="btn-accent">
+            {company ? dash.common.save : "Create company profile"}
           </button>
           {company && (
-            <span className="text-xs text-pac-muted">
+            <span className="text-xs text-muted">
               {company.verified
                 ? "Verified by PAC Africa"
                 : "Verification is granted by PAC Africa, not self-set"}

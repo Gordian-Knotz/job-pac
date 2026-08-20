@@ -1,159 +1,216 @@
 import Link from "next/link";
+import { Briefcase, CheckCircle2, Inbox, Trophy } from "lucide-react";
 import { requireProfile } from "@/lib/auth";
-import { JobStatusBadge } from "@/components/status-badge";
-import { timeAgo } from "@/lib/utils";
-import type { JobStatus } from "@/types/database";
+import { PageHead } from "@/components/dashboard-shell";
+import { Avatar, EmptyState, Flash, StatCard } from "@/components/dashboard-ui";
+import { ApplicationStatusBadge } from "@/components/status-badge";
+import { applicantCards } from "@/lib/applicant-cards";
+import { timeAgo, displayApplicant } from "@/lib/utils";
+import { dash } from "@/lib/content";
+import type { ApplicationStatus } from "@/types/database";
 
-interface JobRow {
+const FEED_SIZE = 5;
+
+interface AppRow {
   id: string;
-  title: string;
-  slug: string;
-  status: JobStatus;
-  created_at: string;
-  applications: { count: number }[];
+  applicant_name: string | null;
+  applicant_email: string;
+  status: ApplicationStatus;
+  applied_at: string;
+  job: { id: string; title: string } | null;
 }
 
-export default async function EmployerDashboard({
+/** First of the calendar month, for the "this month" counters. */
+function monthStart(): string {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+}
+
+export default async function EmployerOverview({
   searchParams,
 }: {
-  searchParams: Promise<{ posted?: string; error?: string }>;
+  searchParams: Promise<{ posted?: string; error?: string; updated?: string }>;
 }) {
   const { supabase, profile } = await requireProfile("employer");
   const params = await searchParams;
 
   // No company yet — nothing else on this page can work, so ask for that first
-  // rather than showing an empty listings table.
+  // rather than showing an empty dashboard of zeros.
   if (!profile.company_id) {
     return (
       <div>
-        <span className="eyebrow">Employer</span>
-        <h1 className="font-display text-3xl font-700 text-pac-ink mt-2 mb-8">
-          Set up your company
-        </h1>
-        <div className="border border-dashed border-pac-line rounded-card py-16 px-6 text-center">
-          <p className="font-display text-lg text-pac-ink mb-1">
-            One step before you can post
-          </p>
-          <p className="text-sm text-pac-muted mb-5 max-w-md mx-auto">
-            Job seekers see who they are applying to, and your listings are
-            attached to your company record. Add it once and you are set.
-          </p>
-          <Link
-            href="/dashboard/employer/company"
-            className="inline-block bg-pac-orange text-white px-5 py-2.5 rounded-card text-sm font-medium hover:bg-pac-orange-dark transition-colors"
-          >
-            Add company profile
-          </Link>
-        </div>
+        <PageHead eyebrow="Employer" title="Set up your company" />
+        <EmptyState
+          icon={Briefcase}
+          title="One step before you can post"
+          body="Your listings hang off a company record, and PAC Africa verifies employers against it before anything goes live. Add it once and you are set."
+          action={
+            <Link href="/dashboard/employer/company" className="btn-accent">
+              Add company profile
+            </Link>
+          }
+        />
       </div>
     );
   }
 
-  const [{ data: jobs }, { data: company }] = await Promise.all([
-    supabase
-      .from("jobs")
-      .select("id, title, slug, status, created_at, applications(count)")
-      .order("created_at", { ascending: false })
-      .limit(100),
-    supabase
-      .from("companies")
-      .select("name, verified")
-      .eq("id", profile.company_id)
-      .single(),
-  ]);
+  const since = monthStart();
 
-  const rows = (jobs ?? []) as unknown as JobRow[];
-  const totalApplications = rows.reduce(
-    (sum, job) => sum + (job.applications?.[0]?.count ?? 0),
-    0
+  const [live, thisMonth, shortlisted, hired, { data: recent }, { data: company }] =
+    await Promise.all([
+      supabase
+        .from("jobs")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "published"),
+      supabase
+        .from("applications")
+        .select("id", { count: "exact", head: true })
+        .gte("applied_at", since),
+      supabase
+        .from("applications")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "shortlisted"),
+      supabase
+        .from("applications")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "hired"),
+      supabase
+        .from("applications")
+        .select(
+          "id, applicant_name, applicant_email, status, applied_at, job:jobs(id, title)"
+        )
+        .order("applied_at", { ascending: false })
+        .limit(FEED_SIZE),
+      supabase
+        .from("companies")
+        .select("name, verified, suspended_at")
+        .eq("id", profile.company_id)
+        .single(),
+    ]);
+
+  const feed = (recent ?? []) as unknown as AppRow[];
+  // Headline and avatar come through the migration-020 accessor: the profiles
+  // policy is own-row-or-admin, so an embedded join returns null here.
+  const cards = await applicantCards(
+    supabase,
+    feed.map((row) => row.id)
+  );
+
+  const suspended = Boolean(
+    (company as { suspended_at: string | null } | null)?.suspended_at
   );
 
   return (
     <div>
-      <span className="eyebrow">Employer</span>
-      <h1 className="font-display text-3xl font-700 text-pac-ink mt-2 mb-1">
-        {company?.name ?? "Your listings"}
-      </h1>
-      <p className="text-sm text-pac-muted mb-8">
-        {company?.verified
-          ? "Verified employer"
-          : "Pending verification — PAC Africa reviews new employers"}
-      </p>
+      <PageHead
+        eyebrow={company?.verified ? "Verified employer" : "Awaiting verification"}
+        title={company?.name ?? dash.employer.title}
+        action={
+          <Link href="/dashboard/employer/post" className="btn-accent">
+            {dash.employer.newJob}
+          </Link>
+        }
+      />
 
-      {params.error && (
-        <p className="mb-6 text-sm text-red-600 border border-red-200 bg-red-50 rounded-card px-4 py-3">
-          {params.error}
-        </p>
-      )}
-      {params.posted && (
-        <p className="mb-6 text-sm text-green-700 border border-green-200 bg-green-50 rounded-card px-4 py-3">
-          Listing submitted. It appears on the site once PAC Africa approves it.
-        </p>
+      <Flash
+        error={params.error}
+        success={
+          params.posted
+            ? "Listing submitted. It goes live once PAC Africa approves it."
+            : null
+        }
+      />
+
+      {suspended && (
+        <div
+          role="alert"
+          className="mb-6 rounded-card border border-red-500/25 bg-red-500/8 px-4 py-3 text-sm text-red-700 dark:text-red-400"
+        >
+          This account is suspended, so your listings are not visible on the site. Contact
+          PAC Africa to sort it out.
+        </div>
       )}
 
-      <div className="grid grid-cols-2 gap-4 mb-10">
-        <Stat label="Listings" value={rows.length} />
-        <Stat label="Applications received" value={totalApplications} />
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          label={dash.employer.statActive}
+          value={live.count ?? 0}
+          hint={dash.employer.statActiveHint}
+          icon={Briefcase}
+          href="/dashboard/employer/jobs?status=published"
+        />
+        <StatCard
+          label={dash.employer.statApplications}
+          value={thisMonth.count ?? 0}
+          icon={Inbox}
+          href="/dashboard/employer/applications"
+        />
+        <StatCard
+          label={dash.employer.statShortlisted}
+          value={shortlisted.count ?? 0}
+          icon={CheckCircle2}
+          href="/dashboard/employer/applications?status=shortlisted"
+        />
+        <StatCard
+          label={dash.employer.statHired}
+          value={hired.count ?? 0}
+          icon={Trophy}
+          href="/dashboard/employer/applications?status=hired"
+        />
       </div>
 
-      <div className="flex items-baseline justify-between mb-4">
-        <h2 className="font-display text-lg font-600 text-pac-ink">Listings</h2>
+      <div className="mb-4 mt-10 flex items-baseline justify-between gap-4">
+        <h2 className="font-display text-lg font-600 text-ink">
+          {dash.employer.recentApplications}
+        </h2>
         <Link
-          href="/dashboard/employer/post"
-          className="text-sm text-pac-orange hover:underline"
+          href="/dashboard/employer/applications"
+          className="text-sm text-accent-text transition-opacity duration-150 hover:opacity-70"
         >
-          Post a job &rarr;
+          {dash.common.viewAll}
         </Link>
       </div>
 
-      {rows.length === 0 ? (
-        <div className="border border-dashed border-pac-line rounded-card py-16 px-6 text-center">
-          <p className="font-display text-lg text-pac-ink mb-1">No listings yet</p>
-          <p className="text-sm text-pac-muted mb-5">
-            Post a role and it goes to PAC Africa for review before publishing.
-          </p>
-          <Link
-            href="/dashboard/employer/post"
-            className="inline-block bg-pac-orange text-white px-5 py-2.5 rounded-card text-sm font-medium hover:bg-pac-orange-dark transition-colors"
-          >
-            Post your first job
-          </Link>
-        </div>
+      {feed.length === 0 ? (
+        <EmptyState
+          icon={Inbox}
+          title={dash.employer.emptyInbox}
+          body={dash.employer.emptyInboxBody}
+          action={
+            <Link href="/dashboard/employer/jobs" className="btn-secondary">
+              {dash.employer.jobsTitle}
+            </Link>
+          }
+        />
       ) : (
-        <ul className="border border-pac-line rounded-card divide-y divide-pac-line">
-          {rows.map((job) => {
-            const count = job.applications?.[0]?.count ?? 0;
-            return (
-              <li key={job.id} className="p-4 flex items-center justify-between gap-4">
-                <div className="min-w-0">
-                  <Link
-                    href={`/dashboard/employer/jobs/${job.id}`}
-                    className="text-sm font-medium text-pac-ink hover:text-pac-orange transition-colors truncate block"
-                  >
-                    {job.title}
-                  </Link>
-                  <p className="text-xs text-pac-muted mt-0.5">
-                    {count} applicant{count === 1 ? "" : "s"} &middot; posted{" "}
-                    {timeAgo(job.created_at)}
+        <ul className="clay divide-y divide-line">
+          {feed.map((row) => (
+            <li key={row.id}>
+              <Link
+                href={`/dashboard/employer/applications?id=${row.id}`}
+                scroll={false}
+                className="flex items-center gap-3 p-4 transition-colors duration-150 hover:bg-surface-raised/60"
+              >
+                <Avatar
+                  name={row.applicant_name}
+                  email={row.applicant_email}
+                  src={cards.get(row.id)?.avatarSrc}
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-500 text-ink">
+                    {displayApplicant(row.applicant_name, row.applicant_email)}
+                  </p>
+                  <p className="mt-0.5 truncate text-xs text-muted">
+                    {row.job?.title ?? dash.drawer.roleNotRecorded} ·{" "}
+                    {timeAgo(row.applied_at)}
                   </p>
                 </div>
-                <JobStatusBadge status={job.status} />
-              </li>
-            );
-          })}
+                <ApplicationStatusBadge status={row.status} />
+              </Link>
+            </li>
+          ))}
         </ul>
       )}
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="border border-pac-line rounded-card p-5">
-      <p className="eyebrow mb-1">{label}</p>
-      <p className="font-display text-3xl font-700 text-pac-ink">
-        {value.toLocaleString()}
-      </p>
     </div>
   );
 }

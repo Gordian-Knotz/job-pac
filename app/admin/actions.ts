@@ -29,6 +29,7 @@ function safeReturnTo(value: string | null): string {
 function revalidatePublic(jobId?: string) {
   revalidatePath("/admin");
   revalidatePath("/admin/jobs");
+  revalidatePath("/admin/moderation");
   if (jobId) revalidatePath(`/admin/jobs/${jobId}/edit`);
   revalidatePath("/jobs");
   revalidatePath("/");
@@ -51,13 +52,89 @@ export async function setJobStatus(formData: FormData) {
 
   const { error } = await supabase
     .from("jobs")
-    .update({ status: status as JobStatus })
+    .update({
+      status: status as JobStatus,
+      // A published listing carrying an old rejection reason would show the
+      // employer "sent back: …" under a live role.
+      ...(status === "published" ? { rejection_reason: null } : {}),
+    })
     .eq("id", jobId);
 
   if (error) redirect(`${returnTo}?error=${encodeURIComponent(error.message)}`);
 
   revalidatePublic(jobId);
   redirect(`${returnTo}?updated=${status}`);
+}
+
+/**
+ * Rejects a listing, with the reason the employer will read.
+ *
+ * Back to `draft` rather than `closed`: rejection is "fix this and try again",
+ * and a draft is the only status the employer can edit and resubmit from. The
+ * reason is stored on the row (migration 017) and rendered on their My Jobs page
+ * — the brief says it is "sent back to the employer", and until this product
+ * sends email, showing it where they work is what that means.
+ */
+export async function rejectJob(formData: FormData) {
+  const { supabase } = await requireProfile("admin");
+
+  const jobId = str(formData, "job_id");
+  const reason = str(formData, "rejection_reason");
+  const returnTo = safeReturnTo(str(formData, "return_to"));
+
+  if (!jobId) redirect(`${returnTo}?error=Invalid+request`);
+  if (!reason) {
+    redirect(
+      `${returnTo}?error=${encodeURIComponent(
+        "A reason is required when rejecting a listing."
+      )}`
+    );
+  }
+
+  const { error } = await supabase
+    .from("jobs")
+    .update({ status: "draft", rejection_reason: reason })
+    .eq("id", jobId);
+
+  if (error) redirect(`${returnTo}?error=${encodeURIComponent(error.message)}`);
+
+  revalidatePublic(jobId);
+  redirect(`${returnTo}?updated=rejected`);
+}
+
+/**
+ * Suspends or reinstates an account (brief §10).
+ *
+ * A timestamp, not a flag, so "when" is recorded. The database enforces that
+ * only an admin can write it (guard_suspension, migration 017), and a suspended
+ * company's listings stop being publicly visible through the rewritten
+ * jobs_select_published policy — not through anything this action does. So a
+ * suspension holds even against a direct API call.
+ */
+export async function setSuspended(formData: FormData) {
+  const { supabase } = await requireProfile("admin");
+
+  const table = str(formData, "table");
+  const id = str(formData, "id");
+  const suspend = formData.get("suspend") === "true";
+  const returnTo = safeReturnTo(str(formData, "return_to"));
+
+  if (!id || (table !== "profiles" && table !== "companies")) {
+    redirect(`${returnTo}?error=Invalid+request`);
+  }
+
+  const { error } = await supabase
+    .from(table as "profiles" | "companies")
+    .update({ suspended_at: suspend ? new Date().toISOString() : null })
+    .eq("id", id);
+
+  if (error) redirect(`${returnTo}?error=${encodeURIComponent(error.message)}`);
+
+  // A suspended employer's listings leave /jobs, so the public surface changes.
+  revalidatePublic();
+  revalidatePath("/admin/employers");
+  revalidatePath("/admin/seekers");
+  redirect(`${returnTo}?updated=${suspend ? "suspended" : "reinstated"}`);
 }
 
 /**
