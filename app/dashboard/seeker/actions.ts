@@ -3,7 +3,13 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireProfile } from "@/lib/auth";
-import { CV_ACCEPT, CV_BUCKET, CV_MAX_BYTES, cvObjectPath } from "@/lib/cv";
+import {
+  CV_ACCEPT,
+  CV_BUCKET,
+  CV_MAX_BYTES,
+  cvObjectPath,
+  looksLikePdf,
+} from "@/lib/cv";
 import { normaliseLinkedIn } from "@/lib/profile";
 
 /**
@@ -80,6 +86,14 @@ export async function uploadCv(formData: FormData) {
   }
   if (file.size > CV_MAX_BYTES) {
     redirect("/dashboard/seeker/profile?error=CV+must+be+under+5MB");
+  }
+  // Server-side, so unlike the browser-side apply form this cannot be skipped:
+  // checks the bytes rather than the content type the client claimed.
+  if (!(await looksLikePdf(file))) {
+    redirect(
+      "/dashboard/seeker/profile?error=" +
+        encodeURIComponent("That file is not a PDF, even though it is named like one.")
+    );
   }
 
   const path = cvObjectPath(file.name);

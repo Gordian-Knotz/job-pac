@@ -48,6 +48,34 @@ export function r2KeyOf(cvUrl: string): string {
 }
 
 /**
+ * Checks the file really is a PDF by looking at its first bytes, not its
+ * declared type.
+ *
+ * `allowed_mime_types` on the bucket validates the content type the *uploader
+ * declares*, not the bytes — so a caller can send anything and label it
+ * application/pdf. This reads the actual magic number.
+ *
+ * Honest about the limit: the browser-side apply form can only check before it
+ * uploads, and a determined caller talking to the Storage API directly skips it.
+ * It is still worth having — it catches the common case of somebody attaching a
+ * .doc renamed to .pdf, and the residual risk is bounded because the file is
+ * only ever served back from a private bucket as application/pdf, so it is a
+ * malformed download rather than anything executable. The seeker profile upload
+ * goes through a server action and is checked there, where it cannot be skipped.
+ */
+export async function looksLikePdf(file: Blob): Promise<boolean> {
+  const head = new Uint8Array(await file.slice(0, 5).arrayBuffer());
+  // "%PDF-"
+  return (
+    head[0] === 0x25 &&
+    head[1] === 0x50 &&
+    head[2] === 0x44 &&
+    head[3] === 0x46 &&
+    head[4] === 0x2d
+  );
+}
+
+/**
  * Object path for a new upload: <uuid>/<safe-filename>.pdf
  *
  * A random prefix rather than a user id, because guests upload too and there is

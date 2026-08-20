@@ -8,6 +8,7 @@ import {
   CV_BUCKET,
   CV_MAX_BYTES,
   cvObjectPath,
+  looksLikePdf,
 } from "@/lib/cv";
 import type { UserRole } from "@/types/database";
 
@@ -62,6 +63,12 @@ export function ApplyForm({
       if (cv!.size > CV_MAX_BYTES) {
         setStatus("error");
         setMessage("Your CV needs to be under 5MB.");
+        return;
+      }
+      // The declared content type can say anything — check the actual bytes.
+      if (!(await looksLikePdf(cv!))) {
+        setStatus("error");
+        setMessage("That file is not a PDF, even though it is named like one.");
         return;
       }
     }

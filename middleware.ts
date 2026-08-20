@@ -27,7 +27,16 @@ import { NextResponse, type NextRequest } from "next/server";
  * the job board offline.
  */
 
-const CSP_ENFORCE = false;
+/**
+ * Enforcing. Held at Report-Only for one deploy first and confirmed on
+ * production that Next stamps the nonce onto its bootstrap — 25 nonce
+ * attributes across 24 script tags on jobs.pac.africa. Without that check,
+ * enforcing script-src blanks every page.
+ *
+ * If a future dependency injects an un-nonced inline script, this is the switch
+ * to flip back while it is sorted.
+ */
+const CSP_ENFORCE = true;
 
 function buildCsp(nonce: string): string {
   return [
