@@ -31,10 +31,23 @@ interface Params {
   status?: string;
   source?: string;
   cv?: string;
+  /** Calendar year of applied_at. Records span 2015–2026. */
+  year?: string;
+  /** Employer (company) the applied-for role belongs to. Admin-only view. */
+  employer?: string;
+  /** Whether the applicant has an account attached to the record. */
+  claimed?: string;
   page?: string;
 }
 
-const STATUSES: ApplicationStatus[] = ["pending", "shortlisted", "rejected", "hired"];
+// under_review is included now that migration 014 added it.
+const STATUSES: ApplicationStatus[] = [
+  "pending",
+  "under_review",
+  "shortlisted",
+  "rejected",
+  "hired",
+];
 
 function href(current: Params, changes: Partial<Record<keyof Params, string | null>>) {
   const next = new URLSearchParams();
@@ -86,11 +99,41 @@ export default async function AdminApplicationsPage({
   if (params.source === "historical") query = query.not("wp_post_id", "is", null);
   if (params.source === "new") query = query.is("wp_post_id", null);
 
+  // "migrated" now means anywhere we host it — Supabase for new uploads, R2 for
+  // the recovered archive. Only an http:// value is still unreachable.
   if (params.cv === "legacy") query = query.like("cv_url", "http%");
   if (params.cv === "migrated") {
     query = query.not("cv_url", "is", null).not("cv_url", "like", "http%");
   }
   if (params.cv === "none") query = query.is("cv_url", null);
+
+  // Whether the applicant has an account attached. Every archive row starts
+  // unclaimed, so this is how you find who has come back and reconnected.
+  if (params.claimed === "yes") query = query.not("applicant_id", "is", null);
+  if (params.claimed === "no") query = query.is("applicant_id", null);
+
+  const year = Number.parseInt(params.year ?? "", 10);
+  if (Number.isFinite(year) && year > 2000 && year < 2100) {
+    query = query
+      .gte("applied_at", `${year}-01-01`)
+      .lt("applied_at", `${year + 1}-01-01`);
+  }
+
+  // Employer filter resolves to job ids first rather than filtering through the
+  // embedded resource: PostgREST needs an !inner join for that, which would
+  // silently drop every archive row (job_id is NULL on all 4,355 of them).
+  if (params.employer) {
+    const { data: employerJobs } = await supabase
+      .from("jobs")
+      .select("id")
+      .eq("company_id", params.employer);
+    const ids = ((employerJobs as { id: string }[] | null) ?? []).map((j) => j.id);
+    // No jobs means no applications — an impossible id keeps the result empty
+    // rather than silently ignoring the filter.
+    query = query.in("job_id", ids.length ? ids : [
+      "00000000-0000-0000-0000-000000000000",
+    ]);
+  }
 
   const { data, count, error } = await query.range(from, from + PER_PAGE - 1);
 
@@ -98,7 +141,39 @@ export default async function AdminApplicationsPage({
   const total = count ?? 0;
   const lastPage = Math.max(1, Math.ceil(total / PER_PAGE));
 
-  const cvLinks = await cvLinksBatch(supabase, rows.map((r) => r.cv_url));
+  // Year options come from the data's real span, not a hardcoded range — the
+  // archive starts in 2015 and the newest arrives whenever someone applies.
+  const [{ data: oldest }, { data: newest }, { data: employerRows }, cvLinks] =
+    await Promise.all([
+      supabase
+        .from("applications")
+        .select("applied_at")
+        .order("applied_at", { ascending: true })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from("applications")
+        .select("applied_at")
+        .order("applied_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      // Admin-only: companies are no longer world-readable (migration 016), and
+      // this view is behind requireProfile("admin").
+      supabase.from("companies").select("id, name").order("name").limit(500),
+      cvLinksBatch(supabase, rows.map((r) => r.cv_url)),
+    ]);
+
+  const firstYear = (oldest as { applied_at: string } | null)
+    ? new Date((oldest as { applied_at: string }).applied_at).getFullYear()
+    : new Date().getFullYear();
+  const lastYear = (newest as { applied_at: string } | null)
+    ? new Date((newest as { applied_at: string }).applied_at).getFullYear()
+    : new Date().getFullYear();
+  const years = Array.from(
+    { length: Math.max(1, lastYear - firstYear + 1) },
+    (_, i) => lastYear - i
+  );
+  const employers = (employerRows as { id: string; name: string }[] | null) ?? [];
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-10">
@@ -142,11 +217,69 @@ export default async function AdminApplicationsPage({
             className="field pl-10"
           />
         </div>
+        {/* Chip state lives in the URL, so it must survive a search submit. */}
         {params.status && <input type="hidden" name="status" value={params.status} />}
         {params.source && <input type="hidden" name="source" value={params.source} />}
         {params.cv && <input type="hidden" name="cv" value={params.cv} />}
+        {params.claimed && <input type="hidden" name="claimed" value={params.claimed} />}
+        {params.year && <input type="hidden" name="year" value={params.year} />}
+        {params.employer && (
+          <input type="hidden" name="employer" value={params.employer} />
+        )}
         <button type="submit" className="btn-primary shrink-0">
           Search
+        </button>
+      </form>
+
+      {/* Year and employer are selects rather than chips — 12 years and a
+          growing employer list would swamp the chip row. */}
+      <form action="/admin/applications" className="mt-3 flex flex-wrap items-end gap-2">
+        {params.q && <input type="hidden" name="q" value={params.q} />}
+        {params.status && <input type="hidden" name="status" value={params.status} />}
+        {params.source && <input type="hidden" name="source" value={params.source} />}
+        {params.cv && <input type="hidden" name="cv" value={params.cv} />}
+        {params.claimed && <input type="hidden" name="claimed" value={params.claimed} />}
+
+        <div>
+          <label htmlFor="year" className="eyebrow mb-1.5 block">
+            Year applied
+          </label>
+          <select
+            id="year"
+            name="year"
+            defaultValue={params.year ?? ""}
+            className="field w-[150px]"
+          >
+            <option value="">Any year</option>
+            {years.map((y) => (
+              <option key={y} value={y}>
+                {y}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label htmlFor="employer" className="eyebrow mb-1.5 block">
+            Employer
+          </label>
+          <select
+            id="employer"
+            name="employer"
+            defaultValue={params.employer ?? ""}
+            className="field w-[220px]"
+          >
+            <option value="">Any employer</option>
+            {employers.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <button type="submit" className="btn-secondary text-xs">
+          Apply
         </button>
       </form>
 
@@ -191,6 +324,37 @@ export default async function AdminApplicationsPage({
           active={params.cv === "none"}
           to={href(params, { cv: params.cv === "none" ? null : "none", page: null })}
         />
+        <span className="w-px h-5 bg-pac-line mx-1" aria-hidden />
+        {/* Every archive row starts unclaimed, so this is how you find who has
+            come back and reconnected their history. */}
+        <FilterChip
+          label="Claimed"
+          active={params.claimed === "yes"}
+          to={href(params, {
+            claimed: params.claimed === "yes" ? null : "yes",
+            page: null,
+          })}
+        />
+        <FilterChip
+          label="Unclaimed"
+          active={params.claimed === "no"}
+          to={href(params, {
+            claimed: params.claimed === "no" ? null : "no",
+            page: null,
+          })}
+        />
+
+        {(params.q ||
+          params.status ||
+          params.source ||
+          params.cv ||
+          params.claimed ||
+          params.year ||
+          params.employer) && (
+          <Link href="/admin/applications" className="btn-quiet ml-auto">
+            Clear all
+          </Link>
+        )}
       </div>
 
       <div className="flex items-baseline justify-between gap-4 mt-6 mb-3">
