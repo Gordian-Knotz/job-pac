@@ -37,17 +37,19 @@ export const nav = {
 } as const;
 
 export const home = {
-  eyebrow: "PAC Africa · Nairobi",
-  // Split so one fragment can carry the accent colour. Large display text, so
-  // #E8532E clears AA on both surfaces at this size.
+  // Kicker above the headline, per the hero216 structure.
+  kicker: "Connecting Kenyan talent with employers we have checked",
+  // Three lines, centred, set large. Split so one fragment can carry the accent
+  // colour — at display size #E8532E clears AA on both surfaces.
   headlineLead: "Vetted work.",
-  headlineRest: "Real employers. Across Kenya.",
-  sub: "Every role here has been checked by PAC Africa before it went live. No ghost listings, no recruiter noise, no applying into a void.",
+  headlineMid: "Real employers.",
+  headlineTail: "Across Kenya.",
+  sub: "Every role here is reviewed by PAC Africa before it goes live. No ghost listings, no recruiter noise, no applying into a void.",
   searchWhat: "Job title, skill, or keyword",
   searchWhere: "Anywhere in Kenya",
   searchCta: "Search roles",
-  browseCta: "Browse all roles",
-  postCta: "Post a Job",
+  browseCta: "Browse roles",
+  postCta: "Post a job",
   popular: "Popular",
   // Trust without numbers — the counts were deliberately removed.
   trust: [

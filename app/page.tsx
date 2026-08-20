@@ -1,11 +1,13 @@
 import Link from "next/link";
-import { ArrowRight, Search, Check } from "lucide-react";
+import { ArrowRight, Check } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { postJobHref } from "@/lib/auth";
 import { JobCard } from "@/components/job-card";
 import { Reveal } from "@/components/reveal";
+import { Meteors } from "@/components/meteors";
+import { Globe } from "@/components/globe";
 import { home } from "@/lib/content";
-import type { Job, JobLocation, UserRole } from "@/types/database";
+import type { Job, UserRole } from "@/types/database";
 
 /** Brief §3: show 8–12 and link out. No infinite scroll here. */
 const FEED_SIZE = 10;
@@ -83,123 +85,91 @@ export default async function HomePage() {
 
   return (
     <>
-      {/* HERO ------------------------------------------------------- */}
-      <section className="mx-auto max-w-6xl px-6 pb-16 pt-16 md:pb-24 md:pt-24">
-        <Reveal>
-          <span className="eyebrow">{home.eyebrow}</span>
-        </Reveal>
+      {/* HERO — hero216 structure: kicker, large centred headline, meteor
+          field, rounded secondary CTA with arrow motion, overscaled globe
+          strip below. Built from the described layout rather than the licensed
+          block source. */}
+      <section className="relative overflow-hidden">
+        <Meteors className="opacity-70" />
 
-        <Reveal delay={0.06}>
-          <h1 className="mt-4 max-w-4xl font-display text-[2.5rem] font-700 leading-[0.98] tracking-display text-ink sm:text-6xl lg:text-7xl">
-            <span className="text-accent-text">{home.headlineLead}</span>{" "}
-            {home.headlineRest}
-          </h1>
-        </Reveal>
-
-        <Reveal delay={0.12}>
-          <p className="mt-6 max-w-xl text-[15px] leading-relaxed text-muted md:text-base">
-            {home.sub}
-          </p>
-        </Reveal>
-
-        {/* Search is the primary action. One clay slab so it reads as a single
-            control rather than three loose inputs. */}
-        <Reveal delay={0.18}>
-          <form
-            action="/jobs"
-            className="clay mt-9 flex max-w-3xl flex-col gap-2 p-2 sm:flex-row sm:items-center"
-          >
-            <div className="relative flex-1">
-              <Search
-                className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-faint"
-                aria-hidden
-              />
-              <label htmlFor="hero-q" className="sr-only">
-                {home.searchWhat}
-              </label>
-              <input
-                id="hero-q"
-                name="q"
-                placeholder={home.searchWhat}
-                className="w-full bg-transparent py-3 pl-10 pr-3 text-sm text-ink outline-none placeholder:text-faint"
-              />
-            </div>
-
-            <span className="hidden h-7 w-px bg-line sm:block" aria-hidden />
-
-            <div className="sm:w-52">
-              <label htmlFor="hero-location" className="sr-only">
-                {home.searchWhere}
-              </label>
-              <select
-                id="hero-location"
-                name="location"
-                defaultValue=""
-                className="w-full bg-transparent px-3 py-3 text-sm text-ink outline-none"
-              >
-                <option value="">{home.searchWhere}</option>
-                {((locations as Pick<JobLocation, "id" | "name">[]) ?? []).map((l) => (
-                  <option key={l.id} value={l.id}>
-                    {l.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <button type="submit" className="btn-accent shrink-0 px-6 py-3">
-              {home.searchCta}
-            </button>
-          </form>
-        </Reveal>
-
-        {topCategories.length > 0 && (
-          <Reveal delay={0.22}>
-            <div className="mt-5 flex flex-wrap items-center gap-2">
-              <span className="eyebrow">{home.popular}</span>
-              {topCategories.map((c) => (
-                <Link key={c.id} href={`/jobs?category=${c.id}`} className="chip">
-                  {c.name}
-                </Link>
-              ))}
-            </div>
+        <div className="relative mx-auto max-w-4xl px-6 pb-4 pt-20 text-center md:pt-28">
+          <Reveal>
+            <p className="text-sm text-muted">{home.kicker}</p>
           </Reveal>
-        )}
 
-        <Reveal delay={0.26}>
-          <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-3">
-            <Link
-              href="/jobs"
-              className="inline-flex items-center gap-1.5 text-sm text-ink transition-opacity duration-150 hover:opacity-70"
-            >
-              {home.browseCta}
-              <ArrowRight className="h-3.5 w-3.5" aria-hidden />
-            </Link>
-            <span className="h-4 w-px bg-line" aria-hidden />
-            <Link
-              href={postJobHref(role)}
-              className="inline-flex items-center gap-1.5 text-sm text-accent-text transition-opacity duration-150 hover:opacity-70"
-            >
-              {home.postCta}
-              <ArrowRight className="h-3.5 w-3.5" aria-hidden />
-            </Link>
-          </div>
-        </Reveal>
+          <Reveal delay={0.06}>
+            <h1 className="mx-auto mt-6 max-w-3xl font-display text-[2.75rem] font-700 leading-[0.95] tracking-display text-ink sm:text-6xl lg:text-7xl">
+              <span className="block text-accent-text">{home.headlineLead}</span>
+              <span className="block">{home.headlineMid}</span>
+              <span className="block">{home.headlineTail}</span>
+            </h1>
+          </Reveal>
 
-        {/* Trust, stated rather than counted. */}
-        <Reveal delay={0.32}>
-          <ul className="mt-12 grid gap-3 border-t border-line pt-8 sm:grid-cols-3">
-            {home.trust.map((item) => (
-              <li key={item} className="flex items-start gap-2.5 text-sm text-muted">
-                <Check
-                  className="mt-0.5 h-4 w-4 shrink-0 text-accent-text"
-                  strokeWidth={2.5}
+          <Reveal delay={0.12}>
+            <p className="mx-auto mt-7 max-w-xl text-[15px] leading-relaxed text-muted md:text-base">
+              {home.sub}
+            </p>
+          </Reveal>
+
+          <Reveal delay={0.18}>
+            <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
+              <Link href="/jobs" className="btn-accent px-7 py-3">
+                {home.browseCta}
+              </Link>
+              {/* Rounded secondary with the arrow nudge, per the reference. */}
+              <Link href={postJobHref(role)} className="btn-primary group px-7 py-3">
+                {home.postCta}
+                <ArrowRight
+                  className="h-4 w-4 transition-transform duration-200 ease-out group-hover:translate-x-1 motion-safe:animate-nudge motion-safe:group-hover:animate-none"
                   aria-hidden
                 />
-                {item}
-              </li>
-            ))}
-          </ul>
-        </Reveal>
+              </Link>
+            </div>
+          </Reveal>
+
+          {topCategories.length > 0 && (
+            <Reveal delay={0.22}>
+              <div className="mt-7 flex flex-wrap items-center justify-center gap-2">
+                <span className="eyebrow">{home.popular}</span>
+                {topCategories.map((c) => (
+                  <Link key={c.id} href={`/jobs?category=${c.id}`} className="chip">
+                    {c.name}
+                  </Link>
+                ))}
+              </div>
+            </Reveal>
+          )}
+        </div>
+
+        {/* Overscaled globe, cropped at the bottom and faded into the page so
+            it dissolves rather than ending on a hard edge. */}
+        <div className="relative mx-auto h-[300px] max-w-[1000px] overflow-hidden sm:h-[380px] md:h-[440px]">
+          <div className="absolute left-1/2 top-0 w-[560px] -translate-x-1/2 sm:w-[760px] md:w-[940px]">
+            <Globe />
+          </div>
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-bg to-transparent"
+          />
+        </div>
+
+        {/* Trust, stated rather than counted. */}
+        <div className="mx-auto max-w-4xl px-6">
+          <Reveal>
+            <ul className="grid gap-3 border-t border-line pt-8 sm:grid-cols-3">
+              {home.trust.map((item) => (
+                <li key={item} className="flex items-start gap-2.5 text-sm text-muted">
+                  <Check
+                    className="mt-0.5 h-4 w-4 shrink-0 text-accent-text"
+                    strokeWidth={2.5}
+                    aria-hidden
+                  />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </Reveal>
+        </div>
       </section>
 
       {/* FEED ------------------------------------------------------- */}

@@ -79,11 +79,25 @@ const config: Config = {
           from: { opacity: "0", transform: "translateY(8px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
+        // Diagonal streak, down and to the left, fading at both ends.
+        meteor: {
+          "0%": { transform: "rotate(215deg) translateX(0)", opacity: "0" },
+          "12%": { opacity: "1" },
+          "80%": { opacity: "1" },
+          "100%": { transform: "rotate(215deg) translateX(-620px)", opacity: "0" },
+        },
+        // The arrow nudge on the secondary CTA.
+        nudge: {
+          "0%,100%": { transform: "translateX(0)" },
+          "50%": { transform: "translateX(3px)" },
+        },
       },
       animation: {
         // 12s cycle, per the brief.
         "mesh-drift": "mesh-drift 12s ease-in-out infinite",
         "fade-up": "fade-up 320ms cubic-bezier(0.23, 1, 0.32, 1) both",
+        meteor: "meteor 5s linear infinite",
+        nudge: "nudge 1.6s ease-in-out infinite",
       },
     },
   },
