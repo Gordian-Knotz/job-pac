@@ -283,6 +283,42 @@ privileges cannot see who is asking; a trigger calling `is_admin()` can.
    was true and beside the point: it was read from `profiles.email`, which the
    same user could rewrite. It now comes from `auth.users` via the session.
 
+## After 026
+
+launch-checks.md (S11/S17): rate limiting was zero anywhere, confirmed in the
+Vercel firewall log (`Rate Limited –`, `Custom Rules 0`). Sign-in traffic goes
+straight to Supabase Auth, so that side is a dashboard setting, not a
+migration. But the apply flow has been a server action on our own origin
+since 024, so it is the one write path this project can throttle itself
+without depending on whether Vercel's WAF custom rules are available on the
+current plan.
+
+`rate_limit_hit(key, max, window_seconds)` is a fixed-window counter, keyed
+on a **hashed** IP (never the raw address, consistent with 013's stance on
+IP-level tracking of anonymous applicants), `security definer`, `execute`
+granted to `service_role` only — called from `lib/rate-limit.ts` via the
+admin client, the same scoped-elevated-access pattern `lib/supabase/admin.ts`
+already asks for rather than a second raw table caller. `app/jobs/actions.ts`
+calls it once, at 8 requests per 15 minutes per hashed IP — deliberately
+generous, since Kenyan mobile traffic sits behind carrier NAT and this only
+needs to catch a script, not a shared connection.
+
+Cleanup is probabilistic (1 in ~100 calls deletes buckets older than a day)
+rather than a cron job, since the table only ever holds recent windows for
+keys actually being hit.
+
+**Not yet applied or probed against the live project** — written and
+reviewed, but this migration has not been run against Supabase yet (no
+database session was used to build it). Before marking it verified, run it
+and confirm by impersonation, the same way every migration above was:
+
+| behaviour to check | expected |
+|---|---|
+| 8 apply attempts from the same hashed IP within 15 minutes | 9th is rejected with `rate_limited` |
+| a different hashed IP, same window | unaffected |
+| after the window rolls over | counter resets, attempts succeed again |
+| `anon`/`authenticated` call `rate_limit_hit()` directly | permission denied for function |
+
 ## Still open
 
 - **Leaked-password protection** is still off (Supabase → Auth → Policies). The

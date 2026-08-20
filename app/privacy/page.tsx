@@ -48,6 +48,10 @@ export default function PrivacyPage() {
           <a href="mailto:it@pac.africa" className="text-accent-text hover:underline">
             it@pac.africa
           </a>
+          . See also our{" "}
+          <Link href="/terms" className="text-accent-text hover:underline">
+            Terms of service
+          </Link>
           .
         </p>
       </div>

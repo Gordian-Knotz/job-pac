@@ -21,11 +21,20 @@ export const JOB_STATUSES: JobStatus[] = [
   "closed",
 ];
 
-export function str(formData: FormData, key: string): string | null {
+/**
+ * `max` is optional and defaults to no cap, so every existing call site
+ * (ids, statuses, enum-ish values with their own bound) is unaffected — only
+ * genuinely free-text fields need to pass one. Truncated rather than
+ * rejected, matching the same choice `text()` in app/jobs/actions.ts makes
+ * for cover letters: a long paste is not a mistake worth throwing the whole
+ * submission away over.
+ */
+export function str(formData: FormData, key: string, max?: number): string | null {
   const value = formData.get(key);
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
-  return trimmed === "" ? null : trimmed;
+  if (trimmed === "") return null;
+  return max ? trimmed.slice(0, max) : trimmed;
 }
 
 export function int(formData: FormData, key: string): number | null {
@@ -78,7 +87,12 @@ export type JobFields = {
  * missing so the caller can redirect with its own error target.
  */
 export function parseJobFields(formData: FormData): JobFields | null {
-  const title = str(formData, "title");
+  // No length cap existed on either field before — a title or location string
+  // of unbounded length would have gone straight to a `text` column with
+  // nothing stopping it. Caps chosen generously against real job titles
+  // ("Senior Backend Engineer — Payments Platform" is ~45 chars) and
+  // freeform location strings, not against a spec.
+  const title = str(formData, "title", 200);
   // The three body fields now arrive as HTML from the rich-text editor, so they
   // are sanitised on the way in as well as on the way out. Render-time
   // sanitising is still the guarantee — it also covers the migrated WordPress
@@ -105,7 +119,7 @@ export function parseJobFields(formData: FormData): JobFields | null {
     salary_max: flip ? salaryMin : salaryMax,
     category_id: str(formData, "category_id"),
     location_id: str(formData, "location_id"),
-    location_text: str(formData, "location_text"),
+    location_text: str(formData, "location_text", 120),
     job_type: oneOf(str(formData, "job_type"), JOB_TYPES, "full_time"),
     employment_level: oneOf(str(formData, "employment_level"), LEVELS, "mid"),
     is_remote: formData.get("is_remote") === "on",

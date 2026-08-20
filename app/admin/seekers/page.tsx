@@ -64,9 +64,17 @@ export default async function AdminSeekers({
   const page = Math.max(1, Number.parseInt(params.page ?? "1", 10) || 1);
   const from = (page - 1) * PER_PAGE;
 
+  // Explicit column list, not "*". profileChecklist() genuinely needs
+  // full_name/phone/headline/skills/address/cv_url for every row on the page
+  // (the completeness % is computed per row, not just for whichever one is
+  // open in the drawer) — but `bio` and `linkedin_url` are shown nowhere on
+  // this page and were being sent for all 50 rows regardless.
   let query = supabase
     .from("profiles")
-    .select("*", { count: "exact" })
+    .select(
+      "id, full_name, email, phone, headline, skills, address, avatar_url, cv_url, suspended_at, created_at",
+      { count: "exact" }
+    )
     .eq("role", "seeker")
     .order("created_at", { ascending: false });
 

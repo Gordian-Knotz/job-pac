@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { headers } from "next/headers";
 import { ArrowLeft, Flag } from "lucide-react";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
@@ -99,14 +100,29 @@ async function getViewerContext(jobId: string): Promise<{
 }
 
 /**
+ * Bots that identify themselves. Not a security control — a scraper can send any
+ * user agent it likes — but it removes the large, honest, self-declaring share.
+ */
+const BOT = /bot|crawler|spider|crawling|slurp|bingpreview|headlesschrome|lighthouse|monitoring|preview/i;
+
+/**
  * Bumps the view counter through the SECURITY DEFINER RPC — an anonymous
  * visitor has no UPDATE on jobs and is not going to be given one.
+ *
+ * Crawlers are skipped. The Vercel firewall log showed Google alone making 2.3k
+ * of 6.6k requests in a day, which means the Views figure an employer reads on
+ * their dashboard was substantially Googlebot rather than people. It is still a
+ * naive counter — reloads count, and any scraper that lies about its user agent
+ * counts — but "mostly search engines" is a different kind of wrong from
+ * "counts reloads", and this removes the bigger half.
  *
  * Errors are swallowed on purpose. This is a vanity number on an employer's
  * dashboard; nothing about the page depends on it.
  */
 async function recordView(jobId: string): Promise<void> {
   try {
+    const agent = (await headers()).get("user-agent") ?? "";
+    if (!agent || BOT.test(agent)) return;
     const supabase = await createClient();
     await supabase.rpc("increment_job_view", { job: jobId });
   } catch {

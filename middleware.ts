@@ -51,22 +51,18 @@ const CSP_ENFORCE = true;
 const DEV = process.env.NODE_ENV === "development";
 
 /**
- * Captcha provider origins. Both providers are listed rather than only the
- * configured one: the provider is a NEXT_PUBLIC_ env var read in the browser,
- * and a policy that silently stops matching when someone flips it is a worse
- * failure than a spare host here. None of them can execute anything on this
- * origin — they serve a sandboxed iframe containing their own challenge.
+ * Turnstile's origin. It cannot execute anything on this origin — it serves a
+ * sandboxed iframe containing its own challenge.
  *
  * frame-src is the one that matters. It was 'none', which blocks the widget
  * outright: the challenge renders in an iframe, so enabling captcha in Supabase
  * without this line takes sign-in down with no visible cause.
  *
- * Named exactly rather than as `*.hcaptcha.com`: a wildcard over someone
- * else's subdomain space is a standing bet on their DNS hygiene, and only these
- * two hosts are ever needed.
+ * hCaptcha's hosts were removed from this list along with the hCaptcha branch
+ * in components/captcha.tsx — this project settled on Turnstile only, and a
+ * provider no longer supported in code doesn't need a standing CSP allowance.
  */
-const CAPTCHA_HOSTS =
-  "https://challenges.cloudflare.com https://newassets.hcaptcha.com https://api.hcaptcha.com";
+const CAPTCHA_HOSTS = "https://challenges.cloudflare.com";
 
 function buildCsp(nonce: string): string {
   return [

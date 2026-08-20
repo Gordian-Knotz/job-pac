@@ -8,6 +8,16 @@ import { Meteors } from "@/components/meteors";
 import { Globe } from "@/components/globe";
 import { home } from "@/lib/content";
 import type { Job, UserRole } from "@/types/database";
+import type { Metadata } from "next";
+
+// Previously absent — the homepage inherited the root layout's generic
+// "Jobs | PAC Africa" title/description verbatim. This is the one page every
+// new visitor and every search result lands on first.
+export const metadata: Metadata = {
+  title: "Vetted Jobs Across Kenya & East Africa",
+  description:
+    "Browse vetted roles from employers across Kenya and East Africa, or post a job and reach candidates PAC Africa has already screened.",
+};
 
 /** Brief §3: show 8–12 and link out. No infinite scroll here. */
 const FEED_SIZE = 10;
@@ -91,9 +101,9 @@ export default async function HomePage() {
   return (
     <>
       {/* HERO — hero216 structure: large centred headline, meteor field,
-          rounded secondary CTA with arrow motion, and an overscaled globe that
-          sits behind the copy rather than below it. Built from the described
-          layout rather than the licensed block source. */}
+          rounded secondary CTA with arrow motion, and an overscaled globe
+          rising directly beneath the copy. Built from the described layout
+          rather than the licensed block source. */}
       <section className="relative overflow-hidden">
         <Meteors className="opacity-70" />
 
@@ -134,7 +144,7 @@ export default async function HomePage() {
 
           {topCategories.length > 0 && (
             <Reveal delay={0.18}>
-              {/* This row now sits over the globe, so the bare eyebrow was
+              {/* This row meets the top of the globe, and the bare eyebrow was
                   unreadable against the dot field. The whole row gets a
                   translucent backing rather than the label alone — a single
                   floating strip reads as deliberate, one patched word does not.
@@ -157,35 +167,26 @@ export default async function HomePage() {
         {/* Overscaled globe, cropped at the bottom and faded into the page so it
             dissolves rather than ending on a hard edge.
 
-            It now sits BEHIND the copy rather than under it: the negative margin
-            pulls the frame up past the CTA row, and the copy block above carries
-            z-[1] so the headline stays on top. Two knobs, because they do
-            different things — the margin moves the whole frame up the page, and
-            the canvas offset moves the sphere up within that frame, which is
-            what closes the dead space cobe leaves above the visible arc.
+            TWO KNOBS, and they do different things. The negative margin moves the
+            whole frame up the page; the canvas offset inside it moves the sphere
+            up within the frame, which is what closes the dead space cobe leaves
+            above the visible arc (roughly 90px at desktop width).
 
-            The popular-categories row ends up over the dot field, which is why
-            it has a translucent backing. */}
-        {/* Full-bleed, not max-width. The frame used to be capped at 1060px,
-            which was invisible until the scrim below was added — a gradient to
-            the page colour inside a narrower box drew its own rectangle against
-            the ambient mesh, side edges and all. The globe itself is unaffected:
-            the canvas has fixed widths and is centred on the frame. */}
-        <div className="relative -mt-[13rem] h-[420px] overflow-hidden sm:-mt-[15rem] sm:h-[520px] md:-mt-[17rem] md:h-[600px]">
+            Tuned so the arc begins just under the popular-categories row — the
+            globe rises beneath the copy without sitting behind the paragraph. It
+            was pushed further, to -17rem, so the sphere sat behind the text; that
+            needed a scrim to keep the paragraph legible and it read as murky, so
+            it came back here. If it is ever raised again, the scrim has to come
+            with it.
+
+            Full-bleed rather than a max-width box: the bottom fade is a gradient
+            to the page colour, and inside a narrower frame it draws its own
+            rectangle against the ambient mesh. The globe is unaffected — its
+            canvas has fixed widths and is centred on the frame. */}
+        <div className="relative -mt-24 h-[360px] overflow-hidden sm:-mt-28 sm:h-[460px] md:-mt-32 md:h-[540px]">
           <div className="absolute left-1/2 top-[-70px] w-[600px] -translate-x-1/2 sm:top-[-85px] sm:w-[800px] md:top-[-100px] md:w-[980px]">
             <Globe />
           </div>
-          {/* Top scrim. Raising the globe this far put the dot field directly
-              behind the sub-paragraph, and muted grey body text over a dotted
-              sphere is not readable. Dimming the sphere where the text sits — a
-              gradient back to the page colour, strongest at the top and gone by
-              the time it reaches Africa — keeps the globe high AND the sentence
-              legible. The alternative was pushing the globe back down, which is
-              the thing being asked for in reverse. */}
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-bg via-bg/75 to-transparent md:h-72"
-          />
           <div
             aria-hidden
             className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-bg to-transparent"

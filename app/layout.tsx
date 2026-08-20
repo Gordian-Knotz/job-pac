@@ -36,7 +36,13 @@ const mono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: `Jobs | ${site.owner}`,
+  // `template` suffixes any child route's own title with the brand name, so a
+  // route that forgets to set one still reads as generic rather than blank —
+  // `default` is what renders when a child sets no title of its own at all.
+  title: {
+    template: `%s | ${site.owner}`,
+    default: `Jobs | ${site.owner}`,
+  },
   description: "Vetted opportunities across Africa — from PAC Africa.",
 };
 
