@@ -43,12 +43,12 @@ Every item below states its handbook code, its current status against the actual
 
 **S11 Rate limit login** — **confirmed absent.** Firewall log shows `Rate Limited –`, `Custom Rules 0`. Sign-in traffic goes straight to Supabase, not through Vercel, so this needs Supabase → Auth → Rate Limits, not a Vercel rule.
 
-**S12 Add bot protection** — component built, token sent by both forms, **not enforcing**. Probed 2026-08-20: auth endpoint returns `invalid_credentials`, not a captcha error. Fix in this exact order:
-1. Pick Turnstile or hCaptcha — must match the Supabase-side Attack Protection setting or every attempt fails with `invalid-input-response`.
-2. Set `NEXT_PUBLIC_CAPTCHA_PROVIDER` / `NEXT_PUBLIC_CAPTCHA_SITE_KEY` in Vercel, redeploy, confirm the widget renders and sends a token while Supabase still ignores it.
-3. Only then flip the Supabase toggle.
+**S12 Add bot protection** — provider decided: **Turnstile only**. `components/captcha.tsx`'s hCaptcha branch and the `@hcaptcha/react-hcaptcha` dependency are removed; CSP narrowed to `challenges.cloudflare.com` alone. Code side is done — what's left is external, in this exact order:
+1. Get a Turnstile site key from the Cloudflare dashboard.
+2. Set `NEXT_PUBLIC_CAPTCHA_SITE_KEY` in Vercel, redeploy, confirm the widget renders and sends a token while Supabase still ignores it.
+3. Only then flip Supabase → Auth → Attack Protection to Turnstile.
 
-Confirm CSP still allows the chosen provider's frame/script/connect origins — `frame-src` was previously `'none'` and would silently eat the challenge iframe with no console error.
+CSP already allows Turnstile's frame/script/connect origin — confirmed in `middleware.ts`, no further change needed there.
 
 **S14 Validate all input** — not audited yet against a schema library (Zod or equivalent) at every API boundary. `lib/job-form.ts` (`parseJobFields`) sanitises rich text but confirm structural validation exists on every server action, not just the rich-text fields.
 
@@ -76,7 +76,7 @@ The current docs describe a functioning product but don't mention on-page SEO fu
 - **G4 Meta descriptions** — unique, 150–160 characters, per indexable page.
 - **G13 Image alt texts** — audit with axe. The logo, globe (decorative, should be `alt=""` or aria-hidden given it's WebGL canvas), and any job/company images.
 - **G14 Privacy policy** — `app/privacy/` exists per the file inventory in `05-current-build-state.md`. Confirm it covers what's collected, why, legal basis, retention, and third-party processors (R2, Supabase) as required under the Kenya Data Protection Act — not just a generic template.
-- **G15 Terms and conditions** — not seen in the file inventory. Check whether this exists anywhere; if not, it's a gap, and per the handbook it's required before this can be considered a compliant public launch.
+- **G15 Terms and conditions** — `app/terms/page.tsx` now exists, linked from the footer, signup, and the privacy page. **First draft, not reviewed by legal** — content covers acceptable use, posting/moderation, suspension, liability, and governing law, matching what the database actually enforces, but PAC/legal should review before it's treated as binding.
 - **G16 Mobile optimization** — the two-pane `/jobs` layout and mobile bottom tab bar suggest this was designed for, but run Google's mobile-friendly test on the homepage, `/jobs`, and a job detail page to confirm.
 - **G17 Fast images** — no image optimization strategy mentioned in the docs beyond `next/image` usage implied by the stack. Confirm CV thumbnails (if any) and the logo are served appropriately sized; the logo file itself is 591×221 and cropped via CSS, not re-exported, which is fine for a header/footer logo but worth checking against the 200KB-per-image acceptance test.
 - **G18 Google Analytics** — not mentioned anywhere in the docs. If nothing is measuring the funnel, this is a genuine blind spot on a live product. Prefer a cookieless option (Plausible) to avoid triggering C16's consent requirement.
@@ -98,10 +98,10 @@ The current docs describe a functioning product but don't mention on-page SEO fu
 - **C5 Tap-to-call number** — check whether any phone number appears on `/employers` or a contact surface, and if so whether it's wrapped in a `tel:` link.
 - **C6 Form error messages** — `lib/auth-errors.ts` maps Supabase auth errors to human copy and specifically closes a login-enumeration oracle, which is good practice beyond the handbook item. Confirm this pattern extends to the apply form and job-post form, not just auth.
 - **C9 Five blog posts minimum** — no blog or content section mentioned anywhere in the file inventory. This is very likely not started. Lower priority than the compliance items below, but flag it as a known gap rather than silently skipping it.
-- **C13 Visible contact email** — check `/employers` and any public contact surface directly displays a monitored address, not only a form.
-- **C14 Working social links** — audit whatever's in `site-footer` for live vs dead destinations.
-- **C17 llms.txt** — not mentioned. Given this is a 2026-era launch and the handbook explicitly calls this out as increasingly relevant, a five-minute addition: a root `llms.txt` stating what's available for AI retrieval. Applicant and employer data should be explicitly excluded.
-- **C18 Terms of service** — same gap as G15. If genuinely absent, this is the single most important item in this whole section given the product handles applicant PII and has employer-side obligations (moderation, posting rights) that need to be governed somewhere.
+- **C13 Visible contact email / phone** — `it@pac.africa` is on `/employers`, `/privacy`, and now the footer. No real support phone number exists yet; the footer shows an inert "Phone — coming soon" placeholder rather than a dead `tel:` link, per a deliberate decision to add nothing live until there's a real number.
+- **C14 Working social links** — no real accounts exist yet. Same placeholder treatment as C13 — inert "coming soon" labels in the footer, not dead `href="#"` anchors.
+- **C17 llms.txt** — done. `public/llms.txt` lists what's available for AI retrieval and explicitly excludes applicant/employer data.
+- **C18 Terms of service** — done, see G15. First draft, not yet legal-reviewed.
 
 ---
 

@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { site } from "@/lib/content";
 
 export const metadata: Metadata = {
-  title: `Data & Cookies | ${site.owner}`,
+  title: "Data & Cookies",
   description:
     "What personal data jobs.pac.africa collects, where it is stored, who can see it, and how to have it removed.",
 };

@@ -1,6 +1,6 @@
 import "server-only";
 import { headers } from "next/headers";
-import { createHash } from "crypto";
+import { createHmac } from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
@@ -9,10 +9,13 @@ import { createAdminClient } from "@/lib/supabase/admin";
  * framework, so adding a second one should mean asking whether the same
  * bucket/window shape actually fits before reusing this.
  *
- * The IP is hashed before it ever reaches the database — this product already
- * treats tracking an anonymous applicant's address as something to avoid
- * where possible, and a hash is enough to rate-limit against without being
- * reversible back to an address.
+ * The IP is HMAC'd with a server-only secret before it ever reaches the
+ * database — this product already treats tracking an anonymous applicant's
+ * address as something to avoid where possible. A plain, unsalted hash would
+ * only be pseudonymous in name: IPv4 is a ~4 billion-value space, cheap to
+ * hash in full ahead of time, so `sha256(ip)` is a lookup table away from
+ * being reversed. Keying it with a secret only this server knows is what
+ * actually makes it one-way.
  *
  * Fails OPEN: if the check itself errors (missing service role key, database
  * hiccup, or migration 026 not yet applied so the function does not exist
@@ -34,10 +37,15 @@ export async function checkRateLimit(
   const hdrs = await headers();
   const forwardedFor = hdrs.get("x-forwarded-for");
   const ip = forwardedFor?.split(",")[0]?.trim() || hdrs.get("x-real-ip") || "unknown";
-  const hash = createHash("sha256").update(ip).digest("hex").slice(0, 32);
-  const key = `${bucket}:${hash}`;
 
   try {
+    const secret = process.env.RATE_LIMIT_HASH_SECRET;
+    if (!secret) {
+      throw new Error("RATE_LIMIT_HASH_SECRET is not set");
+    }
+    const hash = createHmac("sha256", secret).update(ip).digest("hex").slice(0, 32);
+    const key = `${bucket}:${hash}`;
+
     const admin = createAdminClient();
     const { data, error } = await admin.rpc("rate_limit_hit", {
       p_key: key,

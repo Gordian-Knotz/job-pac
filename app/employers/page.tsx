@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { BadgeCheck, Inbox, ShieldCheck } from "lucide-react";
-import { site } from "@/lib/content";
 
 export const metadata = {
-  title: `For employers | ${site.owner}`,
+  title: "For employers",
   description:
     "Post vetted roles on jobs.pac.africa and review applicants in one place.",
 };

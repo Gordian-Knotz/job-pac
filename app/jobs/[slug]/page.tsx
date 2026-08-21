@@ -1,15 +1,17 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
+import { after } from "next/server";
 import { ArrowLeft, Flag } from "lucide-react";
 import type { Metadata } from "next";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { JobDetail } from "@/components/job-detail";
 import { JobCard } from "@/components/job-card";
 import { ApplyForm, type ApplyViewer } from "@/components/apply-form";
 import { ShareButton } from "@/components/share-button";
 import { job as jobCopy, gate } from "@/lib/content";
-import type { Job, Profile } from "@/types/database";
+import type { Job, Profile, Database } from "@/types/database";
 
 const SELECT = `
   *,
@@ -118,12 +120,24 @@ const BOT = /bot|crawler|spider|crawling|slurp|bingpreview|headlesschrome|lighth
  *
  * Errors are swallowed on purpose. This is a vanity number on an employer's
  * dashboard; nothing about the page depends on it.
+ *
+ * Runs inside next/server's `after()`, not awaited into the render — a
+ * failed or slow counter must never cost the visitor the listing. The
+ * user agent is a parameter rather than read in here with `headers()`
+ * because Server Components cannot call request-scoped APIs (`headers`,
+ * `cookies`) from inside an `after()` callback — it throws. The same
+ * reason rules out `lib/supabase/server.ts`'s `createClient()`, which
+ * reads `cookies()` internally; `increment_job_view` is grantable to
+ * `anon` specifically so this never needed a session, so a plain
+ * anon-key client sidesteps the problem rather than working around it.
  */
-async function recordView(jobId: string): Promise<void> {
+async function recordView(jobId: string, userAgent: string): Promise<void> {
+  if (!userAgent || BOT.test(userAgent)) return;
   try {
-    const agent = (await headers()).get("user-agent") ?? "";
-    if (!agent || BOT.test(agent)) return;
-    const supabase = await createClient();
+    const supabase = createSupabaseClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
     await supabase.rpc("increment_job_view", { job: jobId });
   } catch {
     // Intentionally ignored.
@@ -180,10 +194,13 @@ export default async function JobDetailPage({
   ]);
 
   // The Views figure on the employer's My Jobs page. Fire-and-forget, and
-  // deliberately not awaited into the render: a failed counter must never cost
-  // the visitor the listing. It counts reloads and crawlers, which is why the
-  // employer's column carries a tooltip saying so (migration 017).
-  await recordView(job.id);
+  // scheduled with `after()` rather than awaited into the render: a failed or
+  // slow counter must never cost the visitor the listing, and previously it
+  // did block the response despite this comment always having said otherwise.
+  // It counts reloads and crawlers, which is why the employer's column
+  // carries a tooltip saying so (migration 017).
+  const userAgent = (await headers()).get("user-agent") ?? "";
+  after(() => recordView(job.id, userAgent));
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-10">

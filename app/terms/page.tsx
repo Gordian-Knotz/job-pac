@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { site } from "@/lib/content";
 
 export const metadata: Metadata = {
-  title: `Terms of Service | ${site.owner}`,
+  title: "Terms of Service",
   description:
     "The terms that govern using jobs.pac.africa as a job seeker or an employer.",
 };

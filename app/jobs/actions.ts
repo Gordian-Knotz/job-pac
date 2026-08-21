@@ -84,7 +84,9 @@ const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 // notations (+254 7xx xxx xxx, (020) xxx-xxxx, etc.) that a strict E.164-only
 // pattern would reject genuine applicants. This only had to catch "not a
 // phone number at all" — previously nothing did, up to the 40-char cap.
-const PHONE = /^[+]?[0-9()\-\s]{7,20}$/;
+// The lookahead requires at least one digit — without it a string of pure
+// punctuation like "-------" matched too.
+const PHONE = /^(?=.*[0-9])[+]?[0-9()\-\s]{7,20}$/;
 
 export async function submitApplication(formData: FormData) {
   const slugRaw = formData.get("slug");
