@@ -225,6 +225,10 @@ export interface Database {
         Args: { job: string };
         Returns: undefined;
       };
+      rate_limit_hit: {
+        Args: { p_key: string; p_max: number; p_window_seconds: number };
+        Returns: boolean;
+      };
     };
     Enums: {
       user_role: UserRole;

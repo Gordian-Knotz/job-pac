@@ -9,7 +9,6 @@ import {
   useState,
 } from "react";
 import Script from "next/script";
-import HCaptcha from "@hcaptcha/react-hcaptcha";
 import { useTheme } from "next-themes";
 
 /**
@@ -21,13 +20,12 @@ import { useTheme } from "next-themes";
  * the request — which means enabling it in the dashboard without this component
  * takes sign-in down.
  *
- * PROVIDER-AGNOSTIC on purpose. Supabase supports Turnstile and hCaptcha, the
- * two use different widgets, and the token from one is not valid for the other.
- * Rather than hardcode a guess, the provider comes from an env var and must
- * match what is selected in the Supabase dashboard. Set the wrong one and every
- * attempt fails with "invalid-input-response", which is a confusing way to find
- * out — hence the check in `captchaConfigured` and the mapped error message in
- * lib/auth-errors.ts.
+ * TURNSTILE ONLY. Supabase also supports hCaptcha, but this project settled on
+ * Turnstile, so the hCaptcha branch that used to live here was removed along
+ * with the @hcaptcha/react-hcaptcha dependency. The Supabase dashboard's
+ * Attack Protection provider must be set to Turnstile to match, or every
+ * attempt fails with "invalid-input-response" — see the mapped error message
+ * in lib/auth-errors.ts.
  *
  * THE TOKEN IS SINGLE USE. A failed sign-in consumes it, so the widget has to be
  * reset before the next attempt or the second try fails for a different reason
@@ -40,9 +38,6 @@ import { useTheme } from "next-themes";
 
 export type CaptchaHandle = { reset: () => void };
 
-type Provider = "turnstile" | "hcaptcha";
-
-const PROVIDER = (process.env.NEXT_PUBLIC_CAPTCHA_PROVIDER ?? "turnstile") as Provider;
 const SITE_KEY = process.env.NEXT_PUBLIC_CAPTCHA_SITE_KEY ?? "";
 
 /** Whether a token should be expected at all. Read by the forms. */
@@ -68,9 +63,6 @@ export const Captcha = forwardRef<
   const { resolvedTheme } = useTheme();
   const theme = resolvedTheme === "light" ? "light" : "dark";
 
-  // ── hCaptcha ─────────────────────────────────────────────────
-  const hcaptchaRef = useRef<HCaptcha>(null);
-
   // ── Turnstile ────────────────────────────────────────────────
   const holder = useRef<HTMLDivElement>(null);
   const widgetId = useRef<string | undefined>(undefined);
@@ -92,7 +84,7 @@ export const Captcha = forwardRef<
   }, [theme]);
 
   useEffect(() => {
-    if (PROVIDER !== "turnstile" || !captchaConfigured || !scriptReady) return;
+    if (!captchaConfigured || !scriptReady) return;
     renderTurnstile();
     return () => {
       if (widgetId.current && window.turnstile) {
@@ -105,27 +97,11 @@ export const Captcha = forwardRef<
   useImperativeHandle(ref, () => ({
     reset() {
       onTokenRef.current(null);
-      if (PROVIDER === "hcaptcha") hcaptchaRef.current?.resetCaptcha();
-      else if (window.turnstile) window.turnstile.reset(widgetId.current);
+      if (window.turnstile) window.turnstile.reset(widgetId.current);
     },
   }));
 
   if (!captchaConfigured) return null;
-
-  if (PROVIDER === "hcaptcha") {
-    return (
-      <div className="flex justify-center">
-        <HCaptcha
-          ref={hcaptchaRef}
-          sitekey={SITE_KEY}
-          theme={theme}
-          onVerify={(token) => onTokenRef.current(token)}
-          onExpire={() => onTokenRef.current(null)}
-          onError={() => onTokenRef.current(null)}
-        />
-      </div>
-    );
-  }
 
   return (
     <>

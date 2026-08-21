@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { Search, X, SlidersHorizontal, ChevronLeft, ChevronRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { postJobHref } from "@/lib/auth";
@@ -38,6 +39,48 @@ interface Params {
   remote?: string;
   sort?: string;
   page?: string;
+}
+
+async function lookupName(
+  table: "job_categories" | "job_locations",
+  id: string | undefined
+): Promise<string | undefined> {
+  if (!id) return undefined;
+  const supabase = await createClient();
+  const { data } = await supabase.from(table).select("name").eq("id", id).maybeSingle();
+  return (data as { name: string } | null)?.name;
+}
+
+/**
+ * Previously absent — every filtered/paginated /jobs URL shared the root
+ * layout's generic title and description regardless of category, location or
+ * search term. The `?location=<id>` filter in particular is server-rendered
+ * and genuinely crawlable, so it deserves metadata that actually reflects it.
+ */
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<Params>;
+}): Promise<Metadata> {
+  const params = await searchParams;
+  const [categoryName, locationName] = await Promise.all([
+    lookupName("job_categories", params.category),
+    lookupName("job_locations", params.location),
+  ]);
+
+  let title: string;
+  if (categoryName && locationName) title = `${categoryName} jobs in ${locationName}`;
+  else if (categoryName) title = `${categoryName} jobs`;
+  else if (locationName) title = `Jobs in ${locationName}`;
+  else if (params.q) title = `Jobs matching "${params.q}"`;
+  else title = "Browse Jobs";
+
+  const description =
+    title === "Browse Jobs"
+      ? "Search vetted job listings across Kenya and East Africa, filterable by category, location, type, and experience level."
+      : `Vetted ${title.toLowerCase()} on PAC Jobs — updated as employers post them.`;
+
+  return { title, description };
 }
 
 /** Rebuilds the current URL with changes applied; null clears a param. */

@@ -152,6 +152,18 @@ export function SignUpForm() {
             {loading ? "Creating account…" : "Create account"}
           </button>
 
+          <p className="text-center text-xs text-muted">
+            By creating an account, you agree to our{" "}
+            <Link href="/terms" className="text-accent-text hover:underline">
+              Terms of service
+            </Link>{" "}
+            and{" "}
+            <Link href="/privacy" className="text-accent-text hover:underline">
+              Data &amp; cookies
+            </Link>{" "}
+            policy.
+          </p>
+
           {error && (
             <p role="alert" className="text-xs text-red-600 dark:text-red-400">
               {error}

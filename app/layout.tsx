@@ -5,6 +5,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { WebAnalytics } from "@/components/web-analytics";
 import { AmbientBackground } from "@/components/ambient-background";
+import { PageTransition } from "@/components/page-transition";
 import { ThemeProvider } from "@/components/theme";
 import { site } from "@/lib/content";
 
@@ -36,7 +37,13 @@ const mono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: `Jobs | ${site.owner}`,
+  // `template` suffixes any child route's own title with the brand name, so a
+  // route that forgets to set one still reads as generic rather than blank —
+  // `default` is what renders when a child sets no title of its own at all.
+  title: {
+    template: `%s | ${site.owner}`,
+    default: `Jobs | ${site.owner}`,
+  },
   description: "Vetted opportunities across Africa — from PAC Africa.",
 };
 
@@ -53,7 +60,9 @@ export default function RootLayout({
         <ThemeProvider>
           <AmbientBackground />
           <SiteHeader />
-          <main className="min-h-screen">{children}</main>
+          <main className="min-h-screen">
+            <PageTransition>{children}</PageTransition>
+          </main>
           <SiteFooter />
           <WebAnalytics />
         </ThemeProvider>

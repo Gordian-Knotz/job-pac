@@ -25,20 +25,24 @@ export function Meteors({ className = "" }: { className?: string }) {
         const top = (i * 37.5) % 60;
         const delay = (i * 0.73) % 8;
         const duration = 4 + ((i * 1.7) % 5);
-        const length = 90 + ((i * 23) % 90);
+        // Longer and thicker than the first pass, which read as too subtle
+        // to register as a deliberate element rather than a rendering artifact.
+        const length = 140 + ((i * 30) % 130);
+        const thickness = 1.5 + (i % 3) * 0.5;
 
         return (
           <span
             key={i}
-            className="animate-meteor absolute h-px origin-left"
+            className="animate-meteor absolute origin-left rounded-full"
             style={{
               left: `${left}%`,
               top: `${top}%`,
               width: `${length}px`,
+              height: `${thickness}px`,
               animationDelay: `${delay}s`,
               animationDuration: `${duration}s`,
               background:
-                "linear-gradient(90deg, transparent, rgb(var(--accent) / 0.55), transparent)",
+                "linear-gradient(90deg, transparent, rgb(var(--accent) / 0.8), transparent)",
             }}
           />
         );

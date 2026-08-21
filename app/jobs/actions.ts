@@ -13,6 +13,7 @@ import {
   looksLikePdf,
 } from "@/lib/cv";
 import { UNIQUE_VIOLATION } from "@/lib/job-form";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 /**
  * Submitting an application.
@@ -58,6 +59,8 @@ type ApplyError =
   | "cv_not_pdf"
   | "cv_upload_failed"
   | "duplicate"
+  | "rate_limited"
+  | "phone_invalid"
   | "failed";
 
 function fail(slug: string, code: ApplyError): never {
@@ -76,6 +79,14 @@ function text(formData: FormData, key: string, max: number): string | null {
 }
 
 const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+// Lenient on purpose: digits, spaces, dashes, parentheses and an optional
+// leading +, 7–20 characters. Real numbers arrive in enough different
+// notations (+254 7xx xxx xxx, (020) xxx-xxxx, etc.) that a strict E.164-only
+// pattern would reject genuine applicants. This only had to catch "not a
+// phone number at all" — previously nothing did, up to the 40-char cap.
+// The lookahead requires at least one digit — without it a string of pure
+// punctuation like "-------" matched too.
+const PHONE = /^(?=.*[0-9])[+]?[0-9()\-\s]{7,20}$/;
 
 export async function submitApplication(formData: FormData) {
   const slugRaw = formData.get("slug");
@@ -88,6 +99,14 @@ export async function submitApplication(formData: FormData) {
   // the field left blank.
   if (text(formData, HONEYPOT, 200)) {
     redirect(`/jobs/${slug}?applied=1`);
+  }
+
+  // ── Rate limit ─────────────────────────────────────────────
+  // Generous on purpose — see migrations/026_apply_rate_limit.sql for why 8
+  // per 15 minutes, hashed per IP, is meant to catch a script rather than a
+  // shared connection.
+  if (!(await checkRateLimit("apply", 8, 900))) {
+    fail(slug, "rate_limited");
   }
 
   const supabase = await createClient();
@@ -157,6 +176,7 @@ export async function submitApplication(formData: FormData) {
 
   if (!name) fail(slug, "name_required");
   if (!email || !EMAIL.test(email)) fail(slug, "email_invalid");
+  if (phone && !PHONE.test(phone)) fail(slug, "phone_invalid");
 
   // ── The CV ─────────────────────────────────────────────────
   const reuse = formData.get("reuse_cv") === "on";
