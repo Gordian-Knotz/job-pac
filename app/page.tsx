@@ -100,101 +100,84 @@ export default async function HomePage() {
 
   return (
     <>
-      {/* HERO — hero216 structure: large centred headline, meteor field,
-          rounded secondary CTA with arrow motion, and an overscaled globe
-          rising directly beneath the copy. Built from the described layout
-          rather than the licensed block source. */}
+      {/* HERO — side by side: copy on the left, the globe standing on its own
+          to the right, rather than the globe rising cropped beneath the copy.
+          Stacks on mobile, copy first, since the globe is decoration and the
+          CTAs are not. */}
       <section className="relative overflow-hidden">
         <Meteors className="opacity-70" />
 
-        <div className="relative z-[1] mx-auto max-w-4xl px-6 pt-20 text-center md:pt-28">
-          <Reveal>
-            <h1 className="mx-auto max-w-3xl font-display text-[2.75rem] font-700 leading-[0.95] tracking-display text-ink sm:text-6xl lg:text-7xl">
-              <span className="block text-accent-text">{home.headlineLead}</span>
-              <span className="block">{home.headlineMid}</span>
-              <span className="block">{home.headlineTail}</span>
-            </h1>
-          </Reveal>
+        <div className="relative z-[1] mx-auto max-w-6xl px-6 pt-20 pb-4 md:pt-28">
+          <div className="grid items-center gap-10 lg:grid-cols-[1.1fr_1fr] lg:gap-16">
+            {/* COPY */}
+            <div className="text-center lg:text-left">
+              <Reveal>
+                <h1 className="mx-auto max-w-xl font-display text-[2.75rem] font-700 leading-[0.95] tracking-display text-ink sm:text-6xl lg:mx-0 lg:text-6xl xl:text-7xl">
+                  <span className="block text-accent-text">{home.headlineLead}</span>
+                  <span className="block">{home.headlineMid}</span>
+                  <span className="block">{home.headlineTail}</span>
+                </h1>
+              </Reveal>
 
-          <Reveal delay={0.06}>
-            <p className="mx-auto mt-7 max-w-xl text-[15px] leading-relaxed text-muted md:text-base">
-              {home.sub}
-            </p>
-          </Reveal>
+              <Reveal delay={0.06}>
+                <p className="mx-auto mt-7 max-w-xl text-[15px] leading-relaxed text-muted md:text-base lg:mx-0">
+                  {home.sub}
+                </p>
+              </Reveal>
 
-          <Reveal delay={0.12}>
-            <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
-              {/* Both sides of the marketplace, named for what each visitor
-                  wants. A signed-out visitor goes to signup carrying where they
-                  were headed; a signed-in one skips it and lands on the page
-                  that is actually useful to them. */}
-              <Link href={seekerHref} className="btn-accent px-7 py-3">
-                {home.seekerCta}
-              </Link>
-              {/* Rounded secondary with the arrow nudge, per the reference. */}
-              <Link href={postJobHref(role)} className="btn-primary group px-7 py-3">
-                {home.employerCta}
-                <ArrowRight
-                  className="h-4 w-4 transition-transform duration-200 ease-out group-hover:translate-x-1 motion-safe:animate-nudge motion-safe:group-hover:animate-none"
-                  aria-hidden
-                />
-              </Link>
-            </div>
-          </Reveal>
-
-          {topCategories.length > 0 && (
-            <Reveal delay={0.18}>
-              {/* This row meets the top of the globe, and the bare eyebrow was
-                  unreadable against the dot field. The whole row gets a
-                  translucent backing rather than the label alone — a single
-                  floating strip reads as deliberate, one patched word does not.
-                  `.translucent` opts it into the reduced-transparency override
-                  in globals.css. */}
-              <div className="mt-7 flex justify-center">
-                <div className="translucent flex flex-wrap items-center justify-center gap-2 rounded-pill bg-bg/65 px-3 py-2 backdrop-blur-md">
-                  <span className="eyebrow">{home.popular}</span>
-                  {topCategories.map((c) => (
-                    <Link key={c.id} href={`/jobs?category=${c.id}`} className="chip">
-                      {c.name}
-                    </Link>
-                  ))}
+              <Reveal delay={0.12}>
+                <div className="mt-9 flex flex-wrap items-center justify-center gap-3 lg:justify-start">
+                  {/* Both sides of the marketplace, named for what each visitor
+                      wants. A signed-out visitor goes to signup carrying where they
+                      were headed; a signed-in one skips it and lands on the page
+                      that is actually useful to them. */}
+                  <Link href={seekerHref} className="btn-accent px-7 py-3">
+                    {home.seekerCta}
+                  </Link>
+                  {/* Rounded secondary with the arrow nudge, per the reference. */}
+                  <Link href={postJobHref(role)} className="btn-primary group px-7 py-3">
+                    {home.employerCta}
+                    <ArrowRight
+                      className="h-4 w-4 transition-transform duration-200 ease-out group-hover:translate-x-1 motion-safe:animate-nudge motion-safe:group-hover:animate-none"
+                      aria-hidden
+                    />
+                  </Link>
                 </div>
+              </Reveal>
+
+              {topCategories.length > 0 && (
+                <Reveal delay={0.18}>
+                  {/* Plain eyebrow + chips again now that this row sits beside the
+                      copy rather than over the globe's dot field — the translucent
+                      backing existed only to solve legibility against that
+                      backdrop, which no longer applies here. */}
+                  <div className="mt-7 flex flex-wrap items-center justify-center gap-2 lg:justify-start">
+                    <span className="eyebrow">{home.popular}</span>
+                    {topCategories.map((c) => (
+                      <Link key={c.id} href={`/jobs?category=${c.id}`} className="chip">
+                        {c.name}
+                      </Link>
+                    ))}
+                  </div>
+                </Reveal>
+              )}
+            </div>
+
+            {/* GLOBE — the full sphere now, not the cropped-and-faded arc the
+                stacked layout needed. cobe leaves the canvas transparent outside
+                the sphere and its baseColor is matched to --bg in both themes
+                (see components/globe.tsx), so it sits cleanly on the page without
+                needing a frame, an overflow crop, or a fade to hide an edge. */}
+            <Reveal delay={0.1}>
+              <div className="mx-auto w-full max-w-[300px] sm:max-w-[380px] lg:max-w-none">
+                <Globe />
               </div>
             </Reveal>
-          )}
-        </div>
-
-        {/* Overscaled globe, cropped at the bottom and faded into the page so it
-            dissolves rather than ending on a hard edge.
-
-            TWO KNOBS, and they do different things. The negative margin moves the
-            whole frame up the page; the canvas offset inside it moves the sphere
-            up within the frame, which is what closes the dead space cobe leaves
-            above the visible arc (roughly 90px at desktop width).
-
-            Tuned so the arc begins just under the popular-categories row — the
-            globe rises beneath the copy without sitting behind the paragraph. It
-            was pushed further, to -17rem, so the sphere sat behind the text; that
-            needed a scrim to keep the paragraph legible and it read as murky, so
-            it came back here. If it is ever raised again, the scrim has to come
-            with it.
-
-            Full-bleed rather than a max-width box: the bottom fade is a gradient
-            to the page colour, and inside a narrower frame it draws its own
-            rectangle against the ambient mesh. The globe is unaffected — its
-            canvas has fixed widths and is centred on the frame. */}
-        <div className="relative -mt-24 h-[360px] overflow-hidden sm:-mt-28 sm:h-[460px] md:-mt-32 md:h-[540px]">
-          <div className="absolute left-1/2 top-[-70px] w-[600px] -translate-x-1/2 sm:top-[-85px] sm:w-[800px] md:top-[-100px] md:w-[980px]">
-            <Globe />
           </div>
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-bg to-transparent"
-          />
         </div>
 
         {/* Trust, stated rather than counted. */}
-        <div className="mx-auto max-w-4xl px-6">
+        <div className="mx-auto max-w-6xl px-6 pb-16">
           <Reveal>
             <ul className="grid gap-3 border-t border-line pt-8 sm:grid-cols-3">
               {home.trust.map((item) => (
