@@ -15,9 +15,16 @@ import { createAdminClient } from "@/lib/supabase/admin";
  * reversible back to an address.
  *
  * Fails OPEN: if the check itself errors (missing service role key, database
- * hiccup), a real applicant is not blocked over infrastructure trouble — the
+ * hiccup, or migration 026 not yet applied so the function does not exist
+ * yet), a real applicant is not blocked over infrastructure trouble — the
  * guest path is still constrained server-side by `submit_guest_application()`
  * regardless of whether this check ran.
+ *
+ * Failing open silently would mean the limiter can be permanently inert —
+ * e.g. if 026 was never run against the live project — with nothing to show
+ * for it in the UI, since an allowed request looks identical to a correctly
+ * rate-limited one. Logged here so that state is at least visible in
+ * function logs rather than indistinguishable from "nobody hit the limit".
  */
 export async function checkRateLimit(
   bucket: string,
@@ -37,9 +44,13 @@ export async function checkRateLimit(
       p_max: max,
       p_window_seconds: windowSeconds,
     });
-    if (error) return true;
+    if (error) {
+      console.error("checkRateLimit: rate_limit_hit failed, failing open", error);
+      return true;
+    }
     return data === true;
-  } catch {
+  } catch (err) {
+    console.error("checkRateLimit: unexpected error, failing open", err);
     return true;
   }
 }
