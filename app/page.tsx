@@ -108,7 +108,7 @@ export default async function HomePage() {
         <Meteors className="opacity-70" />
 
         <div className="relative z-[1] mx-auto max-w-6xl px-6 pt-20 pb-4 md:pt-28">
-          <div className="grid items-center gap-10 lg:grid-cols-[1.1fr_1fr] lg:gap-16">
+          <div className="grid items-center gap-10 lg:grid-cols-[1fr_1.15fr] lg:gap-12">
             {/* COPY */}
             <div className="text-center lg:text-left">
               <Reveal>
@@ -169,7 +169,7 @@ export default async function HomePage() {
                 (see components/globe.tsx), so it sits cleanly on the page without
                 needing a frame, an overflow crop, or a fade to hide an edge. */}
             <Reveal delay={0.1}>
-              <div className="mx-auto w-full max-w-[300px] sm:max-w-[380px] lg:max-w-none">
+              <div className="mx-auto w-full max-w-[340px] sm:max-w-[440px] lg:max-w-none lg:w-[112%]">
                 <Globe />
               </div>
             </Reveal>
