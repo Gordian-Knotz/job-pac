@@ -1,11 +1,11 @@
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { ArrowRight, Check } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { postJobHref } from "@/lib/auth";
 import { JobCard } from "@/components/job-card";
 import { Reveal } from "@/components/reveal";
 import { Meteors } from "@/components/meteors";
-import { Globe } from "@/components/globe";
 import { home } from "@/lib/content";
 import type { Job, UserRole } from "@/types/database";
 import type { Metadata } from "next";
@@ -18,6 +18,22 @@ export const metadata: Metadata = {
   description:
     "Browse vetted roles from employers across Kenya and East Africa, or post a job and reach candidates PAC Africa has already screened.",
 };
+
+/**
+ * Code-split out of the homepage's critical bundle. cobe's dot-map
+ * generation is measured (Lighthouse, 4x CPU throttle) as multiple seconds
+ * of blocking main-thread work — fine once deferred to idle time inside
+ * Globe itself (see components/globe.tsx), but no reason for its ~46 kB to
+ * even download and parse before the rest of the hero is interactive.
+ * `ssr: false` is not available here — this is a Server Component, and
+ * Next 15 only allows that option from a Client Component. Not needed
+ * anyway: Globe's own effect never runs on the server, so SSR just emits an
+ * inert `<canvas>` placeholder, which is exactly what the loading state
+ * below would have been regardless.
+ */
+const Globe = dynamic(() => import("@/components/globe").then((m) => m.Globe), {
+  loading: () => <div className="aspect-square w-full rounded-full" aria-hidden />,
+});
 
 /** Brief §3: show 8–12 and link out. No infinite scroll here. */
 const FEED_SIZE = 10;

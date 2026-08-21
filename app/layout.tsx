@@ -5,6 +5,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { WebAnalytics } from "@/components/web-analytics";
 import { AmbientBackground } from "@/components/ambient-background";
+import { PageTransition } from "@/components/page-transition";
 import { ThemeProvider } from "@/components/theme";
 import { site } from "@/lib/content";
 
@@ -59,7 +60,9 @@ export default function RootLayout({
         <ThemeProvider>
           <AmbientBackground />
           <SiteHeader />
-          <main className="min-h-screen">{children}</main>
+          <main className="min-h-screen">
+            <PageTransition>{children}</PageTransition>
+          </main>
           <SiteFooter />
           <WebAnalytics />
         </ThemeProvider>

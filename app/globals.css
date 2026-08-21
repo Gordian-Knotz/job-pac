@@ -70,6 +70,11 @@
 
   html {
     color-scheme: light;
+    /* Smooths the scroll-to-top Next.js already does on route change. The
+       prefers-reduced-motion block below resets this to auto — a forced
+       animated scroll on a preference asking for less motion is exactly
+       the thing that override exists to prevent. */
+    scroll-behavior: smooth;
   }
   html.dark {
     color-scheme: dark;

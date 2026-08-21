@@ -91,6 +91,9 @@ const config: Config = {
           "0%,100%": { transform: "translateX(0)" },
           "50%": { transform: "translateX(3px)" },
         },
+        "spin-slow": {
+          to: { transform: "rotate(360deg)" },
+        },
       },
       animation: {
         // 12s cycle, per the brief.
@@ -98,6 +101,11 @@ const config: Config = {
         "fade-up": "fade-up 320ms cubic-bezier(0.23, 1, 0.32, 1) both",
         meteor: "meteor 5s linear infinite",
         nudge: "nudge 1.6s ease-in-out infinite",
+        // The footer's dotted-circle motif — a CSS echo of the hero globe,
+        // not a second WebGL instance. Slow enough to read as ambient rather
+        // than as something demanding attention down where nobody scrolls to
+        // watch it.
+        "spin-slow": "spin-slow 16s linear infinite",
       },
     },
   },

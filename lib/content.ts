@@ -28,6 +28,10 @@ export const site = {
 export const nav = {
   browse: "Browse Jobs",
   post: "Post a Job",
+  forTalent: "For Talent",
+  forEmployers: "For Employers",
+  about: "About",
+  getStarted: "Get Started",
   signIn: "Sign In",
   signOut: "Sign out",
   dashboard: "Dashboard",

@@ -61,15 +61,27 @@ export function PublicNav({ postHref, dashboardHref, signedIn }: NavLinks) {
             <span className="eyebrow hidden sm:block">Jobs</span>
           </Link>
 
-          <div className="ml-auto hidden items-center gap-1.5 md:flex">
-            <Link href="/jobs" className="btn-ghost">
+          <div className="ml-auto hidden items-center gap-4 lg:flex">
+            <Link href="/jobs" className="text-sm text-muted transition-colors duration-150 ease-out hover:text-ink">
               {nav.browse}
             </Link>
-            <Link href={postHref} className="btn-primary">
-              {nav.post}
+            <Link href="/for-talent" className="text-sm text-muted transition-colors duration-150 ease-out hover:text-ink">
+              {nav.forTalent}
             </Link>
+            <Link href="/employers" className="text-sm text-muted transition-colors duration-150 ease-out hover:text-ink">
+              {nav.forEmployers}
+            </Link>
+            <Link href="/about" className="text-sm text-muted transition-colors duration-150 ease-out hover:text-ink">
+              {nav.about}
+            </Link>
+          </div>
+
+          <div className="ml-4 hidden items-center gap-1.5 lg:flex">
             {signedIn && dashboardHref ? (
               <>
+                <Link href={postHref} className="btn-primary">
+                  {nav.post}
+                </Link>
                 <Link href={dashboardHref} className="btn-ghost">
                   {nav.dashboard}
                 </Link>
@@ -80,9 +92,14 @@ export function PublicNav({ postHref, dashboardHref, signedIn }: NavLinks) {
                 </form>
               </>
             ) : (
-              <Link href="/auth/login" className="btn-ghost text-xs">
-                {nav.signIn}
-              </Link>
+              <>
+                <Link href="/auth/signup" className="btn-accent">
+                  {nav.getStarted}
+                </Link>
+                <Link href="/auth/login" className="btn-ghost text-xs">
+                  {nav.signIn}
+                </Link>
+              </>
             )}
             <ThemeToggle className="ml-1" />
           </div>
@@ -92,7 +109,7 @@ export function PublicNav({ postHref, dashboardHref, signedIn }: NavLinks) {
             onClick={() => setMenuOpen(true)}
             aria-label={nav.openMenu}
             aria-expanded={menuOpen}
-            className="press ml-auto grid h-9 w-9 place-items-center rounded-pill text-ink md:hidden"
+            className="press ml-auto grid h-9 w-9 place-items-center rounded-pill text-ink lg:hidden"
           >
             <Menu className="h-5 w-5" aria-hidden />
           </button>
@@ -106,7 +123,7 @@ export function PublicNav({ postHref, dashboardHref, signedIn }: NavLinks) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-50 bg-bg/95 backdrop-blur-xl md:hidden"
+            className="fixed inset-0 z-50 bg-bg/95 backdrop-blur-xl lg:hidden"
             role="dialog"
             aria-modal="true"
           >
@@ -134,11 +151,20 @@ export function PublicNav({ postHref, dashboardHref, signedIn }: NavLinks) {
                 <Link href="/jobs" className="clay px-5 py-4 text-lg text-ink">
                   {nav.browse}
                 </Link>
-                <Link href={postHref} className="clay px-5 py-4 text-lg text-accent-text">
-                  {nav.post}
+                <Link href="/for-talent" className="clay px-5 py-4 text-lg text-ink">
+                  {nav.forTalent}
+                </Link>
+                <Link href="/employers" className="clay px-5 py-4 text-lg text-ink">
+                  {nav.forEmployers}
+                </Link>
+                <Link href="/about" className="clay px-5 py-4 text-lg text-ink">
+                  {nav.about}
                 </Link>
                 {signedIn && dashboardHref ? (
                   <>
+                    <Link href={postHref} className="clay px-5 py-4 text-lg text-accent-text">
+                      {nav.post}
+                    </Link>
                     <Link href={dashboardHref} className="clay px-5 py-4 text-lg text-ink">
                       {nav.dashboard}
                     </Link>
@@ -149,9 +175,14 @@ export function PublicNav({ postHref, dashboardHref, signedIn }: NavLinks) {
                     </form>
                   </>
                 ) : (
-                  <Link href="/auth/login" className="clay px-5 py-4 text-lg text-ink">
-                    {nav.signIn}
-                  </Link>
+                  <>
+                    <Link href="/auth/signup" className="clay px-5 py-4 text-lg text-accent-text">
+                      {nav.getStarted}
+                    </Link>
+                    <Link href="/auth/login" className="clay px-5 py-4 text-lg text-ink">
+                      {nav.signIn}
+                    </Link>
+                  </>
                 )}
               </nav>
 

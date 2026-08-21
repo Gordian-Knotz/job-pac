@@ -96,7 +96,11 @@ export function JobCard({
           <span className="clay-raised rounded-pill px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-muted">
             {jobTypeLabels[job.job_type] ?? job.job_type}
           </span>
-          <span className="font-mono text-[11px] text-faint">
+          {/* text-muted, not text-faint — faint is for non-text use only
+              (an icon, a decorative dot), never body text. Lighthouse
+              caught this as an AA contrast failure: 3.41:1 where text
+              needs 4.5:1. */}
+          <span className="font-mono text-[11px] text-muted">
             {timeAgo(job.original_date ?? job.created_at)}
           </span>
         </div>
