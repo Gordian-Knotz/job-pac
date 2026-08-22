@@ -65,13 +65,13 @@ export function PublicNav({ postHref, dashboardHref, signedIn }: NavLinks) {
             <Link href="/jobs" className="text-sm text-muted transition-colors duration-150 ease-out hover:text-ink">
               {nav.browse}
             </Link>
-            <Link href="/for-talent" className="text-sm text-muted transition-colors duration-150 ease-out hover:text-ink">
+            <Link href="/" className="text-sm text-muted transition-colors duration-150 ease-out hover:text-ink">
               {nav.forTalent}
             </Link>
-            <Link href="/employers" className="text-sm text-muted transition-colors duration-150 ease-out hover:text-ink">
+            <Link href="/" className="text-sm text-muted transition-colors duration-150 ease-out hover:text-ink">
               {nav.forEmployers}
             </Link>
-            <Link href="/about" className="text-sm text-muted transition-colors duration-150 ease-out hover:text-ink">
+            <Link href="/" className="text-sm text-muted transition-colors duration-150 ease-out hover:text-ink">
               {nav.about}
             </Link>
           </div>

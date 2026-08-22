@@ -10,7 +10,7 @@ import { footer, nav, site } from "@/lib/content";
  * Swap `PLACEHOLDER_SOCIALS` for real hrefs (and the phone span for a real
  * `tel:` link) the day these exist.
  */
-const PLACEHOLDER_SOCIALS = ["LinkedIn", "X"];
+const PLACEHOLDER_SOCIALS = ["", ""];
 
 /**
  * `py-1.5` isn't visual padding so much as touch-target padding — Lighthouse
@@ -74,11 +74,11 @@ export function SiteFooter() {
             failed Lighthouse's AA contrast check here. */}
         <div className="flex flex-wrap items-center gap-x-3 gap-y-0 text-muted md:w-full md:justify-end md:border-t md:border-line md:pt-2">
           <a href="mailto:it@pac.africa" className={FOOTER_LINK}>
-            it@pac.africa
+            info@pac.africa
           </a>
-          <span className="py-1.5">Phone — coming soon</span>
+          <span className="py-1.5"></span>
           {PLACEHOLDER_SOCIALS.map((label) => (
-            <span key={label} className="py-1.5">{label} — coming soon</span>
+            <span key={label} className="py-1.5">{label} </span>
           ))}
         </div>
       </div>

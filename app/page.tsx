@@ -14,7 +14,7 @@ import type { Metadata } from "next";
 // "Jobs | PAC Africa" title/description verbatim. This is the one page every
 // new visitor and every search result lands on first.
 export const metadata: Metadata = {
-  title: "Vetted Jobs Across Kenya & East Africa",
+  title: "Pan African Jobs",
   description:
     "Browse vetted roles from employers across Kenya and East Africa, or post a job and reach candidates PAC Africa has already screened.",
 };
