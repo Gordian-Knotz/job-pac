@@ -150,11 +150,11 @@ export default function PrivacyPage() {
             reaches us.
           </p>
           <p>
-            We measure page views with Vercel Web Analytics, which is cookieless
-            and does not build a profile of you. We deliberately strip the query
-            string from every recorded URL and record nothing at all for staff
-            pages, so a search typed into an internal screen never leaves the
-            product.
+            We measure page views with a privacy-friendly, cookieless analytics
+            tool that does not build a profile of you. We deliberately strip the
+            query string from every recorded URL and record nothing at all for
+            staff pages, so a search typed into an internal screen never leaves
+            the product.
           </p>
         </Section>
 
@@ -201,17 +201,14 @@ export default function PrivacyPage() {
 
         <Section title="Security">
           <p>
-            CVs are held in private storage and are never publicly addressable —
-            each view generates a link that stops working after five minutes.
-            Access to applications is enforced in the database, so a role you did
-            not post is not readable by you even through our API. Passwords are
-            handled by our authentication provider and are never visible to us.
+            Access to applications and CVs is enforced in the database itself, so
+            a role you did not post is not readable by you even through our API.
+            Passwords are handled by our authentication provider and are never
+            visible to us. We keep this under continuous review and improve it as
+            the platform grows.
           </p>
           <p>
-            The earlier version of this site was compromised in August 2026. The
-            application data was recovered intact and this rebuild exists in part
-            to remove the weaknesses that allowed it. If we ever believe your data
-            has been exposed, we will tell you.
+            If we ever believe your data has been exposed, we will tell you.
           </p>
         </Section>
       </div>
