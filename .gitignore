@@ -35,3 +35,6 @@ scratch/
 
 # Exports containing applicant PII
 *.csv
+
+.vercel
+.env*

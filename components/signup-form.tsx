@@ -22,7 +22,9 @@ export function SignUpForm() {
   const next = safeNextPath(params.get("next"), "/dashboard");
 
   const [role, setRole] = useState<UserRole>("seeker");
-  const [form, setForm] = useState({ name: "", email: "", password: "" });
+  // Prefilled from the application-received email's signup link, so a guest
+  // applicant doesn't have to retype the address their application is filed under.
+  const [form, setForm] = useState({ name: "", email: params.get("email") ?? "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);

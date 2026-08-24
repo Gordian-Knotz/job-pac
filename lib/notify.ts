@@ -71,6 +71,27 @@ export async function notifyApplicationReceived(
   });
 }
 
+/**
+ * Trigger 1b — confirmation to the applicant themselves. Only meaningful for a
+ * guest: a signed-in applicant already sees the application in their own
+ * dashboard. The signup link carries their email so `claim_historical_applications`
+ * (migration 006) picks this application up the moment they confirm an account.
+ */
+export async function notifyApplicantApplicationReceived(
+  email: string,
+  jobTitle: string
+): Promise<void> {
+  const url = link(`/auth/signup?email=${encodeURIComponent(email)}`);
+  const body = `We've received your application for ${jobTitle}. The employer has been notified.`;
+
+  await sendMail({
+    to: email,
+    subject: `Application received: ${jobTitle}`,
+    text: `${body}\n\nCreate an account to track its status: ${url}`,
+    html: `<p>${body}</p><p><a href="${url}">Create an account</a> to track its status.</p>`,
+  });
+}
+
 /** Trigger 2 — a listing was approved or sent back by an admin. */
 export async function notifyJobDecision(
   jobId: string,

@@ -112,7 +112,7 @@ export default async function HomePage() {
       <section className="relative overflow-hidden">
         <Meteors className="opacity-70" />
 
-        <div className="relative z-[1] mx-auto max-w-6xl px-6 pt-24 pb-4 md:pt-32">
+        <div className="relative z-[1] mx-auto max-w-6xl px-6 pt-28 pb-4 md:pt-40">
           <div className="grid items-center gap-10 lg:grid-cols-[1fr_1.15fr] lg:gap-12">
             {/* COPY */}
             <div className="text-center lg:text-left">

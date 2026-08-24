@@ -6,6 +6,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { WebAnalytics } from "@/components/web-analytics";
 import { AmbientBackground } from "@/components/ambient-background";
 import { PageTransition } from "@/components/page-transition";
+import { CookieNotice } from "@/components/cookie-notice";
 import { ThemeProvider } from "@/components/theme";
 import { site } from "@/lib/content";
 
@@ -64,6 +65,7 @@ export default function RootLayout({
             <PageTransition>{children}</PageTransition>
           </main>
           <SiteFooter />
+          <CookieNotice />
           <WebAnalytics />
         </ThemeProvider>
       </body>

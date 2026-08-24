@@ -14,7 +14,7 @@ import {
 } from "@/lib/cv";
 import { UNIQUE_VIOLATION } from "@/lib/job-form";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { notifyApplicationReceived } from "@/lib/notify";
+import { notifyApplicationReceived, notifyApplicantApplicationReceived } from "@/lib/notify";
 
 /**
  * Submitting an application.
@@ -265,6 +265,9 @@ export async function submitApplication(formData: FormData) {
   // arrived.
   if (!duplicate) {
     await notifyApplicationReceived(jobRow.id, jobRow.title, name);
+    // Signed-in applicants already see this in their dashboard; only a guest
+    // needs the confirmation + account-creation nudge.
+    if (!user) await notifyApplicantApplicationReceived(email, jobRow.title);
   }
 
   revalidatePath(`/jobs/${slug}`);
