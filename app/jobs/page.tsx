@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { Search, X, SlidersHorizontal, ChevronLeft, ChevronRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public";
 import { unstable_cache } from "next/cache";
 import { postJobHref } from "@/lib/auth";
 import { JobCard } from "@/components/job-card";
@@ -46,7 +47,7 @@ interface Params {
 
 const getCachedCategories = unstable_cache(
   async () => {
-    const supabase = await createClient();
+    const supabase = createPublicClient();
     const { data } = await supabase
       .from("job_categories")
       .select("id, name")
@@ -60,7 +61,7 @@ const getCachedCategories = unstable_cache(
 
 const getCachedLocations = unstable_cache(
   async () => {
-    const supabase = await createClient();
+    const supabase = createPublicClient();
     const { data } = await supabase
       .from("job_locations")
       .select("id, name")

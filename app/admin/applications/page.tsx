@@ -3,6 +3,7 @@ import { unstable_cache } from "next/cache";
 import { Search, ChevronLeft, ChevronRight, Phone, Mail } from "lucide-react";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { PageHead } from "@/components/dashboard-shell";
 import { EmptyState, Flash } from "@/components/dashboard-ui";
 import { CvLink } from "@/components/cv-link";
@@ -30,7 +31,7 @@ const PER_PAGE = 50;
 // data with no meaningful per-request variance, so an hour-old answer is fine.
 const getCachedYearRange = unstable_cache(
   async () => {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     const [{ data: oldest }, { data: newest }] = await Promise.all([
       supabase
         .from("applications")
@@ -56,7 +57,7 @@ const getCachedYearRange = unstable_cache(
 
 const getCachedEmployers = unstable_cache(
   async () => {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     const { data } = await supabase
       .from("companies")
       .select("id, name")
