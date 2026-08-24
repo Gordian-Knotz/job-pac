@@ -113,24 +113,6 @@ export function SettingsPanel({
             </div>
           )}
 
-          {profile.role === "admin" && (
-            <div>
-              <input type="hidden" name="notify_pending_review_field" value="1" />
-              <label className="flex items-start gap-2.5 text-sm text-ink">
-                <input
-                  type="checkbox"
-                  name="notify_pending_review"
-                  defaultChecked={profile.notify_pending_review}
-                  className="mt-0.5 accent-accent"
-                />
-                {dash.settings.notifyPendingReviewLabel}
-              </label>
-              <p className="ml-6 mt-1 text-xs text-muted">
-                {dash.settings.notifyPendingReviewHint}
-              </p>
-            </div>
-          )}
-
           <button type="submit" className="btn-primary">
             {dash.common.save}
           </button>

@@ -195,32 +195,20 @@ export async function notifyNewJobSubscribers(jobTitle: string): Promise<void> {
 }
 
 /**
- * Trigger 5 — a listing entered the review queue, for every admin who wants
- * to know. Defaults on (migration 028): unlike new-job volume, this is low
- * frequency and is the thing an admin's job is to act on.
+ * Trigger 5 — a listing entered the review queue. Goes to the shared
+ * hello@pac.africa inbox rather than every admin individually — there are
+ * several admins, and a per-person email for every new listing floods each
+ * of their inboxes for something one person acting on the shared queue
+ * already resolves for everyone else.
  */
 export async function notifyAdminPendingReview(jobTitle: string): Promise<void> {
-  const admin = createAdminClient();
-  const { data: admins } = await admin
-    .from("profiles")
-    .select("email")
-    .eq("role", "admin")
-    .eq("notify_pending_review", true);
-
-  const rows = (admins as { email: string }[] | null) ?? [];
-  if (rows.length === 0) return;
-
   const url = link("/admin/moderation");
   const body = `${jobTitle} is waiting for review.`;
 
-  await Promise.all(
-    rows.map((row) =>
-      sendMail({
-        to: row.email,
-        subject: `Review needed: ${jobTitle}`,
-        text: `${body}\n\nReview it: ${url}`,
-        html: `<p>${body}</p><p><a href="${url}">Review it</a></p>`,
-      })
-    )
-  );
+  await sendMail({
+    to: "hello@pac.africa",
+    subject: `Review needed: ${jobTitle}`,
+    text: `${body}\n\nReview it: ${url}`,
+    html: `<p>${body}</p><p><a href="${url}">Review it</a></p>`,
+  });
 }

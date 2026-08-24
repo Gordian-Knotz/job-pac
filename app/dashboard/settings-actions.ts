@@ -46,17 +46,12 @@ export async function updateNotificationPrefs(formData: FormData) {
   const { supabase, profile } = await requireUser();
   const base = `${dashboardPathFor(profile.role)}/settings`;
 
-  const patch: Partial<
-    Pick<Profile, "notify_email" | "notify_new_jobs" | "notify_pending_review">
-  > = {};
+  const patch: Partial<Pick<Profile, "notify_email" | "notify_new_jobs">> = {};
   if (formData.has("notify_email_field")) {
     patch.notify_email = formData.get("notify_email") === "on";
   }
   if (formData.has("notify_new_jobs_field")) {
     patch.notify_new_jobs = formData.get("notify_new_jobs") === "on";
-  }
-  if (formData.has("notify_pending_review_field")) {
-    patch.notify_pending_review = formData.get("notify_pending_review") === "on";
   }
 
   if (Object.keys(patch).length === 0) redirect(base);

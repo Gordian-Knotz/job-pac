@@ -492,8 +492,6 @@ export const dash = {
     notifyEmailHintEmployer: "New applications, and listing approvals or rejections.",
     notifyNewJobsLabel: "Email me when a new job is posted",
     notifyNewJobsHint: "Every published role, not filtered — expect volume.",
-    notifyPendingReviewLabel: "Email me when a listing needs review",
-    notifyPendingReviewHint: "One email per listing entering the review queue.",
   },
 
   drawer: {
