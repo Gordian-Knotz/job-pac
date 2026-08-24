@@ -107,8 +107,8 @@ export default function EmployersPage() {
 
       <p className="mt-6 text-sm text-muted">
         Signed in as a job seeker and need to hire instead? Write to{" "}
-        <a href="mailto:it@pac.africa" className="text-accent-text hover:underline">
-          it@pac.africa
+        <a href="mailto:hello@pac.africa" className="text-accent-text hover:underline">
+          hello@pac.africa
         </a>{" "}
         and we will switch your account over.
       </p>

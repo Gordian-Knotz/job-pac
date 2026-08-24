@@ -25,8 +25,8 @@ export default function SuspendedPage() {
       </p>
       <p className="mx-auto mt-3 text-sm leading-relaxed text-muted">
         Email{" "}
-        <a href="mailto:it@pac.africa" className="text-accent-text hover:opacity-70">
-          it@pac.africa
+        <a href="mailto:hello@pac.africa" className="text-accent-text hover:opacity-70">
+          hello@pac.africa
         </a>{" "}
         from the address on the account and we will sort it out.
       </p>

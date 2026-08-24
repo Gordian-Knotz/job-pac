@@ -45,8 +45,8 @@ export default function PrivacyPage() {
           This page explains what we hold about you, where it lives, who can see
           it, and how to get it removed. {site.owner} ({site.ownerFull}) is the
           data controller. Questions or requests:{" "}
-          <a href="mailto:it@pac.africa" className="text-accent-text hover:underline">
-            it@pac.africa
+          <a href="mailto:hello@pac.africa" className="text-accent-text hover:underline">
+            hello@pac.africa
           </a>
           . See also our{" "}
           <Link href="/terms" className="text-accent-text hover:underline">
@@ -186,8 +186,8 @@ export default function PrivacyPage() {
           />
           <p>
             Email{" "}
-            <a href="mailto:it@pac.africa" className="text-accent-text hover:underline">
-              it@pac.africa
+            <a href="mailto:hello@pac.africa" className="text-accent-text hover:underline">
+              hello@pac.africa
             </a>{" "}
             and we will respond within 30 days. Deleting your account removes your
             profile and CV; where an employer has already received an application,
@@ -219,8 +219,8 @@ export default function PrivacyPage() {
       <div className="clay mt-12 p-6">
         <p className="text-sm text-muted">
           Want your data removed, or want to know what we hold?{" "}
-          <a href="mailto:it@pac.africa" className="text-accent-text hover:underline">
-            it@pac.africa
+          <a href="mailto:hello@pac.africa" className="text-accent-text hover:underline">
+            hello@pac.africa
           </a>
           .
         </p>

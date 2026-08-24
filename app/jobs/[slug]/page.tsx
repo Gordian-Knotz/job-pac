@@ -257,7 +257,7 @@ export default async function JobDetailPage({
             <div className="mt-5 space-y-2 border-t border-line pt-5">
               <ShareButton title={job.title} />
               <a
-                href={`mailto:it@pac.africa?subject=${encodeURIComponent(
+                href={`mailto:hello@pac.africa?subject=${encodeURIComponent(
                   `Report listing: ${job.title}`
                 )}&body=${encodeURIComponent(`Listing: /jobs/${job.slug}\n\nWhat is wrong:`)}`}
                 className="btn-ghost w-full text-xs"

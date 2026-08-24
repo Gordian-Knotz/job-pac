@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Download, Shield, Trash2 } from "lucide-react";
 import { Flash } from "@/components/dashboard-ui";
+import { AppearancePicker } from "@/components/appearance-picker";
 import { dash, site } from "@/lib/content";
 import { roleLabel } from "@/lib/dashboard-nav";
 import { changePassword, updateNotificationPrefs } from "@/app/dashboard/settings-actions";
@@ -69,6 +70,15 @@ export function SettingsPanel({
             </dd>
           </div>
         </dl>
+      </section>
+
+      {/* APPEARANCE ----------------------------------------------------- */}
+      <section className="clay p-6">
+        <h2 className="font-display text-lg font-600 text-ink">
+          {dash.settings.appearanceTitle}
+        </h2>
+        <p className="mt-1 text-sm text-muted">{dash.settings.appearanceHint}</p>
+        <AppearancePicker className="mt-4" />
       </section>
 
       {/* NOTIFICATIONS ------------------------------------------------ */}
@@ -182,7 +192,7 @@ export function SettingsPanel({
 
           <div>
             <a
-              href={`mailto:it@pac.africa?subject=${encodeURIComponent(
+              href={`mailto:hello@pac.africa?subject=${encodeURIComponent(
                 "Data deletion request"
               )}&body=${encodeURIComponent(
                 `Please delete the data held for ${profile.email}.`

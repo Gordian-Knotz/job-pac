@@ -43,8 +43,8 @@ export default function TermsPage() {
           These terms govern your use of {site.domain}, operated by{" "}
           {site.owner} ({site.ownerFull}). By creating an account, posting a
           role, or applying for one, you agree to them. Questions:{" "}
-          <a href="mailto:it@pac.africa" className="text-accent-text hover:underline">
-            it@pac.africa
+          <a href="mailto:hello@pac.africa" className="text-accent-text hover:underline">
+            hello@pac.africa
           </a>
           .
         </p>
@@ -146,8 +146,8 @@ export default function TermsPage() {
       <div className="clay mt-12 p-6">
         <p className="text-sm text-muted">
           Questions about these terms?{" "}
-          <a href="mailto:it@pac.africa" className="text-accent-text hover:underline">
-            it@pac.africa
+          <a href="mailto:hello@pac.africa" className="text-accent-text hover:underline">
+            hello@pac.africa
           </a>
           .
         </p>

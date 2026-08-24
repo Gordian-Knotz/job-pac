@@ -74,8 +74,8 @@ export default function AboutPage() {
 
       <p className="mt-6 text-sm text-muted">
         Questions about PAC Africa or this site?{" "}
-        <a href="mailto:it@pac.africa" className="text-accent-text hover:underline">
-          it@pac.africa
+        <a href="mailto:hello@pac.africa" className="text-accent-text hover:underline">
+          hello@pac.africa
         </a>
         .
       </p>
