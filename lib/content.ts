@@ -207,12 +207,14 @@ export const gate = {
   } as Record<string, string>,
   applyingAs: "Applying as",
   signInToApplyFaster: "Sign in to apply faster and track it.",
-  noAccountNeeded: "You do not need an account. Attach a CV if you have one ready.",
+  noAccountNeeded:
+    "No account needed to apply. We'll email you a link afterward to create one, free, so you can track it.",
   sent: {
     title: "Application sent",
     bodySignedIn:
       "It is in your dashboard, and you will hear from us by email if the employer responds.",
-    bodyGuest: "We'll notify you by email if the employer responds.",
+    bodyGuest:
+      "Check your email — we've sent a link to create a free account and track this application.",
   },
 } as const;
 

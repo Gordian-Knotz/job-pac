@@ -3,10 +3,18 @@
 import { useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { Check } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn, safeNextPath } from "@/lib/utils";
 import { authErrorMessage } from "@/lib/auth-errors";
 import { Captcha, captchaConfigured, type CaptchaHandle } from "@/components/captcha";
+
+const PASSWORD_RULES = [
+  { label: "10 characters", test: (v: string) => v.length >= 10 },
+  { label: "1 capital letter", test: (v: string) => /[A-Z]/.test(v) },
+  { label: "1 number", test: (v: string) => /[0-9]/.test(v) },
+  { label: "1 special symbol", test: (v: string) => /[^A-Za-z0-9]/.test(v) },
+] as const;
 import type { UserRole } from "@/types/database";
 
 /**
@@ -24,16 +32,32 @@ export function SignUpForm() {
   const [role, setRole] = useState<UserRole>("seeker");
   // Prefilled from the application-received email's signup link, so a guest
   // applicant doesn't have to retype the address their application is filed under.
-  const [form, setForm] = useState({ name: "", email: params.get("email") ?? "", password: "" });
+  const [form, setForm] = useState({
+    name: "",
+    email: params.get("email") ?? "",
+    password: "",
+    passwordConfirm: "",
+  });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const captcha = useRef<CaptchaHandle>(null);
 
+  const passwordValid = PASSWORD_RULES.every((rule) => rule.test(form.password));
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+
+    if (!passwordValid) {
+      setError("Please meet all the password requirements below.");
+      return;
+    }
+    if (form.password !== form.passwordConfirm) {
+      setError("Passwords do not match.");
+      return;
+    }
 
     if (captchaConfigured && !captchaToken) {
       setError("Please complete the security check first.");
@@ -142,9 +166,40 @@ export function SignUpForm() {
             type="password"
             aria-label="Password"
             placeholder="Password"
-            minLength={8}
+            minLength={10}
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
+            className="field"
+          />
+
+          {form.password.length > 0 && (
+            <ul className="grid grid-cols-2 gap-x-3 gap-y-1 px-1">
+              {PASSWORD_RULES.map((rule) => {
+                const met = rule.test(form.password);
+                return (
+                  <li
+                    key={rule.label}
+                    className={cn(
+                      "flex items-center gap-1.5 text-xs",
+                      met ? "text-accent-text" : "text-muted"
+                    )}
+                  >
+                    <Check className={cn("h-3 w-3 shrink-0", !met && "opacity-30")} aria-hidden />
+                    {rule.label}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+
+          <input
+            required
+            type="password"
+            aria-label="Confirm password"
+            placeholder="Confirm password"
+            minLength={10}
+            value={form.passwordConfirm}
+            onChange={(e) => setForm({ ...form, passwordConfirm: e.target.value })}
             className="field"
           />
 
