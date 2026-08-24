@@ -17,7 +17,7 @@ import {
   parseJobFields,
   str,
 } from "@/lib/job-form";
-import { notifyApplicationStatusChanged } from "@/lib/notify";
+import { notifyApplicationStatusChanged, notifyAdminPendingReview } from "@/lib/notify";
 import type { ApplicationStatus } from "@/types/database";
 
 const APPLICATION_STATUSES: ApplicationStatus[] = [
@@ -197,6 +197,8 @@ export async function createJob(formData: FormData) {
     redirect(`/dashboard/employer/post?error=${encodeURIComponent(result.error)}`);
   }
 
+  if (!asDraft) await notifyAdminPendingReview(fields.title);
+
   revalidatePath("/dashboard/employer");
   revalidatePath("/dashboard/employer/jobs");
   if (asDraft) {
@@ -269,13 +271,19 @@ export async function setOwnJobStatus(formData: FormData) {
     redirect("/dashboard/employer/jobs?error=Invalid+request");
   }
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from("jobs")
     .update({ status: status as (typeof OWN_STATUSES)[number] })
-    .eq("id", jobId);
+    .eq("id", jobId)
+    .select("title")
+    .single();
 
   if (error) {
     redirect(`/dashboard/employer/jobs?error=${encodeURIComponent(error.message)}`);
+  }
+
+  if (status === "pending_review") {
+    await notifyAdminPendingReview((updated as { title: string }).title);
   }
 
   revalidatePath("/dashboard/employer/jobs");

@@ -12,7 +12,7 @@ const points = [
   {
     icon: Target,
     title: "Why this exists",
-    body: "PAC Africa places people for a living. The job board is the same work, made self-serve — the same standard of match, without waiting for an introduction.",
+    body: "PAC Africa places people for a living. This job board is the same work, made self-serve — the same standard of match, without waiting for an introduction.",
   },
   {
     icon: ShieldCheck,
@@ -22,7 +22,7 @@ const points = [
   {
     icon: Globe2,
     title: "Where we place people",
-    body: "Nairobi is home base. Roles and candidates span Kenya and East Africa, with placements reaching Lagos, Accra, Cape Town and beyond.",
+    body: "Nairobi is home base. Roles and candidates span the continent, with placements reaching Lagos, Accra, Cape Town and beyond.",
   },
 ];
 
@@ -31,13 +31,14 @@ export default function AboutPage() {
     <div className="mx-auto max-w-3xl px-6 py-20">
       <span className="eyebrow">About</span>
       <h1 className="mt-3 max-w-2xl font-display text-4xl font-700 leading-[1.08] tracking-display text-ink">
-        African talent. Africa&apos;s future. Placed right.
+        A placement firm, not a listings site that happened to add one.
       </h1>
       <p className="mt-4 max-w-lg text-[15px] leading-relaxed text-muted">
-        {site.owner} ({site.ownerFull}) connects skilled professionals across
-        the continent with employers ready to invest in African talent. This
-        job board is how that happens at scale, without losing the review a
-        direct introduction would have had.
+        {site.owner} ({site.ownerFull}) has connected skilled professionals
+        across the continent with employers ready to invest in them long
+        before this site existed. This job board is how that same standard of
+        match scales — every listing checked, every applicant real — without
+        losing the review a direct introduction would have had.
       </p>
 
       <div className="mt-10 grid gap-4 sm:grid-cols-3">

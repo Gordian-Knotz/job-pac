@@ -3,15 +3,16 @@ import { Download, Shield, Trash2 } from "lucide-react";
 import { Flash } from "@/components/dashboard-ui";
 import { dash, site } from "@/lib/content";
 import { roleLabel } from "@/lib/dashboard-nav";
-import { changePassword } from "@/app/dashboard/settings-actions";
+import { changePassword, updateNotificationPrefs } from "@/app/dashboard/settings-actions";
 import type { Profile } from "@/types/database";
 
 /**
  * Settings, shared by all three roles.
  *
- * Only things that actually work are on here. There is no email-notification
- * toggle, because nothing sends email yet, and a switch that changes nothing is
- * worse than an absence — it makes a promise the product does not keep.
+ * Only things that actually work are on here. The notification toggles below
+ * gate real sends in lib/notify.ts (migration 028) — each one is checked
+ * before the email it names ever goes out, so switching it off is never a
+ * promise the product doesn't keep.
  *
  * The data section exists because this product holds CVs and contact details for
  * thousands of people, and the Kenya Data Protection Act 2019 gives them the
@@ -34,7 +35,13 @@ export function SettingsPanel({
     <div className="max-w-2xl space-y-6">
       <Flash
         error={error}
-        success={updated === "password" ? dash.settings.passwordChanged : null}
+        success={
+          updated === "password"
+            ? dash.settings.passwordChanged
+            : updated === "notifications"
+              ? dash.settings.notificationsChanged
+              : null
+        }
       />
 
       {/* ACCOUNT ------------------------------------------------------ */}
@@ -62,6 +69,72 @@ export function SettingsPanel({
             </dd>
           </div>
         </dl>
+      </section>
+
+      {/* NOTIFICATIONS ------------------------------------------------ */}
+      <section className="clay p-6">
+        <h2 className="font-display text-lg font-600 text-ink">
+          {dash.settings.notificationsTitle}
+        </h2>
+        <form action={updateNotificationPrefs} className="mt-4 space-y-4">
+          {profile.role !== "admin" && (
+            <div>
+              <input type="hidden" name="notify_email_field" value="1" />
+              <label className="flex items-start gap-2.5 text-sm text-ink">
+                <input
+                  type="checkbox"
+                  name="notify_email"
+                  defaultChecked={profile.notify_email}
+                  className="mt-0.5 accent-accent"
+                />
+                {dash.settings.notifyEmailLabel}
+              </label>
+              <p className="ml-6 mt-1 text-xs text-muted">
+                {profile.role === "employer"
+                  ? dash.settings.notifyEmailHintEmployer
+                  : dash.settings.notifyEmailHintSeeker}
+              </p>
+            </div>
+          )}
+
+          {profile.role === "seeker" && (
+            <div>
+              <input type="hidden" name="notify_new_jobs_field" value="1" />
+              <label className="flex items-start gap-2.5 text-sm text-ink">
+                <input
+                  type="checkbox"
+                  name="notify_new_jobs"
+                  defaultChecked={profile.notify_new_jobs}
+                  className="mt-0.5 accent-accent"
+                />
+                {dash.settings.notifyNewJobsLabel}
+              </label>
+              <p className="ml-6 mt-1 text-xs text-muted">{dash.settings.notifyNewJobsHint}</p>
+            </div>
+          )}
+
+          {profile.role === "admin" && (
+            <div>
+              <input type="hidden" name="notify_pending_review_field" value="1" />
+              <label className="flex items-start gap-2.5 text-sm text-ink">
+                <input
+                  type="checkbox"
+                  name="notify_pending_review"
+                  defaultChecked={profile.notify_pending_review}
+                  className="mt-0.5 accent-accent"
+                />
+                {dash.settings.notifyPendingReviewLabel}
+              </label>
+              <p className="ml-6 mt-1 text-xs text-muted">
+                {dash.settings.notifyPendingReviewHint}
+              </p>
+            </div>
+          )}
+
+          <button type="submit" className="btn-primary">
+            {dash.common.save}
+          </button>
+        </form>
       </section>
 
       {/* PASSWORD ---------------------------------------------------- */}

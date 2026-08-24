@@ -485,6 +485,15 @@ export const dash = {
     privacy: "Read the privacy policy",
     signOutTitle: "Sign out",
     signOut: "Sign out of this device",
+    notificationsTitle: "Notifications",
+    notificationsChanged: "Notification preferences saved.",
+    notifyEmailLabel: "Email me about my applications",
+    notifyEmailHintSeeker: "Status changes on applications you've sent.",
+    notifyEmailHintEmployer: "New applications, and listing approvals or rejections.",
+    notifyNewJobsLabel: "Email me when a new job is posted",
+    notifyNewJobsHint: "Every published role, not filtered — expect volume.",
+    notifyPendingReviewLabel: "Email me when a listing needs review",
+    notifyPendingReviewHint: "One email per listing entering the review queue.",
   },
 
   drawer: {

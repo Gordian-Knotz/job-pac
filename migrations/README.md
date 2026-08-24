@@ -340,3 +340,21 @@ and confirm by impersonation, the same way every migration above was:
   That was recorded here as "they do still resolve", which was wrong: the domain
   moved to Vercel, so those paths hit Next.js and 404. Anything still holding one
   renders as "pending migration" rather than as a dead link.
+
+## After 028
+
+Three notification-preference columns on `profiles`: `notify_email` (master
+switch for application/status/decision emails), `notify_new_jobs` (seeker
+opt-in to hear about every new publish), `notify_pending_review` (admin
+opt-in to hear about the review queue). All self-editable under the existing
+`profiles_update` policy — none of the three touch role, email or company_id,
+so `guard_profile_columns` (025) has no reason to guard them.
+
+**Not yet applied against the live project.**
+
+| behaviour to check | expected |
+|---|---|
+| a seeker flips `notify_email` off, then their application is moved to `shortlisted` | no email sent |
+| a seeker opts into `notify_new_jobs`, admin publishes any job | seeker receives one email |
+| an employer flips `notify_email` off, a guest applies to their job | no email sent to the employer |
+| a fresh admin row (default `notify_pending_review = true`) | receives an email the next time a job enters `pending_review` |

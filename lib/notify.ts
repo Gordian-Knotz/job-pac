@@ -4,14 +4,17 @@ import { sendMail } from "@/lib/email";
 import { applicationStatusLabels, site } from "@/lib/content";
 import type { ApplicationStatus } from "@/types/database";
 
+type NotifiableProfile = { email: string; notify_email: boolean };
+
 /**
  * Looks up who to notify for a job — the profile that posted it, falling
  * back to the owning company's profile. Always through the admin client:
  * `companies` and `profiles.email` aren't world-readable (migration 016),
  * and the caller here is sometimes a guest applicant's request with no
- * standing to read either.
+ * standing to read either. Carries `notify_email` (migration 028) alongside
+ * the address so a caller can honour the recipient's own opt-out in one trip.
  */
-async function employerEmailForJob(jobId: string): Promise<string | null> {
+async function employerProfileForJob(jobId: string): Promise<NotifiableProfile | null> {
   const admin = createAdminClient();
 
   const { data: job } = await admin
@@ -25,10 +28,10 @@ async function employerEmailForJob(jobId: string): Promise<string | null> {
   if (row.posted_by) {
     const { data: p } = await admin
       .from("profiles")
-      .select("email")
+      .select("email, notify_email")
       .eq("id", row.posted_by)
       .maybeSingle();
-    if ((p as { email: string } | null)?.email) return (p as { email: string }).email;
+    if ((p as NotifiableProfile | null)?.email) return p as NotifiableProfile;
   }
 
   if (row.company_id) {
@@ -41,10 +44,10 @@ async function employerEmailForJob(jobId: string): Promise<string | null> {
     if (ownerId) {
       const { data: p } = await admin
         .from("profiles")
-        .select("email")
+        .select("email, notify_email")
         .eq("id", ownerId)
         .maybeSingle();
-      if ((p as { email: string } | null)?.email) return (p as { email: string }).email;
+      if ((p as NotifiableProfile | null)?.email) return p as NotifiableProfile;
     }
   }
 
@@ -59,8 +62,9 @@ export async function notifyApplicationReceived(
   jobTitle: string,
   applicantName: string
 ): Promise<void> {
-  const to = await employerEmailForJob(jobId);
-  if (!to) return;
+  const employer = await employerProfileForJob(jobId);
+  if (!employer || !employer.notify_email) return;
+  const to = employer.email;
 
   const url = link("/dashboard/employer/applications");
   await sendMail({
@@ -99,8 +103,9 @@ export async function notifyJobDecision(
   decision: "published" | "rejected",
   reason?: string | null
 ): Promise<void> {
-  const to = await employerEmailForJob(jobId);
-  if (!to) return;
+  const employer = await employerProfileForJob(jobId);
+  if (!employer || !employer.notify_email) return;
+  const to = employer.email;
 
   const url = link("/dashboard/employer/jobs");
   const subject =
@@ -118,7 +123,14 @@ export async function notifyJobDecision(
   });
 }
 
-/** Trigger 3 — an employer moved an application to a new stage. */
+/**
+ * Trigger 3 — an employer moved an application to a new stage.
+ *
+ * A guest applicant has no profile row and so no opt-out to honour — this
+ * only ever suppresses the email for a registered seeker who turned
+ * `notify_email` off, matched by address since the caller doesn't carry
+ * `applicant_id` (it isn't needed for anything else it does).
+ */
 export async function notifyApplicationStatusChanged(
   applicantEmail: string,
   jobTitle: string,
@@ -126,6 +138,14 @@ export async function notifyApplicationStatusChanged(
 ): Promise<void> {
   // "pending" is the starting state, never a transition worth emailing about.
   if (status === "pending") return;
+
+  const admin = createAdminClient();
+  const { data: seeker } = await admin
+    .from("profiles")
+    .select("notify_email")
+    .eq("email", applicantEmail)
+    .maybeSingle();
+  if ((seeker as { notify_email: boolean } | null)?.notify_email === false) return;
 
   const label = applicationStatusLabels[status];
   const url = link("/dashboard/seeker/applications");
@@ -137,4 +157,70 @@ export async function notifyApplicationStatusChanged(
     text: `${body}\n\nTrack it: ${url}`,
     html: `<p>${body}</p><p><a href="${url}">Track your application</a></p>`,
   });
+}
+
+/**
+ * Trigger 4 — a new listing just went live, for every seeker who opted in.
+ * Off by default (migration 028): this is the one trigger that can fan out to
+ * an entire table rather than one recipient, so it stays opt-in rather than
+ * inheriting `notify_email`, which governs the seeker's own application
+ * activity, not other people's job postings.
+ */
+export async function notifyNewJobSubscribers(jobTitle: string): Promise<void> {
+  const admin = createAdminClient();
+  const { data: subscribers } = await admin
+    .from("profiles")
+    .select("email")
+    .eq("role", "seeker")
+    .eq("notify_new_jobs", true);
+
+  const rows = (subscribers as { email: string }[] | null) ?? [];
+  if (rows.length === 0) return;
+
+  const url = link("/jobs");
+  const body = `A new role just went live: ${jobTitle}.`;
+
+  // Fire-and-forget in parallel — each is its own fail-soft send (lib/email.ts),
+  // so one bad address never stops the rest of the batch.
+  await Promise.all(
+    rows.map((row) =>
+      sendMail({
+        to: row.email,
+        subject: `New job posted: ${jobTitle}`,
+        text: `${body}\n\nHave a look: ${url}`,
+        html: `<p>${body}</p><p><a href="${url}">Have a look</a></p>`,
+      })
+    )
+  );
+}
+
+/**
+ * Trigger 5 — a listing entered the review queue, for every admin who wants
+ * to know. Defaults on (migration 028): unlike new-job volume, this is low
+ * frequency and is the thing an admin's job is to act on.
+ */
+export async function notifyAdminPendingReview(jobTitle: string): Promise<void> {
+  const admin = createAdminClient();
+  const { data: admins } = await admin
+    .from("profiles")
+    .select("email")
+    .eq("role", "admin")
+    .eq("notify_pending_review", true);
+
+  const rows = (admins as { email: string }[] | null) ?? [];
+  if (rows.length === 0) return;
+
+  const url = link("/admin/moderation");
+  const body = `${jobTitle} is waiting for review.`;
+
+  await Promise.all(
+    rows.map((row) =>
+      sendMail({
+        to: row.email,
+        subject: `Review needed: ${jobTitle}`,
+        text: `${body}\n\nReview it: ${url}`,
+        html: `<p>${body}</p><p><a href="${url}">Review it</a></p>`,
+      })
+    )
+  );
 }

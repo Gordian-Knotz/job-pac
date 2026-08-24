@@ -12,7 +12,11 @@ import {
   parseJobFields,
   str,
 } from "@/lib/job-form";
-import { notifyJobDecision, notifyApplicationStatusChanged } from "@/lib/notify";
+import {
+  notifyJobDecision,
+  notifyApplicationStatusChanged,
+  notifyNewJobSubscribers,
+} from "@/lib/notify";
 import type { ApplicationStatus, JobStatus } from "@/types/database";
 
 const APPLICATION_STATUSES: ApplicationStatus[] = [
@@ -74,7 +78,9 @@ export async function setJobStatus(formData: FormData) {
   if (error) redirect(`${returnTo}?error=${encodeURIComponent(error.message)}`);
 
   if (status === "published") {
-    await notifyJobDecision(jobId, (job as { title: string }).title, "published");
+    const title = (job as { title: string }).title;
+    await notifyJobDecision(jobId, title, "published");
+    await notifyNewJobSubscribers(title);
   }
 
   revalidatePublic(jobId);

@@ -4,24 +4,42 @@ import { BadgeCheck, Inbox, ShieldCheck } from "lucide-react";
 export const metadata = {
   title: "For employers",
   description:
-    "Post vetted roles on jobs.pac.africa and review applicants in one place.",
+    "Post vetted roles on jobs.pac.africa and review applicants from across Africa in one place.",
 };
 
 const points = [
   {
     icon: ShieldCheck,
     title: "Every listing is reviewed",
-    body: "PAC Africa checks each role before it publishes. That is why applicants trust what they find here.",
+    body: "Nothing goes live automatically — including roles PAC Africa posts itself. That's why applicants take what they find here seriously.",
   },
   {
     icon: Inbox,
     title: "Applicants in one place",
-    body: "CVs, cover letters and contact details for every role you post, with shortlisting and internal notes.",
+    body: "CVs, cover letters and contact details for every role you post, with shortlisting, status tracking, and internal notes — no spreadsheet required.",
   },
   {
     icon: BadgeCheck,
     title: "Verified employer badge",
-    body: "Once we have confirmed who you are, your listings carry a badge that visibly separates you from noise.",
+    body: "Once we've confirmed who you are, your listings carry a badge that visibly separates you from the noise on other boards.",
+  },
+];
+
+const steps = [
+  {
+    number: "01",
+    title: "Post the role",
+    body: "Write it once — title, level, location, what you're actually looking for.",
+  },
+  {
+    number: "02",
+    title: "We check it",
+    body: "An admin reviews before it publishes. It goes live once it's real and complete, not before.",
+  },
+  {
+    number: "03",
+    title: "Review who applies",
+    body: "Applicants land in your dashboard as they come in. Shortlist, move a status, or pass — the applicant sees it either way.",
   },
 ];
 
@@ -30,11 +48,13 @@ export default function EmployersPage() {
     <div className="mx-auto max-w-3xl px-6 py-20">
       <span className="eyebrow">For employers</span>
       <h1 className="mt-3 max-w-2xl font-display text-4xl font-700 leading-[1.08] tracking-display text-ink">
-        Hire from a pool that has been checked.
+        Hire from a pool that's already been checked.
       </h1>
       <p className="mt-4 max-w-lg text-[15px] leading-relaxed text-muted">
-        An employer account lets you publish roles, review applicants and manage
-        your company profile.
+        PAC Africa has placed people across the continent for years — this is
+        the same standard, self-serve. An employer account lets you publish
+        roles, review applicants, and manage your company profile without
+        waiting on an introduction.
       </p>
 
       <div className="mt-10 grid gap-4 sm:grid-cols-3">
@@ -47,6 +67,23 @@ export default function EmployersPage() {
             <p className="mt-1.5 text-sm leading-relaxed text-muted">{point.body}</p>
           </div>
         ))}
+      </div>
+
+      <div className="mt-16">
+        <span className="eyebrow">How it works</span>
+        <div className="mt-5 space-y-4">
+          {steps.map((step) => (
+            <div key={step.number} className="clay flex gap-4 p-5">
+              <span className="font-display text-2xl font-700 text-accent-text/40">
+                {step.number}
+              </span>
+              <div>
+                <h3 className="font-display text-base font-600 text-ink">{step.title}</h3>
+                <p className="mt-1 text-sm leading-relaxed text-muted">{step.body}</p>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="clay mt-10 flex flex-wrap items-center justify-between gap-4 p-6">

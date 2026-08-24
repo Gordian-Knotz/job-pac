@@ -33,6 +33,10 @@ export type Profile = {
   company_id: string | null;
   /** Set by an admin only (migration 017). */
   suspended_at: string | null;
+  // Notification preferences (migration 028).
+  notify_email: boolean;
+  notify_new_jobs: boolean;
+  notify_pending_review: boolean;
   created_at: string;
   updated_at: string;
 }

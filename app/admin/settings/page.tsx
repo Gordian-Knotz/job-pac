@@ -27,8 +27,8 @@ const EXTERNAL: { label: string; where: string; note: string }[] = [
   },
   {
     label: "Email delivery",
-    where: "Not configured",
-    note: "Nothing sends email yet, which is why moderation reasons appear on the employer's dashboard rather than in their inbox.",
+    where: "Resend",
+    note: "Sending domain still needs verifying at resend.com/domains — until then, real addresses bounce and only the account owner's inbox receives anything.",
   },
   {
     label: "CV archive",

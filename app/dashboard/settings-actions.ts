@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { requireUser, dashboardPathFor } from "@/lib/auth";
 import { dash } from "@/lib/content";
+import type { Profile } from "@/types/database";
 
 /**
  * Password change from Settings.
@@ -33,4 +34,39 @@ export async function changePassword(formData: FormData) {
   if (error) fail(error.message);
 
   redirect(`${base}?updated=password`);
+}
+
+/**
+ * Notification preferences (migration 028) — checkboxes, so an unchecked box
+ * simply doesn't appear in the form body. `formData.has()` is the only way to
+ * tell "off" apart from "field not rendered for this role" at all, which is
+ * why each column is only ever written when its own checkbox was present.
+ */
+export async function updateNotificationPrefs(formData: FormData) {
+  const { supabase, profile } = await requireUser();
+  const base = `${dashboardPathFor(profile.role)}/settings`;
+
+  const patch: Partial<
+    Pick<Profile, "notify_email" | "notify_new_jobs" | "notify_pending_review">
+  > = {};
+  if (formData.has("notify_email_field")) {
+    patch.notify_email = formData.get("notify_email") === "on";
+  }
+  if (formData.has("notify_new_jobs_field")) {
+    patch.notify_new_jobs = formData.get("notify_new_jobs") === "on";
+  }
+  if (formData.has("notify_pending_review_field")) {
+    patch.notify_pending_review = formData.get("notify_pending_review") === "on";
+  }
+
+  if (Object.keys(patch).length === 0) redirect(base);
+
+  const { error } = await supabase
+    .from("profiles")
+    .update(patch)
+    .eq("id", profile.id);
+
+  if (error) redirect(`${base}?error=${encodeURIComponent(error.message)}`);
+
+  redirect(`${base}?updated=notifications`);
 }
