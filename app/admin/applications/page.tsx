@@ -1,9 +1,10 @@
 import Link from "next/link";
+import { unstable_cache } from "next/cache";
 import { Search, ChevronLeft, ChevronRight, Phone, Mail } from "lucide-react";
 import { requireProfile } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
 import { PageHead } from "@/components/dashboard-shell";
 import { EmptyState, Flash } from "@/components/dashboard-ui";
-import { ApplicationStatusBadge } from "@/components/status-badge";
 import { CvLink } from "@/components/cv-link";
 import { Drawer } from "@/components/drawer";
 import {
@@ -11,14 +12,61 @@ import {
   type ApplicationDetail,
   type ApplicationEventItem,
 } from "@/components/application-detail";
-import { cvLink, cvLinksBatch } from "@/lib/cv-access";
+import { signApplicationCv } from "@/lib/cv-actions";
+import { setApplicationStatusAdmin } from "@/app/admin/actions";
+import { StatusSelect, NoteForm } from "@/components/application-status-form";
+import { Toast } from "@/components/toast";
 import { applicantCards } from "@/lib/applicant-cards";
-import type { CvLink as CvLinkValue } from "@/lib/cv";
+import { cvStatus } from "@/lib/cv";
 import { dash } from "@/lib/content";
 import { displayApplicant } from "@/lib/utils";
 import type { ApplicationStatus } from "@/types/database";
 
 const PER_PAGE = 50;
+
+// Neither of these depends on the page's own filters or the drawer's ?id —
+// they were re-run in full on every row click (which reloads this page with
+// id set), making the drawer feel slow for no reason. Both are admin-gated
+// data with no meaningful per-request variance, so an hour-old answer is fine.
+const getCachedYearRange = unstable_cache(
+  async () => {
+    const supabase = await createClient();
+    const [{ data: oldest }, { data: newest }] = await Promise.all([
+      supabase
+        .from("applications")
+        .select("applied_at")
+        .order("applied_at", { ascending: true })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from("applications")
+        .select("applied_at")
+        .order("applied_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+    return {
+      oldest: (oldest as { applied_at: string } | null)?.applied_at ?? null,
+      newest: (newest as { applied_at: string } | null)?.applied_at ?? null,
+    };
+  },
+  ["admin_applications_year_range"],
+  { revalidate: 3600 }
+);
+
+const getCachedEmployers = unstable_cache(
+  async () => {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("companies")
+      .select("id, name")
+      .order("name")
+      .limit(500);
+    return (data as { id: string; name: string }[] | null) ?? [];
+  },
+  ["admin_applications_employers"],
+  { revalidate: 3600 }
+);
 
 interface Row {
   id: string;
@@ -50,6 +98,7 @@ interface Params {
   page?: string;
   /** Open drawer. */
   id?: string;
+  updated?: string;
 }
 
 // under_review is included now that migration 014 added it.
@@ -155,44 +204,31 @@ export default async function AdminApplicationsPage({
 
   // Year options come from the data's real span, not a hardcoded range — the
   // archive starts in 2015 and the newest arrives whenever someone applies.
-  const [{ data: oldest }, { data: newest }, { data: employerRows }, cvLinks] =
-    await Promise.all([
-      supabase
-        .from("applications")
-        .select("applied_at")
-        .order("applied_at", { ascending: true })
-        .limit(1)
-        .maybeSingle(),
-      supabase
-        .from("applications")
-        .select("applied_at")
-        .order("applied_at", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-      // Admin-only: companies are no longer world-readable (migration 016), and
-      // this view is behind requireProfile("admin").
-      supabase.from("companies").select("id, name").order("name").limit(500),
-      cvLinksBatch(supabase, rows.map((r) => r.cv_url)),
-    ]);
+  const [yearRange, employers] = await Promise.all([
+    getCachedYearRange(),
+    // Admin-only: companies are no longer world-readable (migration 016), and
+    // this view is behind requireProfile("admin").
+    getCachedEmployers(),
+  ]);
 
-  const firstYear = (oldest as { applied_at: string } | null)
-    ? new Date((oldest as { applied_at: string }).applied_at).getFullYear()
+  const firstYear = yearRange.oldest
+    ? new Date(yearRange.oldest).getFullYear()
     : new Date().getFullYear();
-  const lastYear = (newest as { applied_at: string } | null)
-    ? new Date((newest as { applied_at: string }).applied_at).getFullYear()
+  const lastYear = yearRange.newest
+    ? new Date(yearRange.newest).getFullYear()
     : new Date().getFullYear();
   const years = Array.from(
     { length: Math.max(1, lastYear - firstYear + 1) },
     (_, i) => lastYear - i
   );
-  const employers = (employerRows as { id: string; name: string }[] | null) ?? [];
 
   // DRAWER — read-only. Moving an application through its stages is the
   // employer's decision, per the brief, so there is no status control here.
   const openId = params.id ?? null;
+  const returnTo = href(params, { id: openId });
   let detail: ApplicationDetail | null = null;
   let events: ApplicationEventItem[] = [];
-  let drawerCv: Awaited<ReturnType<typeof cvLink>> = { kind: "none" };
+  let drawerCvStatus: "none" | "legacy" | "ready" = "none";
   let drawerCard: { headline: string | null; avatarSrc: string | null } | undefined;
 
   if (openId) {
@@ -224,7 +260,7 @@ export default async function AdminApplicationsPage({
           : null,
       };
       events = (log ?? []) as unknown as ApplicationEventItem[];
-      drawerCv = await cvLink(supabase, row.cv_url, 60);
+      drawerCvStatus = cvStatus(row.cv_url);
     }
   }
 
@@ -425,9 +461,6 @@ export default async function AdminApplicationsPage({
       ) : (
         <ul className="clay divide-y divide-line">
           {rows.map((row) => {
-            const link: CvLinkValue = row.cv_url
-              ? (cvLinks.get(row.cv_url) ?? { kind: "none" })
-              : { kind: "none" };
             const role = row.job?.title ?? row.wp_job_title;
 
             return (
@@ -494,8 +527,17 @@ export default async function AdminApplicationsPage({
                   </div>
 
                   <div className="pointer-events-auto flex shrink-0 items-center gap-3">
-                    <CvLink value={link} compact />
-                    <ApplicationStatusBadge status={row.status} />
+                    <CvLink
+                      status={cvStatus(row.cv_url)}
+                      onOpen={signApplicationCv.bind(null, row.id)}
+                      compact
+                    />
+                    <StatusSelect
+                      applicationId={row.id}
+                      current={row.status}
+                      returnTo={href(params, {})}
+                      action={setApplicationStatusAdmin}
+                    />
                   </div>
                 </div>
 
@@ -521,26 +563,47 @@ export default async function AdminApplicationsPage({
             ? displayApplicant(detail.applicant_name, detail.applicant_email)
             : dash.admin.applicationsTitle
         }
-        footer={
-          <p className="text-xs leading-relaxed text-muted">
-            {dash.admin.applicationsReadOnly}
-          </p>
-        }
       >
         {detail && (
           <ApplicationDetailBody
             application={detail}
             events={events}
-            cv={drawerCv}
+            cv={{
+              status: drawerCvStatus,
+              onOpen: openId ? signApplicationCv.bind(null, openId) : undefined,
+            }}
             avatarSrc={drawerCard?.avatarSrc}
             showContact
-            // Visible, not editable: an admin should be able to see what an
-            // employer wrote when a candidate complains, without being able to
-            // rewrite it.
             showNote
+            statusControl={
+              <StatusSelect
+                applicationId={detail.id}
+                current={detail.status}
+                returnTo={returnTo}
+                action={setApplicationStatusAdmin}
+              />
+            }
+            noteControl={
+              <NoteForm
+                applicationId={detail.id}
+                current={detail.employer_note}
+                returnTo={returnTo}
+                action={setApplicationStatusAdmin}
+              />
+            }
           />
         )}
       </Drawer>
+
+      <Toast
+        message={
+          params.updated === "status"
+            ? dash.drawer.statusUpdated
+            : params.updated === "note"
+              ? "Note saved."
+              : null
+        }
+      />
     </div>
   );
 }

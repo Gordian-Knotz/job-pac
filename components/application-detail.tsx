@@ -8,6 +8,8 @@ import { displayApplicant } from "@/lib/utils";
 import type { CvLink as CvLinkValue } from "@/lib/cv";
 import type { ApplicationStatus } from "@/types/database";
 
+type CvProp = { status: "none" | "legacy" | "ready"; onOpen?: () => Promise<CvLinkValue> };
+
 /**
  * The body of an application drawer. One component, three audiences:
  *
@@ -65,7 +67,7 @@ export function ApplicationDetailBody({
 }: {
   application: ApplicationDetail;
   events: ApplicationEventItem[];
-  cv: CvLinkValue;
+  cv: CvProp;
   avatarSrc?: string | null;
   /** Email and phone. Withheld from the applicant's own view — they know it. */
   showContact?: boolean;
@@ -154,7 +156,7 @@ export function ApplicationDetailBody({
 
       {/* CV ----------------------------------------------------------- */}
       <div className="border-t border-line pt-5">
-        <CvLink value={cv} />
+        <CvLink status={cv.status} onOpen={cv.onOpen} />
       </div>
 
       {/* COVER LETTER ------------------------------------------------- */}

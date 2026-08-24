@@ -1,7 +1,7 @@
 import { Check } from "lucide-react";
 import { requireProfile } from "@/lib/auth";
-import { cvLink } from "@/lib/cv-access";
-import { CV_ACCEPT, CV_MAX_BYTES } from "@/lib/cv";
+import { signMyProfileCv } from "@/lib/cv-actions";
+import { CV_ACCEPT, CV_MAX_BYTES, cvStatus } from "@/lib/cv";
 import { avatarUrl, IMAGE_ACCEPT } from "@/lib/avatar";
 import { CvLink } from "@/components/cv-link";
 import { PageHead } from "@/components/dashboard-shell";
@@ -18,11 +18,9 @@ export default async function SeekerProfilePage({
   const { supabase, profile } = await requireProfile("seeker");
   const params = await searchParams;
 
-  const [cv, avatarSrc] = await Promise.all([
-    cvLink(supabase, profile.cv_url),
-    avatarUrl(supabase, profile.avatar_url),
-  ]);
-  const hasUsableCv = cv.kind === "supabase" || cv.kind === "r2";
+  const avatarSrc = await avatarUrl(supabase, profile.avatar_url);
+  const cvSt = cvStatus(profile.cv_url);
+  const hasUsableCv = cvSt === "ready";
 
   const checks = profileChecklist(profile, hasUsableCv);
   const progress = completeness(checks);
@@ -131,7 +129,7 @@ export default async function SeekerProfilePage({
         <h2 className="font-display text-lg font-600 text-ink">Curriculum vitae</h2>
         <p className="mb-4 mt-1 text-sm text-muted">{cvCopy.constraint}</p>
 
-        {cv.kind === "legacy" && (
+        {cvSt === "legacy" && (
           <p className="mb-4 rounded-card border border-line px-4 py-3 text-sm text-muted">
             We hold a CV for you from the previous version of this site, but it is not
             readable yet while we move those files across. Uploading it again here is the
@@ -143,7 +141,7 @@ export default async function SeekerProfilePage({
           <p className="mb-4 flex flex-wrap items-center gap-2 text-sm">
             <Check className="h-4 w-4 shrink-0 text-accent-text" aria-hidden />
             <span className="text-ink">{cvCopy.onFile}</span>
-            <CvLink value={cv} compact />
+            <CvLink status={cvSt} onOpen={signMyProfileCv} compact />
           </p>
         )}
 

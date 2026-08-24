@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useFormStatus } from "react-dom";
 import { AlertTriangle } from "lucide-react";
+import { lockScroll, unlockScroll } from "@/lib/scroll-lock";
 import { dash } from "@/lib/content";
 
 /**
@@ -57,11 +58,10 @@ export function ConfirmAction({
       if (event.key === "Escape") setOpen(false);
     };
     document.addEventListener("keydown", onKey);
-    const { overflow } = document.body.style;
-    document.body.style.overflow = "hidden";
+    lockScroll();
     return () => {
       document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = overflow;
+      unlockScroll();
     };
   }, [open]);
 

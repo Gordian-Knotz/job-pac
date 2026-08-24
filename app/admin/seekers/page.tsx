@@ -16,8 +16,8 @@ import { Drawer } from "@/components/drawer";
 import { ConfirmAction } from "@/components/confirm-action";
 import { CvLink } from "@/components/cv-link";
 import { avatarUrls, avatarUrl } from "@/lib/avatar";
-import { cvLink } from "@/lib/cv-access";
-import { isLegacyCvUrl } from "@/lib/cv";
+import { signSeekerProfileCv } from "@/lib/cv-actions";
+import { cvStatus, isLegacyCvUrl } from "@/lib/cv";
 import { completeness, profileChecklist } from "@/lib/profile";
 import { dash } from "@/lib/content";
 import { displayApplicant, timeAgo } from "@/lib/utils";
@@ -115,7 +115,7 @@ export default async function AdminSeekers({
 
   // DRAWER ------------------------------------------------------------
   const open = params.id ? (rows.find((r) => r.id === params.id) ?? null) : null;
-  const openCv = open ? await cvLink(supabase, open.cv_url) : null;
+  const openCvStatus = open ? cvStatus(open.cv_url) : "none";
   const openAvatar = open ? await avatarUrl(supabase, open.avatar_url) : null;
   const openProgress = open
     ? completeness(
@@ -365,7 +365,10 @@ export default async function AdminSeekers({
             )}
 
             <div className="border-t border-line pt-5">
-              <CvLink value={openCv ?? { kind: "none" }} />
+              <CvLink
+                status={openCvStatus}
+                onOpen={open ? signSeekerProfileCv.bind(null, open.id) : undefined}
+              />
             </div>
 
             <div className="border-t border-line pt-5">

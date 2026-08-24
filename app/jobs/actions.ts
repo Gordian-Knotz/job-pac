@@ -14,6 +14,7 @@ import {
 } from "@/lib/cv";
 import { UNIQUE_VIOLATION } from "@/lib/job-form";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { notifyApplicationReceived } from "@/lib/notify";
 
 /**
  * Submitting an application.
@@ -212,6 +213,7 @@ export async function submitApplication(formData: FormData) {
   }
 
   // ── Write it ───────────────────────────────────────────────
+  let duplicate = false;
   if (user) {
     // Under RLS: the policy requires applicant_id = auth.uid(), so this cannot
     // be filed on anyone else's behalf regardless of what the form said.
@@ -251,11 +253,18 @@ export async function submitApplication(formData: FormData) {
       // is precisely the fact this product exists to keep private. So a
       // duplicate takes the success path, for the same reason the honeypot
       // above does. The real applicant is unaffected; their row already exists.
-      const duplicate =
+      duplicate =
         error.code === UNIQUE_VIOLATION ||
         /duplicate key|already exists/i.test(error.message);
       if (!duplicate) fail(slug, "failed");
     }
+  }
+
+  // A duplicate hit means no row was actually written — see above — so
+  // notifying the employer here would announce an application that never
+  // arrived.
+  if (!duplicate) {
+    await notifyApplicationReceived(jobRow.id, jobRow.title, name);
   }
 
   revalidatePath(`/jobs/${slug}`);

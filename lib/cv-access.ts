@@ -23,7 +23,7 @@ type StorageOnly = Pick<SupabaseClient, "storage">;
 export async function cvLink(
   supabase: StorageOnly,
   cvUrl: string | null | undefined,
-  expiresInSeconds = 300
+  expiresInSeconds = 1500
 ): Promise<CvLink> {
   const links = await cvLinksBatch(supabase, [cvUrl], expiresInSeconds);
   return cvUrl ? (links.get(cvUrl) ?? { kind: "none" }) : { kind: "none" };
@@ -39,7 +39,7 @@ export async function cvLink(
 export async function cvLinksBatch(
   supabase: StorageOnly,
   cvUrls: (string | null | undefined)[],
-  expiresInSeconds = 300
+  expiresInSeconds = 1500
 ): Promise<Map<string, CvLink>> {
   const links = new Map<string, CvLink>();
   const supabasePaths = new Set<string>();

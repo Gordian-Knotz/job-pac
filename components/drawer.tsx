@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { X } from "lucide-react";
 import { dash } from "@/lib/content";
+import { lockScroll, unlockScroll } from "@/lib/scroll-lock";
 
 /**
  * Slide-out detail panel (brief §9).
@@ -59,12 +60,11 @@ export function Drawer({
     document.addEventListener("keydown", onKey);
 
     // The page behind must not scroll while a modal panel is open.
-    const { overflow } = document.body.style;
-    document.body.style.overflow = "hidden";
+    lockScroll();
 
     return () => {
       document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = overflow;
+      unlockScroll();
       (returnFocusTo.current as HTMLElement | null)?.focus?.();
     };
   }, [open, closeHref, router]);

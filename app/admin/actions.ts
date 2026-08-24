@@ -12,7 +12,16 @@ import {
   parseJobFields,
   str,
 } from "@/lib/job-form";
-import type { JobStatus } from "@/types/database";
+import { notifyJobDecision, notifyApplicationStatusChanged } from "@/lib/notify";
+import type { ApplicationStatus, JobStatus } from "@/types/database";
+
+const APPLICATION_STATUSES: ApplicationStatus[] = [
+  "pending",
+  "under_review",
+  "shortlisted",
+  "rejected",
+  "hired",
+];
 
 /**
  * `return_to` arrives in the form body, so it is caller-controlled. Confining it
@@ -50,7 +59,7 @@ export async function setJobStatus(formData: FormData) {
     redirect(`${returnTo}?error=Invalid+request`);
   }
 
-  const { error } = await supabase
+  const { data: job, error } = await supabase
     .from("jobs")
     .update({
       status: status as JobStatus,
@@ -58,9 +67,15 @@ export async function setJobStatus(formData: FormData) {
       // employer "sent back: …" under a live role.
       ...(status === "published" ? { rejection_reason: null } : {}),
     })
-    .eq("id", jobId);
+    .eq("id", jobId)
+    .select("title")
+    .single();
 
   if (error) redirect(`${returnTo}?error=${encodeURIComponent(error.message)}`);
+
+  if (status === "published") {
+    await notifyJobDecision(jobId, (job as { title: string }).title, "published");
+  }
 
   revalidatePublic(jobId);
   redirect(`${returnTo}?updated=${status}`);
@@ -91,12 +106,16 @@ export async function rejectJob(formData: FormData) {
     );
   }
 
-  const { error } = await supabase
+  const { data: job, error } = await supabase
     .from("jobs")
     .update({ status: "draft", rejection_reason: reason })
-    .eq("id", jobId);
+    .eq("id", jobId)
+    .select("title")
+    .single();
 
   if (error) redirect(`${returnTo}?error=${encodeURIComponent(error.message)}`);
+
+  await notifyJobDecision(jobId, (job as { title: string }).title, "rejected", reason);
 
   revalidatePublic(jobId);
   redirect(`${returnTo}?updated=rejected`);
@@ -323,4 +342,53 @@ export async function updateJob(formData: FormData) {
 
   revalidatePublic(jobId);
   redirect(`/admin/jobs/${jobId}/edit?saved=1`);
+}
+
+/**
+ * Admin override of an application's stage. `applications_admin_all` (migration
+ * 004) already grants admin unrestricted UPDATE, so this needs no new RLS —
+ * it's the same shape as the employer's `setApplicationStatus`, scoped to
+ * admin and returning into `/admin/applications` instead.
+ */
+export async function setApplicationStatusAdmin(formData: FormData) {
+  const { supabase } = await requireProfile("admin");
+
+  const applicationId = str(formData, "application_id");
+  const status = str(formData, "status");
+  const returnTo = safeReturnTo(str(formData, "return_to"));
+
+  if (!applicationId) redirect(`${returnTo}?error=Invalid+request`);
+
+  const note = str(formData, "employer_note");
+  const join = returnTo.includes("?") ? "&" : "?";
+
+  const patch: { status?: ApplicationStatus; employer_note?: string | null } = {};
+  if (status) patch.status = oneOf(status, APPLICATION_STATUSES, "pending");
+  if (formData.has("employer_note")) patch.employer_note = note;
+
+  if (Object.keys(patch).length === 0) redirect(returnTo);
+
+  const { data: updated, error } = await supabase
+    .from("applications")
+    .update(patch)
+    .eq("id", applicationId)
+    .select("applicant_email, wp_job_title, job:jobs(title)")
+    .single();
+
+  if (error) {
+    redirect(`${returnTo}${join}error=${encodeURIComponent(error.message)}`);
+  }
+
+  if (patch.status) {
+    const row = updated as unknown as {
+      applicant_email: string;
+      wp_job_title: string | null;
+      job: { title: string } | null;
+    };
+    const title = row.job?.title ?? row.wp_job_title ?? "your application";
+    await notifyApplicationStatusChanged(row.applicant_email, title, patch.status);
+  }
+
+  revalidatePath("/admin/applications");
+  redirect(`${returnTo}${join}updated=${status ? "status" : "note"}`);
 }

@@ -13,7 +13,8 @@ import {
 } from "@/components/application-detail";
 import { NoteForm, StatusSelect } from "@/components/application-status-form";
 import { applicantCards } from "@/lib/applicant-cards";
-import { cvLink } from "@/lib/cv-access";
+import { signApplicationCv } from "@/lib/cv-actions";
+import { cvStatus } from "@/lib/cv";
 import { applicationStatusLabels, dash } from "@/lib/content";
 import { displayApplicant, timeAgo } from "@/lib/utils";
 import { setApplicationStatus } from "../actions";
@@ -167,7 +168,7 @@ export default async function EmployerInbox({
   const openId = params.id ?? null;
   let detail: ApplicationDetail | null = null;
   let events: ApplicationEventItem[] = [];
-  let cv: Awaited<ReturnType<typeof cvLink>> = { kind: "none" };
+  let cvSt: "none" | "legacy" | "ready" = "none";
   let detailCard: { headline: string | null; avatarSrc: string | null } | undefined;
 
   if (openId) {
@@ -196,9 +197,7 @@ export default async function EmployerInbox({
         applicant: detailCard ? { headline: detailCard.headline, avatar_url: null } : null,
       };
       events = (log ?? []) as unknown as ApplicationEventItem[];
-      // 60 seconds, per the brief. A CV link that outlives the click is a link
-      // that can be forwarded.
-      cv = await cvLink(supabase, row.cv_url, 60);
+      cvSt = cvStatus(row.cv_url);
     }
   }
 
@@ -421,7 +420,10 @@ export default async function EmployerInbox({
           <ApplicationDetailBody
             application={detail}
             events={events}
-            cv={cv}
+            cv={{
+              status: cvSt,
+              onOpen: openId ? signApplicationCv.bind(null, openId) : undefined,
+            }}
             avatarSrc={detailCard?.avatarSrc}
             showContact
             showNote

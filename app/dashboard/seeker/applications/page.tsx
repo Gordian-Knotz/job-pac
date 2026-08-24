@@ -17,7 +17,8 @@ import {
   type ApplicationDetail,
   type ApplicationEventItem,
 } from "@/components/application-detail";
-import { cvLink } from "@/lib/cv-access";
+import { signApplicationCv } from "@/lib/cv-actions";
+import { cvStatus } from "@/lib/cv";
 import { applicationStatusLabels, dash } from "@/lib/content";
 
 import type { ApplicationStatus } from "@/types/database";
@@ -94,7 +95,7 @@ export default async function SeekerApplications({
   const openId = params.id ?? null;
   let detail: ApplicationDetail | null = null;
   let events: ApplicationEventItem[] = [];
-  let cv: Awaited<ReturnType<typeof cvLink>> = { kind: "none" };
+  let cvSt: "none" | "legacy" | "ready" = "none";
 
   if (openId) {
     const [{ data: one }, { data: log }] = await Promise.all([
@@ -118,7 +119,7 @@ export default async function SeekerApplications({
       const row = one as unknown as ApplicationDetail & { cv_url: string | null };
       detail = { ...row, applicant: null };
       events = (log ?? []) as unknown as ApplicationEventItem[];
-      cv = await cvLink(supabase, row.cv_url);
+      cvSt = cvStatus(row.cv_url);
     }
   }
 
@@ -259,7 +260,14 @@ export default async function SeekerApplications({
         }
       >
         {detail && (
-          <ApplicationDetailBody application={detail} events={events} cv={cv} />
+          <ApplicationDetailBody
+            application={detail}
+            events={events}
+            cv={{
+              status: cvSt,
+              onOpen: openId ? signApplicationCv.bind(null, openId) : undefined,
+            }}
+          />
         )}
       </Drawer>
     </div>

@@ -48,6 +48,19 @@ export function r2KeyOf(cvUrl: string): string {
 }
 
 /**
+ * Which of the three shapes a stored cv_url is, without signing anything.
+ * Lets the UI show "No CV" / "pending migration" up front and defer the
+ * actual signed-URL request to the moment someone clicks Open CV.
+ */
+export function cvStatus(
+  cvUrl: string | null | undefined
+): "none" | "legacy" | "ready" {
+  if (!cvUrl) return "none";
+  if (isLegacyCvUrl(cvUrl)) return "legacy";
+  return "ready";
+}
+
+/**
  * Checks the file really is a PDF by looking at its first bytes, not its
  * declared type.
  *

@@ -8,6 +8,7 @@ import { AnimatePresence, motion, useMotionValueEvent, useScroll } from "framer-
 import { Menu, X } from "lucide-react";
 import { ThemeToggle } from "@/components/theme";
 import { nav, site } from "@/lib/content";
+import { lockScroll, unlockScroll } from "@/lib/scroll-lock";
 
 export type NavLinks = {
   /** Resolved on the server so the gate never flashes the wrong destination. */
@@ -30,10 +31,9 @@ export function PublicNav({ postHref, dashboardHref, signedIn }: NavLinks) {
 
   // A full-screen overlay must not leave the page behind it scrollable.
   useEffect(() => {
-    document.body.style.overflow = menuOpen ? "hidden" : "";
-    return () => {
-      document.body.style.overflow = "";
-    };
+    if (!menuOpen) return;
+    lockScroll();
+    return () => unlockScroll();
   }, [menuOpen]);
 
   return (

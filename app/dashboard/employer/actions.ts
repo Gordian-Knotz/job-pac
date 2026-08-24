@@ -17,6 +17,7 @@ import {
   parseJobFields,
   str,
 } from "@/lib/job-form";
+import { notifyApplicationStatusChanged } from "@/lib/notify";
 import type { ApplicationStatus } from "@/types/database";
 
 const APPLICATION_STATUSES: ApplicationStatus[] = [
@@ -317,13 +318,25 @@ export async function setApplicationStatus(formData: FormData) {
   // mismatched id updates nothing rather than erroring. The status change is
   // recorded in application_events by a trigger (migration 017), so the drawer's
   // history is written whether or not this action remembers to.
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from("applications")
     .update(patch)
-    .eq("id", applicationId);
+    .eq("id", applicationId)
+    .select("applicant_email, wp_job_title, job:jobs(title)")
+    .single();
 
   if (error) {
     redirect(`${returnTo}${join}error=${encodeURIComponent(error.message)}`);
+  }
+
+  if (patch.status) {
+    const row = updated as unknown as {
+      applicant_email: string;
+      wp_job_title: string | null;
+      job: { title: string } | null;
+    };
+    const title = row.job?.title ?? row.wp_job_title ?? "your application";
+    await notifyApplicationStatusChanged(row.applicant_email, title, patch.status);
   }
 
   revalidatePath("/dashboard/employer/applications");
