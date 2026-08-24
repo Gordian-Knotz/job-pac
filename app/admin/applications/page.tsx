@@ -17,7 +17,10 @@ import { signApplicationCv } from "@/lib/cv-actions";
 import { setApplicationStatusAdmin } from "@/app/admin/actions";
 import { StatusSelect, NoteForm } from "@/components/application-status-form";
 import { Toast } from "@/components/toast";
+import { ReviewStatusBadge } from "@/components/status-badge";
+import { ReviewPanel } from "@/components/review-panel";
 import { applicantCards } from "@/lib/applicant-cards";
+import { reviewSummaries, reviewSummaryFor } from "@/lib/application-reviews";
 import { cvStatus } from "@/lib/cv";
 import { dash } from "@/lib/content";
 import { displayApplicant } from "@/lib/utils";
@@ -96,10 +99,13 @@ interface Params {
   employer?: string;
   /** Whether the applicant has an account attached to the record. */
   claimed?: string;
+  /** Review filter (migration 029): unreviewed | seen | final. */
+  review?: string;
   page?: string;
   /** Open drawer. */
   id?: string;
   updated?: string;
+  reviewed?: string;
 }
 
 // under_review is included now that migration 014 added it.
@@ -124,7 +130,7 @@ export default async function AdminApplicationsPage({
 }: {
   searchParams: Promise<Params>;
 }) {
-  const { supabase } = await requireProfile("admin");
+  const { supabase, userId } = await requireProfile("admin");
   const params = await searchParams;
 
   const page = Math.max(1, Number.parseInt(params.page ?? "1", 10) || 1);
@@ -174,6 +180,23 @@ export default async function AdminApplicationsPage({
   if (params.claimed === "yes") query = query.not("applicant_id", "is", null);
   if (params.claimed === "no") query = query.is("applicant_id", null);
 
+  if (params.review === "unreviewed" || params.review === "seen" || params.review === "final") {
+    const { data: reviewRows } = await supabase
+      .from("application_reviews")
+      .select("application_id, mode");
+    const rows = (reviewRows ?? []) as { application_id: string; mode: string }[];
+    const anyIds = [...new Set(rows.map((r) => r.application_id))];
+    const finalIds = [...new Set(rows.filter((r) => r.mode === "final").map((r) => r.application_id))];
+    const NONE = "00000000-0000-0000-0000-000000000000";
+    if (params.review === "unreviewed") {
+      query = anyIds.length ? query.not("id", "in", `(${anyIds.join(",")})`) : query;
+    } else if (params.review === "seen") {
+      query = query.in("id", anyIds.length ? anyIds : [NONE]);
+    } else {
+      query = query.in("id", finalIds.length ? finalIds : [NONE]);
+    }
+  }
+
   const year = Number.parseInt(params.year ?? "", 10);
   if (Number.isFinite(year) && year > 2000 && year < 2100) {
     query = query
@@ -202,6 +225,10 @@ export default async function AdminApplicationsPage({
   const rows = (data ?? []) as unknown as Row[];
   const total = count ?? 0;
   const lastPage = Math.max(1, Math.ceil(total / PER_PAGE));
+  const reviews = await reviewSummaries(
+    supabase,
+    rows.map((row) => row.id)
+  );
 
   // Year options come from the data's real span, not a hardcoded range — the
   // archive starts in 2015 and the newest arrives whenever someone applies.
@@ -422,12 +449,41 @@ export default async function AdminApplicationsPage({
             id: null,
           })}
         />
+        <span className="w-px h-5 bg-line mx-1" aria-hidden />
+        <FilterChip
+          label="Not reviewed"
+          active={params.review === "unreviewed"}
+          to={href(params, {
+            review: params.review === "unreviewed" ? null : "unreviewed",
+            page: null,
+            id: null,
+          })}
+        />
+        <FilterChip
+          label="Seen"
+          active={params.review === "seen"}
+          to={href(params, {
+            review: params.review === "seen" ? null : "seen",
+            page: null,
+            id: null,
+          })}
+        />
+        <FilterChip
+          label="Final reviewed"
+          active={params.review === "final"}
+          to={href(params, {
+            review: params.review === "final" ? null : "final",
+            page: null,
+            id: null,
+          })}
+        />
 
         {(params.q ||
           params.status ||
           params.source ||
           params.cv ||
           params.claimed ||
+          params.review ||
           params.year ||
           params.employer) && (
           <Link href="/admin/applications" className="btn-ghost ml-auto text-xs">
@@ -533,6 +589,15 @@ export default async function AdminApplicationsPage({
                       onOpen={signApplicationCv.bind(null, row.id)}
                       compact
                     />
+                    {(() => {
+                      const rs = reviewSummaryFor(reviews, row.id);
+                      return (
+                        <ReviewStatusBadge
+                          finalBy={rs.final?.reviewerName ?? null}
+                          overviewCount={rs.overviews.length}
+                        />
+                      );
+                    })()}
                     <StatusSelect
                       applicationId={row.id}
                       current={row.status}
@@ -592,6 +657,14 @@ export default async function AdminApplicationsPage({
                 action={setApplicationStatusAdmin}
               />
             }
+            reviewPanel={
+              <ReviewPanel
+                applicationId={detail.id}
+                returnTo={returnTo}
+                currentUserId={userId}
+                summary={reviewSummaryFor(reviews, detail.id)}
+              />
+            }
           />
         )}
       </Drawer>
@@ -602,7 +675,11 @@ export default async function AdminApplicationsPage({
             ? dash.drawer.statusUpdated
             : params.updated === "note"
               ? "Note saved."
-              : null
+              : params.reviewed === "final"
+                ? "Final review recorded."
+                : params.reviewed === "overview"
+                  ? "Marked as seen."
+                  : null
         }
       />
     </div>

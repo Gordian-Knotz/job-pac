@@ -138,6 +138,18 @@ export type ApplicationEvent = {
   created_at: string;
 }
 
+export type ApplicationReviewMode = "overview" | "final";
+
+/** migration 029 — who has looked at an application, and how carefully. */
+export type ApplicationReview = {
+  id: string;
+  application_id: string;
+  reviewer_id: string;
+  mode: ApplicationReviewMode;
+  opinion: string | null;
+  created_at: string;
+}
+
 export type SavedJob = {
   id: string;
   profile_id: string;
@@ -186,6 +198,7 @@ export interface Database {
       jobs: Table<Job>;
       applications: Table<Application>;
       application_events: Table<ApplicationEvent>;
+      application_reviews: Table<ApplicationReview>;
       saved_jobs: Table<SavedJob>;
       job_alerts: Table<JobAlert>;
     };

@@ -55,3 +55,25 @@ export function JobStatusBadge({ status }: { status: JobStatus }) {
     />
   );
 }
+
+/** Whether HR has looked at this one yet (migration 029). */
+export function ReviewStatusBadge({
+  finalBy,
+  overviewCount,
+}: {
+  finalBy: string | null;
+  overviewCount: number;
+}) {
+  if (finalBy) {
+    return <Badge label={`Final · ${finalBy}`} className="bg-emerald-500/12 text-emerald-700 dark:text-emerald-400" />;
+  }
+  if (overviewCount > 0) {
+    return (
+      <Badge
+        label={`Seen · ${overviewCount}`}
+        className="bg-amber-500/12 text-amber-700 dark:text-amber-400"
+      />
+    );
+  }
+  return <Badge label="Not reviewed" className="bg-surface-raised text-faint" />;
+}

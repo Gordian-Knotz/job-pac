@@ -64,6 +64,7 @@ export function ApplicationDetailBody({
   showNote = false,
   statusControl,
   noteControl,
+  reviewPanel,
 }: {
   application: ApplicationDetail;
   events: ApplicationEventItem[];
@@ -77,6 +78,8 @@ export function ApplicationDetailBody({
   statusControl?: React.ReactNode;
   /** Employer-only: the note form. */
   noteControl?: React.ReactNode;
+  /** Employer/admin-only: the HR review log and prompt (migration 029). */
+  reviewPanel?: React.ReactNode;
 }) {
   const role = application.job?.title ?? application.wp_job_title;
 
@@ -186,6 +189,8 @@ export function ApplicationDetailBody({
             ))}
         </div>
       )}
+
+      {reviewPanel}
 
       {/* HISTORY ------------------------------------------------------ */}
       <div className="border-t border-line pt-5">

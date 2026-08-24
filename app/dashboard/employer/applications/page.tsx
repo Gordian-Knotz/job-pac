@@ -3,7 +3,7 @@ import { Inbox, Search } from "lucide-react";
 import { requireProfile } from "@/lib/auth";
 import { PageHead } from "@/components/dashboard-shell";
 import { Avatar, EmptyState, Flash, TableFrame, Td, Th, Tr, RowLink } from "@/components/dashboard-ui";
-import { ApplicationStatusBadge } from "@/components/status-badge";
+import { ApplicationStatusBadge, ReviewStatusBadge } from "@/components/status-badge";
 import { Drawer } from "@/components/drawer";
 import { Toast } from "@/components/toast";
 import {
@@ -11,8 +11,10 @@ import {
   type ApplicationDetail,
   type ApplicationEventItem,
 } from "@/components/application-detail";
+import { ReviewPanel } from "@/components/review-panel";
 import { NoteForm, StatusSelect } from "@/components/application-status-form";
 import { applicantCards } from "@/lib/applicant-cards";
+import { reviewSummaries, reviewSummaryFor } from "@/lib/application-reviews";
 import { signApplicationCv } from "@/lib/cv-actions";
 import { cvStatus } from "@/lib/cv";
 import { applicationStatusLabels, dash } from "@/lib/content";
@@ -41,9 +43,12 @@ type Params = {
   job?: string;
   status?: string;
   sort?: string;
+  /** Review filter (migration 029): unreviewed | seen | final. */
+  review?: string;
   page?: string;
   id?: string;
   updated?: string;
+  reviewed?: string;
   error?: string;
 };
 
@@ -55,6 +60,7 @@ function href(current: Params, changes: Partial<Record<keyof Params, string | nu
   // Never carried across a navigation: they describe what just happened, not
   // where you are.
   delete merged.updated;
+  delete merged.reviewed;
   delete merged.error;
   for (const [key, value] of Object.entries(merged)) if (value) next.set(key, value);
   const qs = next.toString();
@@ -86,7 +92,7 @@ export default async function EmployerInbox({
 }: {
   searchParams: Promise<Params>;
 }) {
-  const { supabase, profile } = await requireProfile("employer");
+  const { supabase, profile, userId } = await requireProfile("employer");
   const params = await searchParams;
 
   if (!profile.company_id) {
@@ -132,6 +138,23 @@ export default async function EmployerInbox({
   if (status) query = query.eq("status", status);
   if (params.job) query = query.eq("job_id", params.job);
 
+  if (params.review === "unreviewed" || params.review === "seen" || params.review === "final") {
+    const { data: reviewRows } = await supabase
+      .from("application_reviews")
+      .select("application_id, mode");
+    const rows = (reviewRows ?? []) as { application_id: string; mode: string }[];
+    const anyIds = [...new Set(rows.map((r) => r.application_id))];
+    const finalIds = [...new Set(rows.filter((r) => r.mode === "final").map((r) => r.application_id))];
+    const NONE = "00000000-0000-0000-0000-000000000000";
+    if (params.review === "unreviewed") {
+      query = anyIds.length ? query.not("id", "in", `(${anyIds.join(",")})`) : query;
+    } else if (params.review === "seen") {
+      query = query.in("id", anyIds.length ? anyIds : [NONE]);
+    } else {
+      query = query.in("id", finalIds.length ? finalIds : [NONE]);
+    }
+  }
+
   if (params.q) {
     // The two things an employer knows about a candidate. Wildcards and the
     // comma that separates PostgREST's `or` arguments are stripped, so a search
@@ -160,6 +183,10 @@ export default async function EmployerInbox({
 
   // Two batched calls for the whole page, not one per row.
   const cards = await applicantCards(
+    supabase,
+    rows.map((row) => row.id)
+  );
+  const reviews = await reviewSummaries(
     supabase,
     rows.map((row) => row.id)
   );
@@ -289,7 +316,26 @@ export default async function EmployerInbox({
             {applicationStatusLabels[s]}
           </Link>
         ))}
-        {(params.q || params.job || status || params.sort) && (
+        <span className="w-px h-5 bg-line mx-1" aria-hidden />
+        <Link
+          href={href(params, { review: params.review === "unreviewed" ? null : "unreviewed", page: null, id: null })}
+          className={`chip ${params.review === "unreviewed" ? "chip-active" : ""}`}
+        >
+          Not reviewed
+        </Link>
+        <Link
+          href={href(params, { review: params.review === "seen" ? null : "seen", page: null, id: null })}
+          className={`chip ${params.review === "seen" ? "chip-active" : ""}`}
+        >
+          Seen
+        </Link>
+        <Link
+          href={href(params, { review: params.review === "final" ? null : "final", page: null, id: null })}
+          className={`chip ${params.review === "final" ? "chip-active" : ""}`}
+        >
+          Final reviewed
+        </Link>
+        {(params.q || params.job || status || params.sort || params.review) && (
           <Link href={BASE} className="btn-ghost ml-auto text-xs">
             {dash.common.clear}
           </Link>
@@ -327,6 +373,7 @@ export default async function EmployerInbox({
                 <Th>Applicant</Th>
                 <Th className="w-[190px]">{dash.employer.colRole}</Th>
                 <Th className="w-[110px]">{dash.seeker.colApplied}</Th>
+                <Th className="w-[120px]">Review</Th>
                 <Th className="w-[130px] text-right">{dash.seeker.colStatus}</Th>
               </tr>
             </thead>
@@ -366,6 +413,17 @@ export default async function EmployerInbox({
                     </Td>
                     <Td className="whitespace-nowrap text-xs text-muted">
                       {timeAgo(row.applied_at)}
+                    </Td>
+                    <Td>
+                      {(() => {
+                        const rs = reviewSummaryFor(reviews, row.id);
+                        return (
+                          <ReviewStatusBadge
+                            finalBy={rs.final?.reviewerName ?? null}
+                            overviewCount={rs.overviews.length}
+                          />
+                        );
+                      })()}
                     </Td>
                     <Td className="text-right">
                       <ApplicationStatusBadge status={row.status} />
@@ -443,6 +501,14 @@ export default async function EmployerInbox({
                 action={setApplicationStatus}
               />
             }
+            reviewPanel={
+              <ReviewPanel
+                applicationId={detail.id}
+                returnTo={returnTo}
+                currentUserId={userId}
+                summary={reviewSummaryFor(reviews, detail.id)}
+              />
+            }
           />
         )}
       </Drawer>
@@ -453,7 +519,11 @@ export default async function EmployerInbox({
             ? dash.drawer.statusUpdated
             : params.updated === "note"
               ? "Note saved."
-              : null
+              : params.reviewed === "final"
+                ? "Final review recorded."
+                : params.reviewed === "overview"
+                  ? "Marked as seen."
+                  : null
         }
       />
     </div>
