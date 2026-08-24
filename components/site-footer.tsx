@@ -54,13 +54,15 @@ export function SiteFooter() {
           <Link href="/jobs" className={FOOTER_LINK} prefetch={false}>
             {nav.browse}
           </Link>
-          <Link href="/for-talent" className={FOOTER_LINK} prefetch={false}>
+          {/* for-talent/employers/about aren't ready tone-wise yet — lead
+              home instead of their real routes until they are. */}
+          <Link href="/" className={FOOTER_LINK} prefetch={false}>
             {nav.forTalent}
           </Link>
-          <Link href="/employers" className={FOOTER_LINK} prefetch={false}>
+          <Link href="/" className={FOOTER_LINK} prefetch={false}>
             {nav.forEmployers}
           </Link>
-          <Link href="/about" className={FOOTER_LINK} prefetch={false}>
+          <Link href="/" className={FOOTER_LINK} prefetch={false}>
             {nav.about}
           </Link>
           {/* Required to be reachable from every page — we hold CVs. */}
@@ -76,12 +78,12 @@ export function SiteFooter() {
             placeholder label, but still text a visitor reads), and faint
             failed Lighthouse's AA contrast check here. */}
         <div className="flex flex-wrap items-center gap-x-3 gap-y-0 text-muted md:w-full md:justify-end md:border-t md:border-line md:pt-2">
-          <a href="mailto:it@pac.africa" className={FOOTER_LINK}>
+          <a href="mailto:hello@pac.africa" className={FOOTER_LINK}>
             info@pac.africa
           </a>
           <span className="py-1.5"></span>
-          {PLACEHOLDER_SOCIALS.map((label) => (
-            <span key={label} className="py-1.5">{label} </span>
+          {PLACEHOLDER_SOCIALS.map((label, i) => (
+            <span key={i} className="py-1.5">{label} </span>
           ))}
         </div>
       </div>

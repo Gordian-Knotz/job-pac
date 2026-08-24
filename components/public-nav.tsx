@@ -68,13 +68,15 @@ export function PublicNav({ postHref, dashboardHref, signedIn }: NavLinks) {
             <Link href="/jobs" prefetch={false} className="text-sm text-muted transition-colors duration-150 ease-out hover:text-ink">
               {nav.browse}
             </Link>
-            <Link href="/for-talent" prefetch={false} className="text-sm text-muted transition-colors duration-150 ease-out hover:text-ink">
+            {/* for-talent/employers/about pages aren't ready tone-wise yet —
+                these lead home instead of their real routes until they are. */}
+            <Link href="/" prefetch={false} className="text-sm text-muted transition-colors duration-150 ease-out hover:text-ink">
               {nav.forTalent}
             </Link>
-            <Link href="/employers" prefetch={false} className="text-sm text-muted transition-colors duration-150 ease-out hover:text-ink">
+            <Link href="/" prefetch={false} className="text-sm text-muted transition-colors duration-150 ease-out hover:text-ink">
               {nav.forEmployers}
             </Link>
-            <Link href="/about" prefetch={false} className="text-sm text-muted transition-colors duration-150 ease-out hover:text-ink">
+            <Link href="/" prefetch={false} className="text-sm text-muted transition-colors duration-150 ease-out hover:text-ink">
               {nav.about}
             </Link>
           </div>
@@ -154,13 +156,13 @@ export function PublicNav({ postHref, dashboardHref, signedIn }: NavLinks) {
                 <Link href="/jobs" prefetch={false} className="clay px-5 py-4 text-lg text-ink">
                   {nav.browse}
                 </Link>
-                <Link href="/for-talent" prefetch={false} className="clay px-5 py-4 text-lg text-ink">
+                <Link href="/" prefetch={false} className="clay px-5 py-4 text-lg text-ink">
                   {nav.forTalent}
                 </Link>
-                <Link href="/employers" prefetch={false} className="clay px-5 py-4 text-lg text-ink">
+                <Link href="/" prefetch={false} className="clay px-5 py-4 text-lg text-ink">
                   {nav.forEmployers}
                 </Link>
-                <Link href="/about" prefetch={false} className="clay px-5 py-4 text-lg text-ink">
+                <Link href="/" prefetch={false} className="clay px-5 py-4 text-lg text-ink">
                   {nav.about}
                 </Link>
                 {signedIn && dashboardHref ? (
