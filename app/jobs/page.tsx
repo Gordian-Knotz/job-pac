@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { Search, X, SlidersHorizontal, ChevronLeft, ChevronRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { unstable_cache } from "next/cache";
 import { postJobHref } from "@/lib/auth";
 import { JobCard } from "@/components/job-card";
 import { Reveal } from "@/components/reveal";
@@ -20,6 +21,8 @@ import type {
   JobType,
   UserRole,
 } from "@/types/database";
+
+export const revalidate = 120;
 
 const PER_PAGE = 12;
 
@@ -41,14 +44,43 @@ interface Params {
   page?: string;
 }
 
+const getCachedCategories = unstable_cache(
+  async () => {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("job_categories")
+      .select("id, name")
+      .order("name")
+      .limit(300);
+    return (data as Pick<JobCategory, "id" | "name">[]) ?? [];
+  },
+  ["job_categories_all"],
+  { revalidate: 3600 }
+);
+
+const getCachedLocations = unstable_cache(
+  async () => {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("job_locations")
+      .select("id, name")
+      .order("name")
+      .limit(200);
+    return (data as Pick<JobLocation, "id" | "name">[]) ?? [];
+  },
+  ["job_locations_all"],
+  { revalidate: 3600 }
+);
+
 async function lookupName(
   table: "job_categories" | "job_locations",
   id: string | undefined
 ): Promise<string | undefined> {
   if (!id) return undefined;
-  const supabase = await createClient();
-  const { data } = await supabase.from(table).select("name").eq("id", id).maybeSingle();
-  return (data as { name: string } | null)?.name;
+  const rows = table === "job_categories"
+    ? await getCachedCategories()
+    : await getCachedLocations();
+  return rows.find((r) => r.id === id)?.name;
 }
 
 /**
@@ -162,13 +194,10 @@ export default async function JobsPage({
     query.range(from, from + PER_PAGE - 1),
     (async () => {
       const [categories, locations] = await Promise.all([
-        supabase.from("job_categories").select("id, name").order("name").limit(300),
-        supabase.from("job_locations").select("id, name").order("name").limit(200),
+        getCachedCategories(),
+        getCachedLocations(),
       ]);
-      return {
-        categories: (categories.data as Pick<JobCategory, "id" | "name">[]) ?? [],
-        locations: (locations.data as Pick<JobLocation, "id" | "name">[]) ?? [],
-      };
+      return { categories, locations };
     })(),
     user
       ? supabase.from("saved_jobs").select("job_id")

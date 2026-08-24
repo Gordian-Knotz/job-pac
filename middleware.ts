@@ -130,6 +130,24 @@ export async function middleware(request: NextRequest) {
     return applyCsp(NextResponse.next({ request: { headers: requestHeaders } }));
   }
 
+  // Session refresh is only meaningful when the visitor already has a Supabase
+  // session cookie. Anonymous requests — bots, crawlers, cold visitors — carry
+  // none, so skipping the getUser() call saves a Supabase round-trip on every
+  // one of them without touching security: route protection lives in
+  // requireUser() / requireProfile() in the layouts, not here.
+  //
+  // Supabase SSR names the cookie sb-<project-ref>-auth-token. Rather than
+  // hard-coding the project ref, we check for any cookie whose name starts with
+  // "sb-" and ends with "-auth-token", which covers the pattern regardless of
+  // which project this is deployed against.
+  const hasSession = request.cookies.getAll().some(
+    (c) => c.name.startsWith("sb-") && c.name.endsWith("-auth-token")
+  );
+
+  if (!hasSession) {
+    return applyCsp(NextResponse.next({ request: { headers: requestHeaders } }));
+  }
+
   let response = NextResponse.next({ request: { headers: requestHeaders } });
 
   try {

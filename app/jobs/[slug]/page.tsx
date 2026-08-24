@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import { after } from "next/server";
+import { cache } from "react";
 import { ArrowLeft, Flag } from "lucide-react";
 import type { Metadata } from "next";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
@@ -13,13 +14,15 @@ import { ShareButton } from "@/components/share-button";
 import { job as jobCopy, gate } from "@/lib/content";
 import type { Job, Profile, Database } from "@/types/database";
 
+export const revalidate = 300;
+
 const SELECT = `
   *,
   category:job_categories(*),
   location:job_locations(*)
 `;
 
-async function getJob(slug: string): Promise<Job | null> {
+const getJob = cache(async function getJob(slug: string): Promise<Job | null> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("jobs")
@@ -28,7 +31,7 @@ async function getJob(slug: string): Promise<Job | null> {
     .eq("status", "published")
     .single();
   return (data as unknown as Job) ?? null;
-}
+});
 
 export async function generateMetadata({
   params,
@@ -144,33 +147,44 @@ async function recordView(jobId: string, userAgent: string): Promise<void> {
   }
 }
 
-/** Three more roles in the same category, or failing that the same location. */
+/**
+ * Three related roles in one query using an `or` filter.
+ *
+ * Previously fired up to 2 sequential DB calls: one for category, then if
+ * that came back empty, a second for location. Now fetches up to 6 candidates
+ * (3 by category + 3 by location) in a single round-trip and picks the best 3
+ * — category matches are preferred by sorting them first.
+ */
 async function getRelated(job: Job): Promise<Job[]> {
+  if (!job.category_id && !job.location_id) return [];
+
   const supabase = await createClient();
-  const base = supabase
+
+  const filters: string[] = [];
+  if (job.category_id) filters.push(`category_id.eq.${job.category_id}`);
+  if (job.location_id) filters.push(`location_id.eq.${job.location_id}`);
+
+  const { data } = await supabase
     .from("jobs")
     .select(SELECT)
     .eq("status", "published")
     .neq("id", job.id)
+    .or(filters.join(","))
     .order("created_at", { ascending: false })
-    .limit(3);
+    .limit(6);
 
-  if (job.category_id) {
-    const { data } = await base.eq("category_id", job.category_id);
-    if (data?.length) return data as unknown as Job[];
-  }
-  if (job.location_id) {
-    const { data } = await supabase
-      .from("jobs")
-      .select(SELECT)
-      .eq("status", "published")
-      .neq("id", job.id)
-      .eq("location_id", job.location_id)
-      .order("created_at", { ascending: false })
-      .limit(3);
-    if (data?.length) return data as unknown as Job[];
-  }
-  return [];
+  if (!data?.length) return [];
+
+  // Prefer category matches; fill remaining slots with location matches.
+  const byCategory = (data as unknown as Job[]).filter(
+    (j) => j.category_id === job.category_id
+  );
+  if (byCategory.length >= 3) return byCategory.slice(0, 3);
+
+  const byLocation = (data as unknown as Job[]).filter(
+    (j) => j.category_id !== job.category_id
+  );
+  return [...byCategory, ...byLocation].slice(0, 3);
 }
 
 export default async function JobDetailPage({

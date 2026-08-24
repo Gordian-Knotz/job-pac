@@ -61,17 +61,20 @@ export function PublicNav({ postHref, dashboardHref, signedIn }: NavLinks) {
             <span className="eyebrow hidden sm:block">Jobs</span>
           </Link>
 
+          {/* prefetch off: this bar is sticky and above the fold on every
+              page, so without it these four links fire an RSC-prefetch edge
+              request on every single pageview before a visitor does anything. */}
           <div className="ml-auto hidden items-center gap-4 lg:flex">
-            <Link href="/jobs" className="text-sm text-muted transition-colors duration-150 ease-out hover:text-ink">
+            <Link href="/jobs" prefetch={false} className="text-sm text-muted transition-colors duration-150 ease-out hover:text-ink">
               {nav.browse}
             </Link>
-            <Link href="/" className="text-sm text-muted transition-colors duration-150 ease-out hover:text-ink">
+            <Link href="/for-talent" prefetch={false} className="text-sm text-muted transition-colors duration-150 ease-out hover:text-ink">
               {nav.forTalent}
             </Link>
-            <Link href="/" className="text-sm text-muted transition-colors duration-150 ease-out hover:text-ink">
+            <Link href="/employers" prefetch={false} className="text-sm text-muted transition-colors duration-150 ease-out hover:text-ink">
               {nav.forEmployers}
             </Link>
-            <Link href="/" className="text-sm text-muted transition-colors duration-150 ease-out hover:text-ink">
+            <Link href="/about" prefetch={false} className="text-sm text-muted transition-colors duration-150 ease-out hover:text-ink">
               {nav.about}
             </Link>
           </div>
@@ -148,16 +151,16 @@ export function PublicNav({ postHref, dashboardHref, signedIn }: NavLinks) {
 
               {/* Generous tap targets, per the brief. */}
               <nav className="mt-10 flex flex-col gap-2">
-                <Link href="/jobs" className="clay px-5 py-4 text-lg text-ink">
+                <Link href="/jobs" prefetch={false} className="clay px-5 py-4 text-lg text-ink">
                   {nav.browse}
                 </Link>
-                <Link href="/for-talent" className="clay px-5 py-4 text-lg text-ink">
+                <Link href="/for-talent" prefetch={false} className="clay px-5 py-4 text-lg text-ink">
                   {nav.forTalent}
                 </Link>
-                <Link href="/employers" className="clay px-5 py-4 text-lg text-ink">
+                <Link href="/employers" prefetch={false} className="clay px-5 py-4 text-lg text-ink">
                   {nav.forEmployers}
                 </Link>
-                <Link href="/about" className="clay px-5 py-4 text-lg text-ink">
+                <Link href="/about" prefetch={false} className="clay px-5 py-4 text-lg text-ink">
                   {nav.about}
                 </Link>
                 {signedIn && dashboardHref ? (

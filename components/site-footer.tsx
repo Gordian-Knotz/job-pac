@@ -47,24 +47,27 @@ export function SiteFooter() {
           <p className="text-muted">{footer.rights(new Date().getFullYear())}</p>
         </div>
 
+        {/* prefetch off on all six: this footer renders on every page, so
+            without it every single pageview fires six extra RSC-prefetch
+            edge requests for links most visitors never click. */}
         <nav className="flex flex-wrap items-center gap-x-4 gap-y-0 md:ml-auto">
-          <Link href="/jobs" className={FOOTER_LINK}>
+          <Link href="/jobs" className={FOOTER_LINK} prefetch={false}>
             {nav.browse}
           </Link>
-          <Link href="/for-talent" className={FOOTER_LINK}>
+          <Link href="/for-talent" className={FOOTER_LINK} prefetch={false}>
             {nav.forTalent}
           </Link>
-          <Link href="/employers" className={FOOTER_LINK}>
+          <Link href="/employers" className={FOOTER_LINK} prefetch={false}>
             {nav.forEmployers}
           </Link>
-          <Link href="/about" className={FOOTER_LINK}>
+          <Link href="/about" className={FOOTER_LINK} prefetch={false}>
             {nav.about}
           </Link>
           {/* Required to be reachable from every page — we hold CVs. */}
-          <Link href="/privacy" className={FOOTER_LINK}>
+          <Link href="/privacy" className={FOOTER_LINK} prefetch={false}>
             Data &amp; cookies
           </Link>
-          <Link href="/terms" className={FOOTER_LINK}>
+          <Link href="/terms" className={FOOTER_LINK} prefetch={false}>
             Terms
           </Link>
         </nav>

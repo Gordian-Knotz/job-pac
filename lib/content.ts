@@ -45,9 +45,9 @@ export const home = {
   // statement and a label over the top of it only diluted it.
   // Three lines, centred, set large. Split so one fragment can carry the accent
   // colour — at display size #E8532E clears AA on both surfaces.
-  headlineLead: "African talent.",
-  headlineMid: "Africa's future.",
-  headlineTail: "Placed right.",
+  headlineLead: "Premium African Talent.",
+  headlineMid: "Pan-African",
+  headlineTail: "Careers.",
   sub: "PAC Africa connects skilled professionals across the continent with employers ready to invest in African talent from Nairobi to Lagos, Accra to Cape Town and beyond.",
   searchWhat: "Job title, skill, or keyword",
   searchWhere: "Anywhere in Africa",

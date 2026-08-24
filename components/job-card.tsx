@@ -54,10 +54,15 @@ export function JobCard({
                    group-hover:opacity-100 group-focus-within:opacity-100"
       />
 
+      {/* prefetch off: this link scrolls into view on every listing page for
+          every visitor, and the RSC prefetch fetch is a real edge request —
+          with a dozen cards per page that adds up fast for a link people
+          mostly never click. */}
       <Link
         href={`/jobs/${job.slug}`}
         className="absolute inset-0 z-0"
         aria-label={job.title}
+        prefetch={false}
       >
         <span className="sr-only">{job.title}</span>
       </Link>

@@ -19,6 +19,8 @@ export const metadata: Metadata = {
     "Browse vetted roles from employers across Kenya and East Africa, or post a job and reach candidates PAC Africa has already screened.",
 };
 
+export const revalidate = 120;
+
 /**
  * Code-split out of the homepage's critical bundle. cobe's dot-map
  * generation is measured (Lighthouse, 4x CPU throttle) as multiple seconds
@@ -66,7 +68,7 @@ export default async function HomePage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [{ data: jobs }, { data: locations }, roleRow, savedRow, { data: popular }] =
+  const [{ data: jobs }, roleRow, savedRow, { data: popular }] =
     await Promise.all([
       supabase
         .from("jobs")
@@ -74,19 +76,16 @@ export default async function HomePage() {
         .eq("status", "published")
         .order("created_at", { ascending: false })
         .limit(FEED_SIZE),
-      supabase.from("job_locations").select("id, name").order("name").limit(200),
       user
         ? supabase.from("profiles").select("role").eq("id", user.id).single()
         : Promise.resolve({ data: null }),
       user ? supabase.from("saved_jobs").select("job_id") : Promise.resolve({ data: null }),
-      // Categories that actually have live roles behind them — a chip that
-      // leads to an empty result set is worse than no chip.
-      supabase
-        .from("jobs")
-        .select("category_id, category:job_categories(id, name)")
-        .eq("status", "published")
-        .not("category_id", "is", null)
-        .limit(200),
+      // Top 6 categories with live roles — GROUP BY in the DB, not in JS.
+      // Previously fetched 200 job rows and counted in JS; this fetches 6 rows.
+      // Cast to any: top_job_categories is defined in migration 027 but not
+      // yet in the generated types/database.ts — the RPC exists in the DB.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (supabase as any).rpc("top_job_categories", { limit_n: 6 }),
     ]);
 
   const role = (roleRow?.data?.role as UserRole | undefined) ?? null;
@@ -95,19 +94,9 @@ export default async function HomePage() {
     ((savedRow?.data as { job_id: string }[] | null) ?? []).map((s) => s.job_id)
   );
 
-  // Count live roles per category, keep the busiest six.
-  const counts = new Map<string, { id: string; name: string; n: number }>();
-  for (const row of (popular as unknown as { category: { id: string; name: string } | null }[]) ??
-    []) {
-    if (!row.category) continue;
-    const seen = counts.get(row.category.id);
-    counts.set(row.category.id, {
-      id: row.category.id,
-      name: row.category.name,
-      n: (seen?.n ?? 0) + 1,
-    });
-  }
-  const topCategories = [...counts.values()].sort((a, b) => b.n - a.n).slice(0, 6);
+  const topCategories = (
+    (popular?.data as { id: string; name: string }[] | null) ?? []
+  );
 
   // The seeker CTA's twin of postJobHref: signup for a stranger, the listings
   // for someone already signed in. `next` is a fixed literal, so there is no
@@ -123,7 +112,7 @@ export default async function HomePage() {
       <section className="relative overflow-hidden">
         <Meteors className="opacity-70" />
 
-        <div className="relative z-[1] mx-auto max-w-6xl px-6 pt-20 pb-4 md:pt-28">
+        <div className="relative z-[1] mx-auto max-w-6xl px-6 pt-24 pb-4 md:pt-32">
           <div className="grid items-center gap-10 lg:grid-cols-[1fr_1.15fr] lg:gap-12">
             {/* COPY */}
             <div className="text-center lg:text-left">
@@ -242,7 +231,7 @@ export default async function HomePage() {
             </div>
           </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {rows.map((row, i) => (
               <Reveal key={row.id} delay={Math.min(i * 0.04, 0.24)}>
                 <JobCard
