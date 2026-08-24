@@ -5,8 +5,6 @@ import { PageHead } from "@/components/dashboard-shell";
 import { EmptyState, Flash, StatCard } from "@/components/dashboard-ui";
 import { ApplicationStatusBadge } from "@/components/status-badge";
 import { timeAgo, displayApplicant } from "@/lib/utils";
-import { isLegacyCvUrl } from "@/lib/cv";
-import { completeness, profileChecklist } from "@/lib/profile";
 import { dash } from "@/lib/content";
 import { claimApplications } from "./actions";
 import type { ApplicationStatus } from "@/types/database";
@@ -57,11 +55,6 @@ export default async function SeekerOverview({
 
   const claimableCount = (claimable as number) ?? 0;
   const feed = (events ?? []) as unknown as EventRow[];
-
-  // Checked without signing a URL: a legacy cv_url is not usable, anything else
-  // non-null is. Cheap enough for a page that only needs the count.
-  const hasUsableCv = Boolean(profile.cv_url) && !isLegacyCvUrl(profile.cv_url);
-  const progress = completeness(profileChecklist(profile, hasUsableCv));
 
   return (
     <div>
@@ -137,40 +130,6 @@ export default async function SeekerOverview({
           href="/dashboard/seeker/saved"
         />
       </div>
-
-      {/* An incomplete profile costs the applicant every time they apply, so it
-          is worth surfacing here rather than only on the profile page. */}
-      {progress.percent < 100 && (
-        <div className="clay mt-8 p-5">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="min-w-0">
-              <p className="text-sm font-500 text-ink">
-                Your profile is {progress.percent}% complete
-              </p>
-              <p className="mt-0.5 text-xs text-muted">
-                A fuller profile fills in your applications for you — and is what
-                employers see first.
-              </p>
-            </div>
-            <Link href="/dashboard/seeker/profile" className="btn-secondary shrink-0">
-              Finish profile
-            </Link>
-          </div>
-          <div
-            className="clay-inset mt-4 h-1.5 overflow-hidden rounded-pill"
-            role="progressbar"
-            aria-valuenow={progress.percent}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-label="Profile completeness"
-          >
-            <div
-              className="h-full rounded-pill bg-accent transition-[width] duration-500 ease-out"
-              style={{ width: `${progress.percent}%` }}
-            />
-          </div>
-        </div>
-      )}
 
       {/* ACTIVITY ------------------------------------------------------- */}
       <div className="mb-4 mt-10 flex items-baseline justify-between gap-4">
