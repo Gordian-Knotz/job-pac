@@ -466,6 +466,8 @@ export const dash = {
       "Applications are filed against this address, and it is how we match your earlier history. Contact us to change it.",
     role: "Account type",
     joined: "Member since",
+    appearanceTitle: "Appearance",
+    appearanceHint: "Light, dark, or match your device.",
     passwordTitle: "Password",
     passwordHint: "At least 10 characters. Longer beats complicated.",
     passwordLabel: "New password",
