@@ -24,7 +24,7 @@ export default async function SavedJobs() {
     .from("saved_jobs")
     .select(
       `id, created_at,
-       job:jobs(*, category:job_categories(*), location:job_locations(*))`
+       job:jobs(*, category:job_categories!category_id(*), location:job_locations(*))`
     )
     .order("created_at", { ascending: false })
     .limit(100);

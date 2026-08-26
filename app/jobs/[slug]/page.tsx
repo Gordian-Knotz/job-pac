@@ -18,7 +18,7 @@ export const revalidate = 300;
 
 const SELECT = `
   *,
-  category:job_categories(*),
+  category:job_categories!category_id(*),
   location:job_locations(*)
 `;
 

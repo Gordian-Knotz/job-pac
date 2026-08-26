@@ -77,7 +77,7 @@ export default async function SeekerOverview({
     hasSkills
       ? supabase
           .from("jobs")
-          .select("*, category:job_categories(*), location:job_locations(*)")
+          .select("*, category:job_categories!category_id(*), location:job_locations(*)")
           .eq("status", "published")
           .not("required_skills", "is", null)
           .order("created_at", { ascending: false })

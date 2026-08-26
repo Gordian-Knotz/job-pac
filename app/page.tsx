@@ -45,7 +45,7 @@ const FEED_SIZE = 10;
 // fetching and choosing not to render.
 const SELECT = `
   *,
-  category:job_categories(*),
+  category:job_categories!category_id(*),
   location:job_locations(*)
 `;
 

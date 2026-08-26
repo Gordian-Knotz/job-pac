@@ -72,7 +72,7 @@ export default async function AdminSeekers({
   let query = supabase
     .from("profiles")
     .select(
-      "id, full_name, email, phone, headline, skills, address, avatar_url, cv_url, suspended_at, created_at",
+      "id, full_name, email, phone, headline, skills, address, avatar_url, cv_url, suspended_at, created_at, years_experience, education_level, industry_category_id",
       { count: "exact" }
     )
     .eq("role", "seeker")

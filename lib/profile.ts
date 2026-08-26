@@ -47,6 +47,21 @@ export function profileChecklist(profile: Profile, hasCv: boolean): ProfileCheck
       done: Boolean(profile.address?.trim()),
       why: "Employers use it to judge the commute.",
     },
+    {
+      label: "Years of experience",
+      done: profile.years_experience !== null,
+      why: "Lets employers gauge seniority at a glance.",
+    },
+    {
+      label: "Education level",
+      done: profile.education_level !== null,
+      why: "Some roles filter by minimum education.",
+    },
+    {
+      label: "Industry",
+      done: profile.industry_category_id !== null,
+      why: "Helps us point you at roles in your field.",
+    },
   ];
 }
 
