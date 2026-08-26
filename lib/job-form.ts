@@ -1,7 +1,16 @@
 import { slugify, randomSuffix } from "@/lib/utils";
 import { sanitizeJobHtml } from "@/lib/sanitize";
 import { isBlankHtml, toRichHtml } from "@/lib/rich-text";
-import type { EmploymentLevel, JobStatus, JobType } from "@/types/database";
+import type { EducationLevel, EmploymentLevel, JobStatus, JobType } from "@/types/database";
+
+const EDUCATION_LEVELS: EducationLevel[] = [
+  "high_school",
+  "certificate",
+  "diploma",
+  "bachelors",
+  "masters",
+  "doctorate",
+];
 
 export const UNIQUE_VIOLATION = "23505";
 
@@ -70,6 +79,13 @@ export type JobFields = {
   requirements: string | null;
   /** Replaced `benefits` in migration 015 — same slot, better prompt. */
   qualifications: string | null;
+  /** Migration 031. Same comma-split shape as profiles.skills. */
+  required_skills: string[] | null;
+  // Requirement fields the compute_meets_requirements() trigger flags
+  // against (migration 033). All optional.
+  required_years_experience: number | null;
+  required_education_level: EducationLevel | null;
+  required_industry_category_id: string | null;
   /** Optional. Null on both means the listing says nothing about pay. */
   salary_min: number | null;
   salary_max: number | null;
@@ -110,11 +126,33 @@ export function parseJobFields(formData: FormData): JobFields | null {
   // range, and storing it backwards would break the salary sort silently.
   const flip = salaryMin !== null && salaryMax !== null && salaryMin > salaryMax;
 
+  // Same comma-split-trim-filter shape updateProfile (app/dashboard/seeker/actions.ts)
+  // already uses for profiles.skills.
+  const rawSkills = formData.get("required_skills");
+  const requiredSkills =
+    typeof rawSkills === "string" && rawSkills.trim() !== ""
+      ? rawSkills
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean)
+          .slice(0, 40)
+      : null;
+
+  const educationLevelRaw = str(formData, "required_education_level");
+  const requiredEducationLevel =
+    educationLevelRaw && (EDUCATION_LEVELS as string[]).includes(educationLevelRaw)
+      ? (educationLevelRaw as EducationLevel)
+      : null;
+
   return {
     title,
     description,
     requirements: richField(formData, "requirements"),
     qualifications: richField(formData, "qualifications"),
+    required_skills: requiredSkills,
+    required_years_experience: int(formData, "required_years_experience"),
+    required_education_level: requiredEducationLevel,
+    required_industry_category_id: str(formData, "required_industry_category_id"),
     salary_min: flip ? salaryMax : salaryMin,
     salary_max: flip ? salaryMin : salaryMax,
     category_id: str(formData, "category_id"),

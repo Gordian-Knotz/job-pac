@@ -5,6 +5,7 @@ import { useFormStatus } from "react-dom";
 import Link from "next/link";
 import { CV_ACCEPT } from "@/lib/cv";
 import { gate } from "@/lib/content";
+import { ConsentClause } from "@/components/consent-clause";
 import { submitApplication } from "@/app/jobs/actions";
 import type { UserRole } from "@/types/database";
 
@@ -57,6 +58,7 @@ export function ApplyForm({
   // whole point of having an account is not re-uploading the same document.
   const hasProfileCv = Boolean(viewer?.cvUrl && !viewer.cvUrl.startsWith("http"));
   const [reuseCv, setReuseCv] = useState(hasProfileCv);
+  const [consented, setConsented] = useState(false);
 
   // ── Sent ─────────────────────────────────────────────────────────────
   if (justApplied) {
@@ -195,6 +197,51 @@ export function ApplyForm({
         />
       </div>
 
+      <div className="grid grid-cols-3 gap-2">
+        <div>
+          <label htmlFor="apply-years-experience" className="sr-only">
+            Years of experience
+          </label>
+          <input
+            id="apply-years-experience"
+            name="years_experience"
+            type="number"
+            min={0}
+            required
+            placeholder="Yrs experience"
+            className="field"
+          />
+        </div>
+        <div>
+          <label htmlFor="apply-expected-salary" className="sr-only">
+            Expected salary
+          </label>
+          <input
+            id="apply-expected-salary"
+            name="expected_salary"
+            type="number"
+            min={0}
+            required
+            placeholder="Expected salary"
+            className="field"
+          />
+        </div>
+        <div>
+          <label htmlFor="apply-current-salary" className="sr-only">
+            Current / last salary
+          </label>
+          <input
+            id="apply-current-salary"
+            name="current_salary"
+            type="number"
+            min={0}
+            required
+            placeholder="Current/last salary"
+            className="field"
+          />
+        </div>
+      </div>
+
       <div>
         <label htmlFor="apply-cover" className="sr-only">
           Cover letter
@@ -258,7 +305,9 @@ export function ApplyForm({
         </div>
       )}
 
-      <SubmitButton />
+      <ConsentClause checked={consented} onChange={setConsented} />
+
+      <SubmitButton disabled={!consented} />
 
       {errorMessage && (
         <p role="alert" className="text-xs text-red-600 dark:text-red-400">
@@ -279,10 +328,10 @@ export function ApplyForm({
   );
 }
 
-function SubmitButton() {
+function SubmitButton({ disabled = false }: { disabled?: boolean }) {
   const { pending } = useFormStatus();
   return (
-    <button type="submit" disabled={pending} className="btn-accent w-full">
+    <button type="submit" disabled={pending || disabled} className="btn-accent w-full">
       {pending ? "Sending…" : "Apply now"}
     </button>
   );

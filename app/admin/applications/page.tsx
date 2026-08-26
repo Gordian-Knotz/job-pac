@@ -10,6 +10,7 @@ import { CvLink } from "@/components/cv-link";
 import { Drawer } from "@/components/drawer";
 import {
   ApplicationDetailBody,
+  type ApplicantProfileDetail,
   type ApplicationDetail,
   type ApplicationEventItem,
 } from "@/components/application-detail";
@@ -17,7 +18,7 @@ import { signApplicationCv } from "@/lib/cv-actions";
 import { setApplicationStatusAdmin } from "@/app/admin/actions";
 import { StatusSelect, NoteForm } from "@/components/application-status-form";
 import { Toast } from "@/components/toast";
-import { ReviewStatusBadge } from "@/components/status-badge";
+import { RequirementsBadge, ReviewStatusBadge } from "@/components/status-badge";
 import { ReviewPanel } from "@/components/review-panel";
 import { applicantCards } from "@/lib/applicant-cards";
 import { reviewSummaries, reviewSummaryFor } from "@/lib/application-reviews";
@@ -85,6 +86,7 @@ interface Row {
   wp_job_title: string | null;
   applied_at: string;
   applicant_id: string | null;
+  meets_requirements: boolean | null;
   job: { title: string; slug: string } | null;
 }
 
@@ -101,6 +103,8 @@ interface Params {
   claimed?: string;
   /** Review filter (migration 029): unreviewed | seen | final. */
   review?: string;
+  /** meets_requirements filter (migration 033): "1" | "0". */
+  meets?: string;
   page?: string;
   /** Open drawer. */
   id?: string;
@@ -141,7 +145,7 @@ export default async function AdminApplicationsPage({
     .select(
       `id, applicant_name, applicant_email, applicant_phone, cover_letter, cv_url,
        status, employer_note, wp_post_id, wp_job_title, applied_at, applicant_id,
-       job:jobs(title, slug)`,
+       meets_requirements, job:jobs(title, slug)`,
       { count: "exact" }
     )
     .order("applied_at", { ascending: false });
@@ -179,6 +183,11 @@ export default async function AdminApplicationsPage({
   // unclaimed, so this is how you find who has come back and reconnected.
   if (params.claimed === "yes") query = query.not("applicant_id", "is", null);
   if (params.claimed === "no") query = query.is("applicant_id", null);
+
+  // Flag, not filter-out: sorted via the order() below rather than excluded,
+  // per the "never hide, only flag" decision (migration 033).
+  if (params.meets === "1") query = query.eq("meets_requirements", true);
+  if (params.meets === "0") query = query.eq("meets_requirements", false);
 
   if (params.review === "unreviewed" || params.review === "seen" || params.review === "final") {
     const { data: reviewRows } = await supabase
@@ -258,14 +267,15 @@ export default async function AdminApplicationsPage({
   let events: ApplicationEventItem[] = [];
   let drawerCvStatus: "none" | "legacy" | "ready" = "none";
   let drawerCard: { headline: string | null; avatarSrc: string | null } | undefined;
+  let profileDetail: ApplicantProfileDetail | null = null;
 
   if (openId) {
-    const [{ data: one }, { data: log }, cards] = await Promise.all([
+    const [{ data: one }, { data: log }, cards, { data: profile }] = await Promise.all([
       supabase
         .from("applications")
         .select(
           `id, applicant_name, applicant_email, applicant_phone, cover_letter, cv_url,
-           status, employer_note, applied_at, wp_post_id, wp_job_title,
+           status, employer_note, applied_at, wp_post_id, wp_job_title, meets_requirements,
            job:jobs(id, title, slug)`
         )
         .eq("id", openId)
@@ -276,6 +286,7 @@ export default async function AdminApplicationsPage({
         .eq("application_id", openId)
         .order("created_at", { ascending: false }),
       applicantCards(supabase, [openId]),
+      supabase.rpc("applicant_profile_detail", { p_application_id: openId }),
     ]);
 
     if (one) {
@@ -289,6 +300,7 @@ export default async function AdminApplicationsPage({
       };
       events = (log ?? []) as unknown as ApplicationEventItem[];
       drawerCvStatus = cvStatus(row.cv_url);
+      profileDetail = profile?.[0] ?? null;
     }
   }
 
@@ -451,6 +463,25 @@ export default async function AdminApplicationsPage({
         />
         <span className="w-px h-5 bg-line mx-1" aria-hidden />
         <FilterChip
+          label="Below requirements"
+          active={params.meets === "0"}
+          to={href(params, {
+            meets: params.meets === "0" ? null : "0",
+            page: null,
+            id: null,
+          })}
+        />
+        <FilterChip
+          label="Meets requirements"
+          active={params.meets === "1"}
+          to={href(params, {
+            meets: params.meets === "1" ? null : "1",
+            page: null,
+            id: null,
+          })}
+        />
+        <span className="w-px h-5 bg-line mx-1" aria-hidden />
+        <FilterChip
           label="Not reviewed"
           active={params.review === "unreviewed"}
           to={href(params, {
@@ -598,6 +629,7 @@ export default async function AdminApplicationsPage({
                         />
                       );
                     })()}
+                    <RequirementsBadge meets={row.meets_requirements} />
                     <StatusSelect
                       applicationId={row.id}
                       current={row.status}
@@ -641,6 +673,7 @@ export default async function AdminApplicationsPage({
             avatarSrc={drawerCard?.avatarSrc}
             showContact
             showNote
+            profileDetail={profileDetail}
             statusControl={
               <StatusSelect
                 applicationId={detail.id}

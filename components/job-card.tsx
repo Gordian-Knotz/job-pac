@@ -28,11 +28,18 @@ export function JobCard({
   saved = false,
   returnTo = "/jobs",
   showSave = true,
+  matchPercent = null,
 }: {
   job: Job;
   saved?: boolean;
   returnTo?: string;
   showSave?: boolean;
+  /**
+   * Skill-overlap match for the signed-in seeker viewing this card
+   * (lib/match.ts). Null means either the viewer has no skills on file, or
+   * the job has no required_skills to grade against — never shown as 0%.
+   */
+  matchPercent?: number | null;
 }) {
   const location = job.is_remote
     ? "Remote"
@@ -72,12 +79,19 @@ export function JobCard({
           {job.category?.name ?? "General"}
         </span>
 
-        <h3
-          className="mt-1.5 truncate font-display text-lg font-600 tracking-tight text-ink
-                     transition-colors duration-200 ease-out group-hover:text-accent-text"
-        >
-          {job.title}
-        </h3>
+        <div className="mt-1.5 flex items-center gap-2">
+          <h3
+            className="truncate font-display text-lg font-600 tracking-tight text-ink
+                       transition-colors duration-200 ease-out group-hover:text-accent-text"
+          >
+            {job.title}
+          </h3>
+          {matchPercent !== null && (
+            <span className="clay-raised shrink-0 rounded-pill px-2 py-0.5 font-mono text-[10px] font-500 text-accent-text">
+              {matchPercent}% match
+            </span>
+          )}
+        </div>
 
         <p className="mt-2 flex items-center gap-1.5 text-sm text-muted">
           <MapPin className="h-3.5 w-3.5 shrink-0" strokeWidth={2} aria-hidden />

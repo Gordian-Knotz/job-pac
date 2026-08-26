@@ -54,15 +54,13 @@ export function SiteFooter() {
           <Link href="/jobs" className={FOOTER_LINK} prefetch={false}>
             {nav.browse}
           </Link>
-          {/* for-talent/employers/about aren't ready tone-wise yet — lead
-              home instead of their real routes until they are. */}
-          <Link href="/" className={FOOTER_LINK} prefetch={false}>
+          <Link href="/for-talent" className={FOOTER_LINK} prefetch={false}>
             {nav.forTalent}
           </Link>
-          <Link href="/" className={FOOTER_LINK} prefetch={false}>
+          <Link href="/employers" className={FOOTER_LINK} prefetch={false}>
             {nav.forEmployers}
           </Link>
-          <Link href="/" className={FOOTER_LINK} prefetch={false}>
+          <Link href="/about" className={FOOTER_LINK} prefetch={false}>
             {nav.about}
           </Link>
           {/* Required to be reachable from every page — we hold CVs. */}

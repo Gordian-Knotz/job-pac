@@ -26,7 +26,8 @@ export type NavIcon =
   | "shield"
   | "list"
   | "users"
-  | "userCheck";
+  | "userCheck"
+  | "bell";
 
 export type NavItem = {
   href: string;
@@ -44,6 +45,7 @@ const seeker: NavItem[] = [
   { href: "/dashboard/seeker/saved", label: "Saved", icon: "bookmark", primary: true },
   { href: "/dashboard/seeker/profile", label: "Profile", icon: "user", primary: true },
   { href: "/jobs", label: "Browse jobs", icon: "search", external: true },
+  { href: "/dashboard/seeker/alerts", label: "Job Alerts", icon: "bell" },
   { href: "/dashboard/seeker/settings", label: "Settings", icon: "settings" },
 ];
 
@@ -63,6 +65,7 @@ const admin: NavItem[] = [
   { href: "/admin/applications", label: "Applications", icon: "inbox", primary: true },
   { href: "/admin/employers", label: "Employers", icon: "building" },
   { href: "/admin/seekers", label: "Seekers", icon: "users" },
+  { href: "/admin/candidates", label: "Find Candidates", icon: "userCheck" },
   { href: "/admin/settings", label: "Settings", icon: "settings" },
 ];
 

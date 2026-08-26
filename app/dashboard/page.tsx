@@ -7,5 +7,5 @@ import { requireUser, dashboardPathFor } from "@/lib/auth";
  */
 export default async function DashboardIndex() {
   const { profile } = await requireUser();
-  redirect(dashboardPathFor(profile.role));
+  redirect(profile.dashboard_landing || dashboardPathFor(profile.role));
 }

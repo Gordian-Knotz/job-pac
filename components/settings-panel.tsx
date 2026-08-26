@@ -3,8 +3,12 @@ import { Download, Shield, Trash2 } from "lucide-react";
 import { Flash } from "@/components/dashboard-ui";
 import { AppearancePicker } from "@/components/appearance-picker";
 import { dash, site } from "@/lib/content";
-import { roleLabel } from "@/lib/dashboard-nav";
-import { changePassword, updateNotificationPrefs } from "@/app/dashboard/settings-actions";
+import { navFor, roleLabel } from "@/lib/dashboard-nav";
+import {
+  changePassword,
+  updateDashboardPrefs,
+  updateNotificationPrefs,
+} from "@/app/dashboard/settings-actions";
 import type { Profile } from "@/types/database";
 
 /**
@@ -41,7 +45,9 @@ export function SettingsPanel({
             ? dash.settings.passwordChanged
             : updated === "notifications"
               ? dash.settings.notificationsChanged
-              : null
+              : updated === "preferences"
+                ? dash.settings.personalizationChanged
+                : null
         }
       />
 
@@ -79,6 +85,72 @@ export function SettingsPanel({
         </h2>
         <p className="mt-1 text-sm text-muted">{dash.settings.appearanceHint}</p>
         <AppearancePicker className="mt-4" />
+      </section>
+
+      {/* PERSONALIZATION ------------------------------------------------ */}
+      <section className="clay p-6">
+        <h2 className="font-display text-lg font-600 text-ink">
+          {dash.settings.personalizationTitle}
+        </h2>
+        <p className="mt-1 text-sm text-muted">{dash.settings.personalizationHint}</p>
+        <form action={updateDashboardPrefs} className="mt-4 space-y-4">
+          <div>
+            <label htmlFor="dashboard_landing" className="eyebrow mb-2 block">
+              {dash.settings.landingLabel}
+            </label>
+            <select
+              id="dashboard_landing"
+              name="dashboard_landing"
+              defaultValue={profile.dashboard_landing ?? ""}
+              className="field"
+            >
+              <option value="">{dash.settings.landingDefault}</option>
+              {navFor(profile.role)
+                .filter((item) => !item.external)
+                .map((item) => (
+                  <option key={item.href} value={item.href}>
+                    {item.label}
+                  </option>
+                ))}
+            </select>
+            <p className="mt-1.5 text-xs text-muted">{dash.settings.landingHint}</p>
+          </div>
+
+          <div>
+            <span className="eyebrow mb-2 block">{dash.settings.densityLabel}</span>
+            <div className="flex gap-2">
+              <label className="flex-1">
+                <input
+                  type="radio"
+                  name="dashboard_density"
+                  value="comfortable"
+                  defaultChecked={profile.dashboard_density !== "compact"}
+                  className="peer sr-only"
+                />
+                <span className="press block cursor-pointer rounded-card px-3 py-2.5 text-center text-sm text-muted ring-1 ring-inset ring-[var(--clay-border)] peer-checked:bg-accent/10 peer-checked:text-accent-text peer-checked:ring-accent/40">
+                  {dash.settings.densityComfortable}
+                </span>
+              </label>
+              <label className="flex-1">
+                <input
+                  type="radio"
+                  name="dashboard_density"
+                  value="compact"
+                  defaultChecked={profile.dashboard_density === "compact"}
+                  className="peer sr-only"
+                />
+                <span className="press block cursor-pointer rounded-card px-3 py-2.5 text-center text-sm text-muted ring-1 ring-inset ring-[var(--clay-border)] peer-checked:bg-accent/10 peer-checked:text-accent-text peer-checked:ring-accent/40">
+                  {dash.settings.densityCompact}
+                </span>
+              </label>
+            </div>
+            <p className="mt-1.5 text-xs text-muted">{dash.settings.densityHint}</p>
+          </div>
+
+          <button type="submit" className="btn-primary">
+            {dash.common.save}
+          </button>
+        </form>
       </section>
 
       {/* NOTIFICATIONS ------------------------------------------------ */}

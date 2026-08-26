@@ -14,6 +14,7 @@ export default async function DashboardLayout({
     <DashboardShell
       role={profile.role}
       name={displayApplicant(profile.full_name, profile.email)}
+      density={profile.dashboard_density}
     >
       {profile.role === "seeker" && <ProfileNudge profile={profile} />}
       {children}

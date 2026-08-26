@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  Bell,
   Bookmark,
   Briefcase,
   Building2,
@@ -58,6 +59,7 @@ const ICONS: Record<NavIcon, typeof Gauge> = {
   list: List,
   users: Users,
   userCheck: UserCheck,
+  bell: Bell,
 };
 
 const STORE_KEY = "pac.dash.collapsed";

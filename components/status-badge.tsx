@@ -77,3 +77,17 @@ export function ReviewStatusBadge({
   }
   return <Badge label="Not reviewed" className="bg-surface-raised text-faint" />;
 }
+
+/**
+ * Flags (never hides or auto-rejects) an application against its job's
+ * optional requirement fields (migration 033). `null` means the job set no
+ * requirements — nothing to judge, so nothing renders.
+ */
+export function RequirementsBadge({ meets }: { meets: boolean | null }) {
+  if (meets === null) return null;
+  return meets ? (
+    <Badge label="Meets requirements" className="bg-emerald-500/12 text-emerald-700 dark:text-emerald-400" />
+  ) : (
+    <Badge label="Below requirements" className="bg-amber-500/12 text-amber-700 dark:text-amber-400" />
+  );
+}

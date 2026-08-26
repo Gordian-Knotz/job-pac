@@ -17,6 +17,34 @@ import {
   looksLikeImage,
 } from "@/lib/avatar";
 import { normaliseLinkedIn } from "@/lib/profile";
+import type { EducationLevel, NoticePeriod } from "@/types/database";
+
+const EDUCATION_LEVELS: EducationLevel[] = [
+  "high_school",
+  "certificate",
+  "diploma",
+  "bachelors",
+  "masters",
+  "doctorate",
+];
+const NOTICE_PERIODS: NoticePeriod[] = [
+  "immediate",
+  "two_weeks",
+  "one_month",
+  "two_months",
+  "three_plus_months",
+];
+
+function intOrNull(key: string, formData: FormData): number | null {
+  const raw = formData.get(key);
+  if (typeof raw !== "string" || raw.trim() === "") return null;
+  const n = Number.parseInt(raw, 10);
+  return Number.isFinite(n) && n >= 0 ? n : null;
+}
+
+function enumOrNull<T extends string>(value: string | null, allowed: T[]): T | null {
+  return value && (allowed as string[]).includes(value) ? (value as T) : null;
+}
 
 /**
  * Attaches historical applications filed under this user's confirmed email.
@@ -66,6 +94,13 @@ export async function updateProfile(formData: FormData) {
       address: text("address"),
       linkedin_url: normaliseLinkedIn(text("linkedin_url")),
       skills,
+      // Hiring profile depth (migration 033). All optional.
+      years_experience: intOrNull("years_experience", formData),
+      education_level: enumOrNull(text("education_level"), EDUCATION_LEVELS),
+      industry_category_id: text("industry_category_id"),
+      expected_salary: intOrNull("expected_salary", formData),
+      current_salary: intOrNull("current_salary", formData),
+      notice_period: enumOrNull(text("notice_period"), NOTICE_PERIODS),
     })
     .eq("id", userId);
 

@@ -50,6 +50,16 @@ export function profileChecklist(profile: Profile, hasCv: boolean): ProfileCheck
   ];
 }
 
+/**
+ * The smaller "must-have" subset of profileChecklist that actually gates
+ * dashboard features (Saved, Alerts, Applications — see lib/auth.ts). Kept
+ * separate from the full 6-item checklist so ProfileNudge's percentage is
+ * unaffected: headline/skills/location stay optional nudges, never gates.
+ */
+export function isProfileGateComplete(profile: Profile, hasCv: boolean): boolean {
+  return Boolean(profile.full_name?.trim()) && Boolean(profile.phone?.trim()) && hasCv;
+}
+
 export function completeness(checks: ProfileCheck[]): {
   done: number;
   total: number;

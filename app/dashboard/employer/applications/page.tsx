@@ -8,6 +8,7 @@ import { Drawer } from "@/components/drawer";
 import { Toast } from "@/components/toast";
 import {
   ApplicationDetailBody,
+  type ApplicantProfileDetail,
   type ApplicationDetail,
   type ApplicationEventItem,
 } from "@/components/application-detail";
@@ -197,14 +198,15 @@ export default async function EmployerInbox({
   let events: ApplicationEventItem[] = [];
   let cvSt: "none" | "legacy" | "ready" = "none";
   let detailCard: { headline: string | null; avatarSrc: string | null } | undefined;
+  let profileDetail: ApplicantProfileDetail | null = null;
 
   if (openId) {
-    const [{ data: one }, { data: log }] = await Promise.all([
+    const [{ data: one }, { data: log }, { data: profile }] = await Promise.all([
       supabase
         .from("applications")
         .select(
           `id, applicant_name, applicant_email, applicant_phone, cover_letter, cv_url,
-           status, employer_note, applied_at, wp_post_id, wp_job_title,
+           status, employer_note, applied_at, wp_post_id, wp_job_title, meets_requirements,
            job:jobs(id, title, slug)`
         )
         .eq("id", openId)
@@ -214,6 +216,7 @@ export default async function EmployerInbox({
         .select("id, from_status, to_status, created_at, note")
         .eq("application_id", openId)
         .order("created_at", { ascending: false }),
+      supabase.rpc("applicant_profile_detail", { p_application_id: openId }),
     ]);
 
     if (one) {
@@ -223,6 +226,7 @@ export default async function EmployerInbox({
         ...row,
         applicant: detailCard ? { headline: detailCard.headline, avatar_url: null } : null,
       };
+      profileDetail = profile?.[0] ?? null;
       events = (log ?? []) as unknown as ApplicationEventItem[];
       cvSt = cvStatus(row.cv_url);
     }
@@ -485,6 +489,7 @@ export default async function EmployerInbox({
             avatarSrc={detailCard?.avatarSrc}
             showContact
             showNote
+            profileDetail={profileDetail}
             statusControl={
               <StatusSelect
                 applicationId={detail.id}

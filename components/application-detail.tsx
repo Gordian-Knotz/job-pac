@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { Mail, Phone } from "lucide-react";
 import { Avatar } from "@/components/dashboard-ui";
-import { ApplicationStatusBadge } from "@/components/status-badge";
+import { ApplicationStatusBadge, RequirementsBadge } from "@/components/status-badge";
 import { CvLink } from "@/components/cv-link";
-import { applicationStatusLabels, dash } from "@/lib/content";
+import { applicationStatusLabels, dash, educationLevelLabels, noticePeriodLabels } from "@/lib/content";
 import { displayApplicant } from "@/lib/utils";
 import type { CvLink as CvLinkValue } from "@/lib/cv";
-import type { ApplicationStatus } from "@/types/database";
+import type { ApplicationStatus, EducationLevel, NoticePeriod } from "@/types/database";
 
 type CvProp = { status: "none" | "legacy" | "ready"; onOpen?: () => Promise<CvLinkValue> };
 
@@ -36,6 +36,33 @@ export type ApplicationDetail = {
   wp_job_title: string | null;
   applicant: { headline: string | null; avatar_url: string | null } | null;
   job: { id: string; title: string; slug: string } | null;
+  /** null = job had no requirements set (migration 033). */
+  meets_requirements: boolean | null;
+};
+
+/** From the applicant_profile_detail() RPC (migration 033) — fetched once
+ * per opened drawer by the page, not eagerly on every list row. */
+export type ApplicantProfileDetail = {
+  years_experience: number | null;
+  education_level: EducationLevel | null;
+  industry_name: string | null;
+  expected_salary: number | null;
+  current_salary: number | null;
+  notice_period: NoticePeriod | null;
+  education: {
+    school_name: string;
+    field_of_study: string | null;
+    level: EducationLevel | null;
+    start_year: number | null;
+    end_year: number | null;
+  }[];
+  work_experience: {
+    company_name: string;
+    job_title: string;
+    start_date: string | null;
+    end_date: string | null;
+    description: string | null;
+  }[];
 };
 
 export type ApplicationEventItem = {
@@ -65,6 +92,7 @@ export function ApplicationDetailBody({
   statusControl,
   noteControl,
   reviewPanel,
+  profileDetail,
 }: {
   application: ApplicationDetail;
   events: ApplicationEventItem[];
@@ -80,6 +108,8 @@ export function ApplicationDetailBody({
   noteControl?: React.ReactNode;
   /** Employer/admin-only: the HR review log and prompt (migration 029). */
   reviewPanel?: React.ReactNode;
+  /** Employer/admin-only, fetched by the page via applicant_profile_detail(). */
+  profileDetail?: ApplicantProfileDetail | null;
 }) {
   const role = application.job?.title ?? application.wp_job_title;
 
@@ -151,11 +181,93 @@ export function ApplicationDetailBody({
         </div>
         <div>
           <dt className="eyebrow">{dash.drawer.statusLabel}</dt>
-          <dd className="mt-1.5">
+          <dd className="mt-1.5 flex flex-wrap items-center gap-2">
             {statusControl ?? <ApplicationStatusBadge status={application.status} />}
+            <RequirementsBadge meets={application.meets_requirements} />
           </dd>
         </div>
       </dl>
+
+      {/* HIRING PROFILE (migration 033) — employer/admin only; fetched by the
+          page via applicant_profile_detail(), scoped to who may see it. */}
+      {profileDetail && (
+        <div className="border-t border-line pt-5">
+          <p className="eyebrow mb-2">{dash.drawer.hiringProfile}</p>
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+            {profileDetail.years_experience !== null && (
+              <div>
+                <dt className="text-xs text-muted">{dash.seeker.yearsExperience}</dt>
+                <dd className="text-ink">{profileDetail.years_experience}</dd>
+              </div>
+            )}
+            {profileDetail.education_level && (
+              <div>
+                <dt className="text-xs text-muted">{dash.seeker.educationLevel}</dt>
+                <dd className="text-ink">{educationLevelLabels[profileDetail.education_level]}</dd>
+              </div>
+            )}
+            {profileDetail.industry_name && (
+              <div>
+                <dt className="text-xs text-muted">{dash.seeker.industry}</dt>
+                <dd className="text-ink">{profileDetail.industry_name}</dd>
+              </div>
+            )}
+            {profileDetail.notice_period && (
+              <div>
+                <dt className="text-xs text-muted">{dash.seeker.noticePeriod}</dt>
+                <dd className="text-ink">{noticePeriodLabels[profileDetail.notice_period]}</dd>
+              </div>
+            )}
+            {profileDetail.expected_salary !== null && (
+              <div>
+                <dt className="text-xs text-muted">{dash.seeker.expectedSalary}</dt>
+                <dd className="text-ink">{profileDetail.expected_salary.toLocaleString()}</dd>
+              </div>
+            )}
+            {profileDetail.current_salary !== null && (
+              <div>
+                <dt className="text-xs text-muted">{dash.seeker.currentSalary}</dt>
+                <dd className="text-ink">{profileDetail.current_salary.toLocaleString()}</dd>
+              </div>
+            )}
+          </dl>
+
+          {profileDetail.work_experience.length > 0 && (
+            <div className="mt-4">
+              <p className="text-xs text-muted">{dash.seeker.experienceTitle}</p>
+              <ul className="mt-1.5 space-y-2">
+                {profileDetail.work_experience.map((w, i) => (
+                  <li key={i} className="text-sm text-ink">
+                    <span className="font-500">{w.job_title}</span> · {w.company_name}
+                    <span className="ml-1.5 text-xs text-muted">
+                      ({[w.start_date, w.end_date ?? "Present"].filter(Boolean).join(" – ")})
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {profileDetail.education.length > 0 && (
+            <div className="mt-4">
+              <p className="text-xs text-muted">{dash.seeker.educationTitle}</p>
+              <ul className="mt-1.5 space-y-2">
+                {profileDetail.education.map((e, i) => (
+                  <li key={i} className="text-sm text-ink">
+                    <span className="font-500">{e.school_name}</span>
+                    {e.field_of_study ? ` · ${e.field_of_study}` : ""}
+                    {e.level && (
+                      <span className="ml-1.5 text-xs text-muted">
+                        ({educationLevelLabels[e.level]})
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* CV ----------------------------------------------------------- */}
       <div className="border-t border-line pt-5">

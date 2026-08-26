@@ -7,6 +7,7 @@ import { unstable_cache } from "next/cache";
 import { postJobHref } from "@/lib/auth";
 import { JobCard } from "@/components/job-card";
 import { Reveal } from "@/components/reveal";
+import { matchPercent } from "@/lib/match";
 import {
   browse,
   jobTypeLabels,
@@ -204,7 +205,7 @@ export default async function JobsPage({
       ? supabase.from("saved_jobs").select("job_id")
       : Promise.resolve({ data: null }),
     user
-      ? supabase.from("profiles").select("role").eq("id", user.id).single()
+      ? supabase.from("profiles").select("role, skills").eq("id", user.id).single()
       : Promise.resolve({ data: null }),
   ]);
 
@@ -215,6 +216,8 @@ export default async function JobsPage({
     ((savedRow?.data as { job_id: string }[] | null) ?? []).map((s) => s.job_id)
   );
   const role = (roleRow?.data?.role as UserRole | undefined) ?? null;
+  const seekerSkills =
+    role === "seeker" ? ((roleRow?.data as { skills: string[] | null })?.skills ?? null) : null;
 
   const active = [
     params.q && { label: `“${params.q}”`, clear: href(params, { q: null, page: null }) },
@@ -367,6 +370,7 @@ export default async function JobsPage({
                       saved={savedIds.has(row.id)}
                       showSave={Boolean(user)}
                       returnTo={href(params, {})}
+                      matchPercent={matchPercent(row.required_skills, seekerSkills)}
                     />
                   </Reveal>
                 ))}

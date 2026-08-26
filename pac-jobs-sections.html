@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PAC Africa Talent Portal — Africa's Talent, Placed With Purpose</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+
+  :root{
+    --navy: #0E2A32;
+    --navy-2: #16404A;
+    --gold: #E3A857;
+    --gold-dark: #C98A34;
+    --terracotta: #C15A3E;
+    --cream: #FBF7F1;
+    --cream-2: #F3EBDD;
+    --text: #1E2223;
+    --muted: #5B6B6E;
+    --white: #FFFFFF;
+    --radius: 16px;
+    --shadow: 0 10px 30px rgba(14,42,50,0.08);
+  }
+
+  *{ box-sizing: border-box; margin:0; padding:0; }
+  html{ scroll-behavior: smooth; }
+  body{
+    font-family: 'Inter', sans-serif;
+    color: var(--text);
+    background: var(--cream);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1,h2,h3,h4{ font-family: 'Poppins', sans-serif; color: var(--navy); line-height: 1.2; }
+  a{ text-decoration:none; color: inherit; }
+  img{ max-width:100%; display:block; }
+  .wrap{ max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+  section{ padding: 88px 0; }
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:8px;
+    font-size: 13px; font-weight:600; letter-spacing:.08em; text-transform:uppercase;
+    color: var(--gold-dark); background: rgba(227,168,87,0.14);
+    padding: 6px 14px; border-radius: 999px; margin-bottom: 18px;
+  }
+  .eyebrow::before{ content:"●"; font-size:8px; color: var(--terracotta); }
+
+  .btn{
+    display:inline-block; padding: 14px 28px; border-radius: 10px; font-weight:600;
+    font-size: 15px; cursor:pointer; transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+    border: none;
+  }
+  .btn-primary{ background: var(--terracotta); color: var(--white); box-shadow: 0 8px 20px rgba(193,90,62,0.35); }
+  .btn-primary:hover{ transform: translateY(-2px); background:#A94A31; }
+  .btn-secondary{ background: transparent; color: var(--navy); border: 2px solid var(--navy); }
+  .btn-secondary:hover{ background: var(--navy); color: var(--white); }
+  .btn-ghost-light{ background: rgba(255,255,255,0.12); color: var(--white); border: 1.5px solid rgba(255,255,255,0.5); }
+  .btn-ghost-light:hover{ background: rgba(255,255,255,0.22); }
+  .btn-gold{ background: var(--gold); color: var(--navy); }
+  .btn-gold:hover{ background: var(--gold-dark); transform: translateY(-2px); }
+
+  /* NAV */
+  header{
+    position: sticky; top:0; z-index: 50;
+    background: rgba(251,247,241,0.92); backdrop-filter: blur(8px);
+    border-bottom: 1px solid rgba(14,42,50,0.08);
+  }
+  nav{ display:flex; align-items:center; justify-content:space-between; padding: 16px 0; }
+  .logo{ display:flex; align-items:center; gap:10px; font-family:'Poppins',sans-serif; font-weight:800; font-size:20px; color:var(--navy); }
+  .logo .mark{
+    width:34px; height:34px; border-radius: 9px; background: linear-gradient(135deg, var(--gold), var(--terracotta));
+    display:flex; align-items:center; justify-content:center; color:white; font-size:16px; font-weight:800;
+  }
+  .logo small{ display:block; font-family:'Inter',sans-serif; font-weight:500; font-size:11px; color: var(--muted); letter-spacing:.04em; }
+  .nav-links{ display:flex; align-items:center; gap:34px; }
+  .nav-links a{ font-weight:600; font-size:14.5px; color: var(--navy); opacity:.85; }
+  .nav-links a:hover{ opacity:1; color: var(--terracotta); }
+  .nav-cta{ display:flex; align-items:center; gap:18px; }
+  .nav-cta .signin{ font-weight:600; font-size:14.5px; color: var(--navy); }
+  .menu-toggle{ display:none; background:none; border:none; font-size:24px; cursor:pointer; color:var(--navy); }
+
+  @media (max-width: 880px){
+    .nav-links{ display:none; }
+    .nav-cta .signin{ display:none; }
+    .menu-toggle{ display:block; }
+  }
+
+  /* HERO */
+  .hero{
+    background: radial-gradient(circle at 15% 20%, rgba(227,168,87,0.16), transparent 45%),
+                radial-gradient(circle at 85% 0%, rgba(193,90,62,0.10), transparent 45%),
+                var(--cream);
+    padding: 100px 0 70px;
+    position: relative; overflow:hidden;
+  }
+  .hero-grid{ display:grid; grid-template-columns: 1.1fr 0.9fr; gap: 60px; align-items:center; }
+  .hero h1{ font-size: 48px; font-weight:800; margin-bottom: 22px; letter-spacing:-.01em; }
+  .hero h1 span{ color: var(--terracotta); }
+  .hero p.lead{ font-size:18px; color: var(--muted); max-width: 520px; margin-bottom: 32px; }
+  .hero-ctas{ display:flex; gap:16px; flex-wrap:wrap; margin-bottom: 20px; }
+  .trust-line{ font-size: 13.5px; color: var(--muted); font-weight:500; }
+  .trust-line strong{ color: var(--navy); }
+
+  .hero-art{
+    position:relative; border-radius: 24px; overflow:hidden; background: var(--navy);
+    aspect-ratio: 4/3.4; box-shadow: var(--shadow);
+  }
+  .hero-art .pattern{
+    position:absolute; inset:0;
+    background:
+      radial-gradient(circle at 20% 25%, rgba(227,168,87,0.5) 0, transparent 6%),
+      radial-gradient(circle at 70% 15%, rgba(227,168,87,0.35) 0, transparent 5%),
+      radial-gradient(circle at 40% 60%, rgba(193,90,62,0.4) 0, transparent 5%),
+      radial-gradient(circle at 85% 70%, rgba(227,168,87,0.4) 0, transparent 6%),
+      radial-gradient(circle at 10% 85%, rgba(193,90,62,0.35) 0, transparent 5%),
+      linear-gradient(160deg, var(--navy) 0%, var(--navy-2) 100%);
+  }
+  .hero-card{
+    position:absolute; left:24px; right:24px; bottom:24px;
+    background: rgba(255,255,255,0.96); border-radius: 14px; padding: 18px 20px;
+    display:flex; align-items:center; gap:14px; box-shadow: 0 10px 24px rgba(0,0,0,0.18);
+  }
+  .hero-card .avatar{ width:42px; height:42px; border-radius:50%; background: linear-gradient(135deg,var(--gold),var(--terracotta)); flex:none; }
+  .hero-card .t1{ font-weight:700; font-size:14px; color:var(--navy); }
+  .hero-card .t2{ font-size:12.5px; color:var(--muted); }
+  .hero-badge{
+    position:absolute; top:24px; right:24px; background: rgba(255,255,255,0.95);
+    border-radius: 12px; padding: 10px 16px; text-align:center; box-shadow: 0 8px 18px rgba(0,0,0,0.15);
+  }
+  .hero-badge .num{ font-family:'Poppins',sans-serif; font-weight:800; color: var(--terracotta); font-size:22px; }
+  .hero-badge .lbl{ font-size:11px; color: var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.04em; }
+
+  @media (max-width: 880px){
+    .hero-grid{ grid-template-columns: 1fr; }
+    .hero h1{ font-size: 34px; }
+  }
+
+  /* STATS BAR */
+  .stats{ background: var(--navy); }
+  .stats .wrap{ display:grid; grid-template-columns: repeat(4,1fr); gap: 24px; padding: 44px 24px; }
+  .stat{ text-align:center; color: var(--white); }
+  .stat .num{ font-family:'Poppins',sans-serif; font-weight:800; font-size: 36px; color: var(--gold); }
+  .stat .lbl{ font-size: 13.5px; opacity:.85; margin-top:4px; }
+  @media (max-width: 700px){ .stats .wrap{ grid-template-columns: repeat(2,1fr); } }
+
+  /* SECTION HEADINGS */
+  .section-head{ text-align:center; max-width: 680px; margin: 0 auto 52px; }
+  .section-head h2{ font-size: 34px; margin-bottom: 14px; }
+  .section-head p{ color: var(--muted); font-size: 16.5px; }
+
+  /* VALUE CARDS */
+  .cards-4{ display:grid; grid-template-columns: repeat(4, 1fr); gap: 22px; }
+  .card{
+    background: var(--white); border-radius: var(--radius); padding: 30px 24px;
+    box-shadow: var(--shadow); border: 1px solid rgba(14,42,50,0.06);
+    transition: transform .2s ease;
+  }
+  .card:hover{ transform: translateY(-4px); }
+  .card .icon{
+    width:48px; height:48px; border-radius:12px; margin-bottom:18px;
+    display:flex; align-items:center; justify-content:center; font-size:22px;
+    background: rgba(227,168,87,0.16); color: var(--terracotta);
+  }
+  .card h3{ font-size: 17.5px; margin-bottom: 10px; }
+  .card p{ font-size: 14.5px; color: var(--muted); }
+  @media (max-width: 980px){ .cards-4{ grid-template-columns: repeat(2,1fr); } }
+  @media (max-width: 600px){ .cards-4{ grid-template-columns: 1fr; } }
+
+  /* SPLIT SECTIONS (talent / employers) */
+  .split{ background: var(--white); }
+  .split-grid{ display:grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items:center; }
+  .split-grid.reverse .visual{ order: 2; }
+  .visual{
+    border-radius: 20px; aspect-ratio: 4/3; background: linear-gradient(145deg, var(--cream-2), var(--cream));
+    position:relative; overflow:hidden; border: 1px solid rgba(14,42,50,0.08);
+  }
+  .visual .tag{
+    position:absolute; background: var(--white); border-radius: 10px; padding: 10px 14px;
+    box-shadow: var(--shadow); font-size:13px; font-weight:600; color: var(--navy);
+    display:flex; align-items:center; gap:8px;
+  }
+  .visual .dot{ width:8px; height:8px; border-radius:50%; background: var(--terracotta); }
+  .visual .tag.a{ top: 14%; left: 8%; }
+  .visual .tag.b{ top: 42%; right: 10%; }
+  .visual .tag.c{ bottom: 12%; left: 20%; }
+
+  .split h2{ font-size: 30px; margin-bottom: 16px; }
+  .split p.body{ color: var(--muted); font-size: 16px; margin-bottom: 22px; }
+  .checklist{ list-style:none; margin-bottom: 28px; }
+  .checklist li{ display:flex; gap:10px; margin-bottom: 12px; font-size: 15px; color: var(--text); }
+  .checklist li::before{ content:"✓"; color: var(--terracotta); font-weight:800; flex:none; }
+
+  @media (max-width: 880px){
+    .split-grid, .split-grid.reverse{ grid-template-columns: 1fr; }
+    .split-grid.reverse .visual{ order: 0; }
+  }
+
+  /* HOW IT WORKS */
+  .steps{ background: var(--cream-2); }
+  .steps-grid{ display:grid; grid-template-columns: repeat(3,1fr); gap: 30px; }
+  .step{ position:relative; padding: 34px 26px; background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); }
+  .step .step-num{
+    width:38px; height:38px; border-radius:50%; background: var(--navy); color: var(--gold);
+    font-family:'Poppins',sans-serif; font-weight:800; display:flex; align-items:center; justify-content:center;
+    margin-bottom: 18px; font-size:15px;
+  }
+  .step h3{ font-size:18px; margin-bottom:10px; }
+  .step p{ font-size: 14.5px; color: var(--muted); }
+  @media (max-width: 880px){ .steps-grid{ grid-template-columns: 1fr; } }
+
+  /* SECTORS */
+  .sectors-pills{ display:flex; flex-wrap:wrap; gap:12px; justify-content:center; }
+  .pill{
+    background: var(--white); border: 1.5px solid rgba(14,42,50,0.12); color: var(--navy);
+    padding: 10px 20px; border-radius: 999px; font-size: 14px; font-weight:600;
+  }
+
+  /* TESTIMONIALS */
+  .testimonials{ background: var(--navy); color: var(--white); }
+  .testimonials .section-head h2{ color: var(--white); }
+  .testimonials .section-head p{ color: rgba(255,255,255,0.7); }
+  .t-grid{ display:grid; grid-template-columns: repeat(3,1fr); gap: 24px; }
+  .t-card{
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+    border-radius: var(--radius); padding: 28px 24px;
+  }
+  .t-card .quote{ font-size: 15px; margin-bottom: 20px; color: rgba(255,255,255,0.92); }
+  .t-card .who{ display:flex; align-items:center; gap:12px; }
+  .t-card .avatar{ width:38px; height:38px; border-radius:50%; background: linear-gradient(135deg,var(--gold),var(--terracotta)); flex:none; }
+  .t-card .who .name{ font-weight:700; font-size:14px; }
+  .t-card .who .role{ font-size:12.5px; color: rgba(255,255,255,0.6); }
+  @media (max-width: 880px){ .t-grid{ grid-template-columns: 1fr; } }
+
+  /* CTA BANNER */
+  .cta-banner{
+    background: linear-gradient(120deg, var(--terracotta), var(--gold-dark));
+    color: var(--white); text-align:center; border-radius: 28px; margin: 0 24px;
+    padding: 64px 32px;
+  }
+  .cta-banner h2{ color: var(--white); font-size: 32px; margin-bottom: 14px; }
+  .cta-banner p{ max-width: 560px; margin: 0 auto 30px; opacity:.95; font-size:16px; }
+  .cta-banner .hero-ctas{ justify-content:center; }
+  .cta-wrap{ padding: 0; margin-top: -40px; }
+
+  /* FOOTER */
+  footer{ background: var(--navy); color: rgba(255,255,255,0.8); padding-top: 100px; }
+  .footer-grid{ display:grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 40px; padding-bottom: 50px; border-bottom: 1px solid rgba(255,255,255,0.12); }
+  .footer-brand .logo{ color: var(--white); margin-bottom: 12px; }
+  .footer-brand .logo small{ color: rgba(255,255,255,0.55); }
+  .footer-brand p.tagline{ font-size: 14px; color: rgba(255,255,255,0.6); max-width: 260px; margin-top:10px; }
+  .footer-col h4{ color: var(--white); font-size: 14px; margin-bottom: 16px; letter-spacing:.03em; }
+  .footer-col ul{ list-style:none; }
+  .footer-col li{ margin-bottom: 10px; font-size: 14px; }
+  .footer-col a:hover{ color: var(--gold); }
+  .footer-bottom{ display:flex; justify-content:space-between; align-items:center; padding: 24px 0; font-size: 13px; color: rgba(255,255,255,0.5); flex-wrap:wrap; gap:10px; }
+  .footer-bottom a{ color: rgba(255,255,255,0.6); margin-left: 18px; }
+  .footer-bottom a:hover{ color: var(--gold); }
+
+  @media (max-width: 880px){
+    .footer-grid{ grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <nav>
+      <a class="logo" href="#top">
+        <span class="mark">PA</span>
+        <span>PAC Africa<small>TALENT PORTAL</small></span>
+      </a>
+      <div class="nav-links">
+        <a href="#talent">For Talent</a>
+        <a href="#employers">For Employers</a>
+        <a href="#how">How It Works</a>
+        <a href="#sectors">Sectors</a>
+        <a href="#about">About PAC</a>
+      </div>
+      <div class="nav-cta">
+        <a class="signin" href="#">Sign In</a>
+        <a class="btn btn-primary" href="#" style="padding:11px 22px;">Get Started</a>
+      </div>
+      <button class="menu-toggle" aria-label="Menu">☰</button>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <span class="eyebrow">Pan-African Talent, Global Standards</span>
+        <h1>Africa's Talent.<br>Africa's Future.<br><span>Placed Right.</span></h1>
+        <p class="lead">PAC Africa connects skilled professionals across the continent with employers who are ready to invest in African talent — from Nairobi to Lagos, Accra to Johannesburg, and beyond.</p>
+        <div class="hero-ctas">
+          <a class="btn btn-primary" href="#talent">Find Your Next Opportunity</a>
+          <a class="btn btn-secondary" href="#employers">Hire Top African Talent</a>
+        </div>
+        <div class="trust-line">Trusted by organisations across <strong>15+ African countries</strong></div>
+      </div>
+      <div class="hero-art">
+        <div class="pattern"></div>
+        <div class="hero-badge"><div class="num">10K+</div><div class="lbl">Placed</div></div>
+        <div class="hero-card">
+          <div class="avatar"></div>
+          <div>
+            <div class="t1">Amara O. — Matched in 12 days</div>
+            <div class="t2">Supply Chain Lead · Lagos → Accra</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <section class="stats" style="padding:0;">
+    <div class="wrap">
+      <div class="stat"><div class="num">15+</div><div class="lbl">African countries reached</div></div>
+      <div class="stat"><div class="num">500+</div><div class="lbl">Organisations hiring with us</div></div>
+      <div class="stat"><div class="num">10,000+</div><div class="lbl">Professionals placed</div></div>
+      <div class="stat"><div class="num">92%</div><div class="lbl">First-year retention rate</div></div>
+    </div>
+  </section>
+
+  <!-- WHY PAC AFRICA -->
+  <section>
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow">Why PAC Africa</span>
+        <h2>Built by Consultants Who Know African Talent Markets</h2>
+        <p>We're not a generic job board — we're a consulting practice that happens to run a talent portal.</p>
+      </div>
+      <div class="cards-4">
+        <div class="card">
+          <div class="icon">🌍</div>
+          <h3>Local Insight, Continental Reach</h3>
+          <p>We understand the labour markets, skills landscape and cultural nuance of African economies — because that's our core consulting practice, not a side project.</p>
+        </div>
+        <div class="card">
+          <div class="icon">✅</div>
+          <h3>Vetted for Fit, Not Just CVs</h3>
+          <p>Every candidate is assessed against real organisational needs: capability, governance fit, and readiness — informed by PAC's HR and organisational development expertise.</p>
+        </div>
+        <div class="card">
+          <div class="icon">📈</div>
+          <h3>From Placement to Performance</h3>
+          <p>We don't stop at the handshake. Our advisory background means employers get onboarding, policy, and performance support long after the hire.</p>
+        </div>
+        <div class="card">
+          <div class="icon">🤝</div>
+          <h3>Diaspora & Cross-Border Ready</h3>
+          <p>Whether you're hiring locally or reaching African professionals in the diaspora, PAC Africa bridges borders, time zones, and regulatory complexity.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOR TALENT -->
+  <section class="split" id="talent">
+    <div class="wrap split-grid">
+      <div>
+        <span class="eyebrow">For Job Seekers</span>
+        <h2>Your Skills Belong on the Continent's Biggest Stage</h2>
+        <p class="body">Stop searching in the dark. PAC Africa puts your profile in front of organisations that are actively building African teams — across finance, technology, development, manufacturing, health, and public sector work.</p>
+        <ul class="checklist">
+          <li>Create a profile once, apply everywhere</li>
+          <li>Get matched by skills, not just keywords</li>
+          <li>Track every application in one dashboard</li>
+          <li>Access career resources built by PAC's HR practice</li>
+        </ul>
+        <a class="btn btn-primary" href="#">Create Your Free Profile</a>
+      </div>
+      <div class="visual">
+        <div class="tag a"><span class="dot"></span> Profile match: 94%</div>
+        <div class="tag b"><span class="dot"></span> 3 new roles today</div>
+        <div class="tag c"><span class="dot"></span> Interview scheduled</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOR EMPLOYERS -->
+  <section class="split" id="employers" style="background: var(--cream);">
+    <div class="wrap split-grid reverse">
+      <div class="visual">
+        <div class="tag a"><span class="dot"></span> 42 candidates shortlisted</div>
+        <div class="tag b"><span class="dot"></span> Governance-fit assessed</div>
+        <div class="tag c"><span class="dot"></span> Hiring across 4 countries</div>
+      </div>
+      <div>
+        <span class="eyebrow">For Employers</span>
+        <h2>Hire With the Confidence of a Consulting Partner Behind You</h2>
+        <p class="body">Recruiting in African markets means navigating diverse regulatory environments, skills gaps, and cultural context. PAC Africa gives you access to a pre-assessed talent pool, backed by a consulting team that also advises on the governance, HR structures, and policy your new hires will step into.</p>
+        <ul class="checklist">
+          <li>Post roles and reach vetted African talent fast</li>
+          <li>Screen candidates against competency, not just credentials</li>
+          <li>Get advisory support on structure, comp, and onboarding</li>
+          <li>Scale hiring across multiple countries with one partner</li>
+        </ul>
+        <a class="btn btn-primary" href="#">Post a Job / Talk to Our Team</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="steps" id="how">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow">Simple Process</span>
+        <h2>Three Steps to the Right Fit</h2>
+      </div>
+      <div class="steps-grid">
+        <div class="step">
+          <div class="step-num">1</div>
+          <h3>Profile or Post</h3>
+          <p>Job seekers build a profile; employers post a role or share a hiring brief.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <h3>Match & Assess</h3>
+          <p>Our platform and PAC's HR expertise surface the strongest matches, assessed for skills and fit.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <h3>Connect & Grow</h3>
+          <p>Interviews happen on your terms; PAC stays available for onboarding, policy, and performance support.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTORS -->
+  <section id="sectors">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow">Where We Place Talent</span>
+        <h2>Talent Across Africa's Growth Sectors</h2>
+      </div>
+      <div class="sectors-pills">
+        <span class="pill">Financial Services</span>
+        <span class="pill">Technology & Digital</span>
+        <span class="pill">Development & NGO</span>
+        <span class="pill">Public Sector & Governance</span>
+        <span class="pill">Manufacturing & Supply Chain</span>
+        <span class="pill">Health & Social Impact</span>
+        <span class="pill">Energy & Infrastructure</span>
+        <span class="pill">Professional Services</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- TESTIMONIALS -->
+  <section class="testimonials">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow" style="background:rgba(227,168,87,0.2); color:var(--gold);">What People Say</span>
+        <h2>Placements That Actually Fit</h2>
+        <p>Real feedback from talent and employers across the continent.</p>
+      </div>
+      <div class="t-grid">
+        <div class="t-card">
+          <p class="quote">"PAC Africa didn't just fill a role — they understood the governance context we needed the hire to fit into. That's a different level of placement."</p>
+          <div class="who">
+            <div class="avatar"></div>
+            <div><div class="name">HR Director</div><div class="role">Regional Bank, Kenya</div></div>
+          </div>
+        </div>
+        <div class="t-card">
+          <p class="quote">"Within three weeks I was matched to a role that actually fit my skills and my move back to Ghana. The process felt personal, not automated."</p>
+          <div class="who">
+            <div class="avatar"></div>
+            <div><div class="name">Operations Lead</div><div class="role">Accra, Ghana</div></div>
+          </div>
+        </div>
+        <div class="t-card">
+          <p class="quote">"As a growing NGO working across four countries, PAC Africa's cross-border reach saved us months of separate recruitment drives."</p>
+          <div class="who">
+            <div class="avatar"></div>
+            <div><div class="name">Country Director</div><div class="role">Pan-African NGO</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA BANNER -->
+  <section class="cta-wrap">
+    <div class="cta-banner">
+      <h2>Africa's Next Chapter Needs the Right People in the Right Seats.</h2>
+      <p>Whether you're building your career or building your team, PAC Africa is the partner that understands both sides of the table.</p>
+      <div class="hero-ctas">
+        <a class="btn btn-gold" href="#talent">Get Started as Talent</a>
+        <a class="btn btn-ghost-light" href="#employers">Get Started as an Employer</a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer id="about">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a class="logo" href="#top">
+          <span class="mark">PA</span>
+          <span>PAC Africa<small>TALENT PORTAL</small></span>
+        </a>
+        <p class="tagline">Strategy. Governance. People. Placed with purpose.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Company</h4>
+        <ul>
+          <li><a href="#">About PAC Africa</a></li>
+          <li><a href="#">Our Consulting Practice</a></li>
+          <li><a href="#">Careers at PAC</a></li>
+          <li><a href="#">Contact</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>For Talent</h4>
+        <ul>
+          <li><a href="#">Browse Opportunities</a></li>
+          <li><a href="#">Create Profile</a></li>
+          <li><a href="#">Career Resources</a></li>
+          <li><a href="#">FAQs</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>For Employers</h4>
+        <ul>
+          <li><a href="#">Post a Job</a></li>
+          <li><a href="#">Talent Solutions</a></li>
+          <li><a href="#">Advisory Services</a></li>
+          <li><a href="#">Pricing</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div>© 2026 Priority Activator Consulting (PAC Africa). All rights reserved.</div>
+      <div>
+        <a href="#">Privacy Policy</a>
+        <a href="#">Terms of Service</a>
+        <a href="mailto:hello@pac.africa">hello@pac.africa</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

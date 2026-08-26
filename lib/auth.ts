@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { isLegacyCvUrl } from "@/lib/cv";
+import { isProfileGateComplete } from "@/lib/profile";
 import type { Profile, UserRole } from "@/types/database";
 
 /**
@@ -71,5 +73,21 @@ export async function requireUser(): Promise<{
 export async function requireProfile(role: UserRole) {
   const ctx = await requireUser();
   if (ctx.profile.role !== role) redirect(dashboardPathFor(ctx.profile.role));
+  return ctx;
+}
+
+/**
+ * As requireProfile("seeker"), but also gates on the must-have subset of the
+ * profile checklist (name, phone, CV — see lib/profile.ts). Used on the
+ * features that make no sense without contact details or a CV to send
+ * (Saved, Alerts, Applications); the apply flow itself is deliberately never
+ * gated this way, guest or otherwise.
+ */
+export async function requireCompleteSeekerProfile(reason: string) {
+  const ctx = await requireProfile("seeker");
+  const hasCv = Boolean(ctx.profile.cv_url) && !isLegacyCvUrl(ctx.profile.cv_url);
+  if (!isProfileGateComplete(ctx.profile, hasCv)) {
+    redirect(`/dashboard/seeker/profile?locked=${reason}`);
+  }
   return ctx;
 }

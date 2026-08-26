@@ -12,14 +12,19 @@ import type { UserRole } from "@/types/database";
 export function DashboardShell({
   role,
   name,
+  density = "comfortable",
   children,
 }: {
   role: UserRole;
   name?: string;
+  density?: "comfortable" | "compact";
   children: React.ReactNode;
 }) {
   return (
-    <div className="mx-auto max-w-7xl px-4 pb-28 pt-8 sm:px-6 lg:pb-16 lg:pt-10">
+    <div
+      data-density={density}
+      className="mx-auto max-w-7xl px-4 pb-28 pt-8 sm:px-6 lg:pb-16 lg:pt-10"
+    >
       <div className="flex gap-8 xl:gap-10">
         <DashboardNav role={role} name={name} />
         {/* A div, not a <main>: the root layout already renders one, and nesting

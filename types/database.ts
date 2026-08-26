@@ -16,6 +16,22 @@ export type JobStatus =
   | "closed";
 export type JobType = "full_time" | "part_time" | "freelance" | "contract" | "internship";
 export type EmploymentLevel = "entry" | "mid" | "senior" | "executive";
+// Ascending order matches the Postgres enum declaration (migration 033) —
+// the meets_requirements trigger compares these ordinally ("at least this
+// level"), so the order here and in the enum must stay in step.
+export type EducationLevel =
+  | "high_school"
+  | "certificate"
+  | "diploma"
+  | "bachelors"
+  | "masters"
+  | "doctorate";
+export type NoticePeriod =
+  | "immediate"
+  | "two_weeks"
+  | "one_month"
+  | "two_months"
+  | "three_plus_months";
 
 export type Profile = {
   id: string;
@@ -37,8 +53,42 @@ export type Profile = {
   notify_email: boolean;
   notify_new_jobs: boolean;
   notify_pending_review: boolean;
+  // Dashboard personalization (migration 030).
+  dashboard_landing: string | null;
+  dashboard_density: "comfortable" | "compact";
+  // Hiring profile depth (migration 033).
+  years_experience: number | null;
+  education_level: EducationLevel | null;
+  industry_category_id: string | null;
+  expected_salary: number | null;
+  current_salary: number | null;
+  notice_period: NoticePeriod | null;
   created_at: string;
   updated_at: string;
+}
+
+/** Migration 033. One row per school/qualification, delete-and-re-add only. */
+export type ProfileEducation = {
+  id: string;
+  profile_id: string;
+  school_name: string;
+  field_of_study: string | null;
+  level: EducationLevel | null;
+  start_year: number | null;
+  end_year: number | null;
+  created_at: string;
+}
+
+/** Migration 033. One row per job, delete-and-re-add only. */
+export type ProfileWorkExperience = {
+  id: string;
+  profile_id: string;
+  company_name: string;
+  job_title: string;
+  start_date: string | null;
+  end_date: string | null;
+  description: string | null;
+  created_at: string;
 }
 
 export type Company = {
@@ -83,6 +133,12 @@ export type Job = {
   description: string;
   requirements: string | null;
   qualifications: string | null;
+  /** Migration 031. Same shape as Profile.skills, for lib/match.ts overlap scoring. */
+  required_skills: string[] | null;
+  // Requirements the compute_meets_requirements() trigger flags against (migration 033).
+  required_years_experience: number | null;
+  required_education_level: EducationLevel | null;
+  required_industry_category_id: string | null;
   category_id: string | null;
   location_id: string | null;
   location_text: string | null;
@@ -122,6 +178,16 @@ export type Application = {
   employer_note: string | null;
   wp_post_id: number | null;
   wp_job_title: string | null;
+  // Apply-time snapshot fields, nullable — required for a NEW submission
+  // (enforced in app/jobs/actions.ts) but 4,356+ existing rows predate
+  // migration 033 and have none of this (see the migration's file header).
+  years_experience: number | null;
+  expected_salary: number | null;
+  current_salary: number | null;
+  consented_at: string | null;
+  consent_version: string | null;
+  /** null = job had no requirements set, nothing was flagged. */
+  meets_requirements: boolean | null;
   applied_at: string;
   updated_at: string;
   // joined
@@ -201,11 +267,65 @@ export interface Database {
       application_reviews: Table<ApplicationReview>;
       saved_jobs: Table<SavedJob>;
       job_alerts: Table<JobAlert>;
+      profile_education: Table<ProfileEducation>;
+      profile_work_experience: Table<ProfileWorkExperience>;
     };
     Views: Record<string, never>;
     // RPCs added by the migrations. Without these declared, supabase.rpc()
     // calls do not typecheck against this Database generic.
     Functions: {
+      applicant_profile_detail: {
+        Args: { p_application_id: string };
+        Returns: {
+          years_experience: number | null;
+          education_level: EducationLevel | null;
+          industry_name: string | null;
+          expected_salary: number | null;
+          current_salary: number | null;
+          notice_period: NoticePeriod | null;
+          education: {
+            school_name: string;
+            field_of_study: string | null;
+            level: EducationLevel | null;
+            start_year: number | null;
+            end_year: number | null;
+          }[];
+          work_experience: {
+            company_name: string;
+            job_title: string;
+            start_date: string | null;
+            end_date: string | null;
+            description: string | null;
+          }[];
+        }[];
+      };
+      submit_guest_application: {
+        Args: {
+          p_job_id: string;
+          p_name: string | null;
+          p_email: string;
+          p_phone: string | null;
+          p_cover_letter: string | null;
+          p_cv_url: string | null;
+          p_job_title: string | null;
+          p_years_experience: number;
+          p_expected_salary: number;
+          p_current_salary: number;
+          p_consented_at: string;
+          p_consent_version: string;
+        };
+        Returns: string;
+      };
+      candidate_matches: {
+        Args: { p_job_id: string; p_industry_category_id?: string | null };
+        Returns: {
+          seeker_id: string;
+          full_name: string | null;
+          headline: string | null;
+          avatar_url: string | null;
+          match_percent: number;
+        }[];
+      };
       stats: {
         Args: Record<string, never>;
         Returns: { live_jobs: number; applications: number; employers: number }[];
@@ -225,18 +345,6 @@ export interface Database {
       applicant_cards: {
         Args: { app_ids: string[] };
         Returns: { application_id: string; headline: string | null; avatar_url: string | null }[];
-      };
-      submit_guest_application: {
-        Args: {
-          p_job_id: string;
-          p_name: string | null;
-          p_email: string;
-          p_phone: string | null;
-          p_cover_letter: string | null;
-          p_cv_url: string | null;
-          p_job_title: string | null;
-        };
-        Returns: string;
       };
       increment_job_view: {
         Args: { job: string };

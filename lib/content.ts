@@ -1,8 +1,10 @@
 import type {
   ApplicationStatus,
+  EducationLevel,
   EmploymentLevel,
   JobStatus,
   JobType,
+  NoticePeriod,
 } from "@/types/database";
 
 /**
@@ -157,6 +159,42 @@ export const job = {
 } as const;
 
 /** Brief §7 — the auth gate. */
+/**
+ * Data-consent clause shown at the bottom of the apply form (migration 033).
+ *
+ * PLACEHOLDER TEXT — not legal advice, not reviewed by counsel. Structure
+ * (what's collected, why, retention, rights, CV-specific handling) is a
+ * reasonable starting shape, but the actual wording needs sign-off from the
+ * user or a lawyer before this ships. `version` must be bumped (e.g. to a
+ * date string) any time the wording below changes — it's what
+ * applications.consent_version records, so a past applicant's row always
+ * reflects what they actually agreed to, not today's text relabeled.
+ */
+export const dataConsent = {
+  version: "2026-08-26-v1",
+  checkboxLabel: "I have read this and I consent.",
+  scrollHint: "Scroll to the bottom to continue.",
+  clauseText: `By applying, you agree that PAC Africa may collect and process the
+information in this application — including your CV, contact details, work
+history and the fields above — to evaluate you for this role and, if you
+create an account, to match you with similar roles in future.
+
+Your CV and application details are shared only with the employer for the
+specific role you apply to, and with PAC Africa staff reviewing applications.
+We do not sell your data or share it with any other third party.
+
+Data is retained for as long as your account is active, or for historical
+applications, indefinitely as part of PAC Africa's hiring records, unless you
+request deletion. You can request a copy of your data or ask us to delete it
+at any time — see our Privacy Policy for how.
+
+This consent is given under the Kenya Data Protection Act 2019 and, where
+applicable, the EU General Data Protection Regulation (GDPR). You may
+withdraw consent at any time by contacting hello@pac.africa, which stops
+further processing but does not undo an application already sent to an
+employer.`,
+} as const;
+
 export const gate = {
   employerCannotApply: {
     title: "You are signed in as an employer",
@@ -203,6 +241,9 @@ export const gate = {
     cv_upload_failed: "We could not upload your CV. Please try again.",
     duplicate: "You have already applied for this role.",
     rate_limited: "Too many attempts. Please wait a few minutes and try again.",
+    experience_required:
+      "Please fill in your years of experience and salary expectations.",
+    consent_required: "Please read the data consent notice and check the box to continue.",
     failed: "Something went wrong. Please try again.",
   } as Record<string, string>,
   applyingAs: "Applying as",
@@ -251,6 +292,25 @@ export const jobTypeLabels: Record<JobType, string> = {
   freelance: "Freelance",
   contract: "Contract",
   internship: "Internship",
+};
+
+/** Ascending order matches the Postgres enum (migration 033) — used for both
+ *  display and building select options. */
+export const educationLevelLabels: Record<EducationLevel, string> = {
+  high_school: "High School",
+  certificate: "Certificate",
+  diploma: "Diploma",
+  bachelors: "Bachelor's Degree",
+  masters: "Master's Degree",
+  doctorate: "Doctorate",
+};
+
+export const noticePeriodLabels: Record<NoticePeriod, string> = {
+  immediate: "Immediate",
+  two_weeks: "2 weeks",
+  one_month: "1 month",
+  two_months: "2 months",
+  three_plus_months: "3+ months",
 };
 
 /** Brief §12: every page needs a working empty, loading and error state. */
@@ -336,6 +396,7 @@ export const dash = {
     emptyApplications: "No applications yet",
     emptyApplicationsBody:
       "Once you apply for a role it shows up here, and you can follow what happens to it.",
+    recommendedTitle: "Recommended for you",
     savedTitle: "Saved roles",
     savedSub: "Roles you kept to come back to. Nobody else can see this list.",
     emptySaved: "Nothing saved yet",
@@ -347,6 +408,53 @@ export const dash = {
       "This is what fills in your applications. Only employers you have applied to can see it.",
     settingsTitle: "Settings",
     settingsSub: "Your account, your data, and how to get rid of both.",
+    alertsTitle: "Job alerts",
+    alertsSub: "Get emailed when a new role matches what you're looking for.",
+    emptyAlerts: "No alerts set up yet",
+    emptyAlertsBody: "Create one below and we'll email you when a matching role is posted.",
+    alertCreate: "Create alert",
+    alertKeywordPlaceholder: "Keyword (optional)",
+    alertAnyCategory: "Any category",
+    alertAnyLocation: "Any location",
+    alertAnyType: "Any job type",
+    alertFrequencyDaily: "Daily digest",
+    alertFrequencyWeekly: "Weekly digest",
+    alertPause: "Pause",
+    alertResume: "Resume",
+    alertDelete: "Delete",
+    alertPaused: "Paused",
+    lockedFeatureNames: {
+      saved: "Saved jobs",
+      alerts: "Job alerts",
+      applications: "Applications",
+    } as Record<string, string>,
+    lockedBanner: (feature: string) =>
+      `Add your name, phone number and CV below to unlock ${feature}.`,
+    hiringTitle: "Experience & career details",
+    hiringHint: "Helps employers judge fit, and powers the requirements filter for admin.",
+    yearsExperience: "Years of experience",
+    educationLevel: "Highest education level",
+    industry: "Industry",
+    expectedSalary: "Expected salary (KES)",
+    currentSalary: "Current / last salary (KES)",
+    noticePeriod: "Notice period",
+    selectPlaceholder: "Not specified",
+    educationTitle: "Education",
+    educationEmpty: "No education entries yet.",
+    educationAdd: "Add education",
+    educationSchool: "School / institution",
+    educationField: "Field of study",
+    educationStartYear: "Start year",
+    educationEndYear: "End year (leave blank if ongoing)",
+    experienceTitle: "Work experience",
+    experienceEmpty: "No work experience entries yet.",
+    experienceAdd: "Add work experience",
+    experienceCompany: "Company",
+    experienceJobTitle: "Job title",
+    experienceStartDate: "Start date",
+    experienceEndDate: "End date (leave blank if current)",
+    experienceDescription: "Description (optional)",
+    entryRemove: "Remove",
     // Activity feed lines, phrased from the applicant's side.
     event: {
       pending: "Application sent",
@@ -407,6 +515,19 @@ export const dash = {
 
   admin: {
     title: "Admin",
+    candidatesTitle: "Find candidates",
+    candidatesSub: "Rank every seeker with skills on file against one job's requirements.",
+    candidatesJobLabel: "Job",
+    candidatesJobPlaceholder: "Choose a job…",
+    candidatesSearch: "Search",
+    candidatesEmptyTitle: "Choose a job to search",
+    candidatesEmptyBody:
+      "Only jobs with required skills set can be searched — add them from the job's edit page.",
+    candidatesNoneTitle: "No seekers with skills on file yet",
+    candidatesNoneBody: "Once seekers add skills to their profile, they'll rank here.",
+    candidatesColSeeker: "Seeker",
+    candidatesColHeadline: "Headline",
+    candidatesColMatch: "Match",
     statLive: "Live roles",
     statPending: "Awaiting moderation",
     statPendingHint: "Nothing reaches the public until you approve it",
@@ -470,6 +591,16 @@ export const dash = {
     joined: "Member since",
     appearanceTitle: "Appearance",
     appearanceHint: "Light, dark, or match your device.",
+    personalizationTitle: "Personalization",
+    personalizationHint: "How your dashboard looks and where it opens.",
+    personalizationChanged: "Preferences saved.",
+    landingLabel: "Default landing page",
+    landingHint: "Which page you land on after signing in.",
+    landingDefault: "Overview (default)",
+    densityLabel: "Dashboard density",
+    densityHint: "Compact tightens spacing on tables and the sidebar.",
+    densityComfortable: "Comfortable",
+    densityCompact: "Compact",
     passwordTitle: "Password",
     passwordHint: "At least 10 characters. Longer beats complicated.",
     passwordLabel: "New password",
@@ -503,6 +634,7 @@ export const dash = {
     appliedOn: "Applied",
     statusLabel: "Status",
     statusUpdated: "Status updated.",
+    hiringProfile: "Hiring profile",
     coverLetter: "Cover letter",
     noCoverLetter: "No cover letter was attached.",
     notesLabel: "Internal notes",

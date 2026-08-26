@@ -7,6 +7,7 @@ import { Check } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn, safeNextPath } from "@/lib/utils";
 import { authErrorMessage } from "@/lib/auth-errors";
+import { isBlockedEmployerEmail } from "@/lib/employer-email";
 import { Captcha, captchaConfigured, type CaptchaHandle } from "@/components/captcha";
 
 const PASSWORD_RULES = [
@@ -56,6 +57,11 @@ export function SignUpForm() {
     }
     if (form.password !== form.passwordConfirm) {
       setError("Passwords do not match.");
+      return;
+    }
+
+    if (role === "employer" && isBlockedEmployerEmail(form.email)) {
+      setError("Please sign up with your work email address rather than a personal one.");
       return;
     }
 
@@ -161,6 +167,12 @@ export function SignUpForm() {
             onChange={(e) => setForm({ ...form, email: e.target.value })}
             className="field"
           />
+          {role === "seeker" && (
+            <p className="px-1 text-xs text-muted">
+              Applied through PAC Africa before? Confirming this address
+              automatically reconnects your earlier applications.
+            </p>
+          )}
           <input
             required
             type="password"

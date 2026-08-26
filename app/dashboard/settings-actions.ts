@@ -1,7 +1,9 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { requireUser, dashboardPathFor } from "@/lib/auth";
+import { navFor } from "@/lib/dashboard-nav";
 import { dash } from "@/lib/content";
 import type { Profile } from "@/types/database";
 
@@ -64,4 +66,38 @@ export async function updateNotificationPrefs(formData: FormData) {
   if (error) redirect(`${base}?error=${encodeURIComponent(error.message)}`);
 
   redirect(`${base}?updated=notifications`);
+}
+
+/**
+ * Dashboard personalization (migration 030).
+ *
+ * `dashboard_landing` is re-validated against this role's own nav here, at
+ * write time, rather than trusted at read time in app/dashboard/page.tsx —
+ * the same boundary safeNextPath already applies to a "next" query param. A
+ * value that doesn't match one of this role's real hrefs is silently
+ * dropped to null (falls back to the ordinary per-role dashboard) rather
+ * than rejected with an error, since it can only arrive here as an unusual
+ * form submission, not a plausible user mistake.
+ */
+export async function updateDashboardPrefs(formData: FormData) {
+  const { supabase, profile } = await requireUser();
+  const base = `${dashboardPathFor(profile.role)}/settings`;
+
+  const landing = formData.get("dashboard_landing");
+  const validLanding =
+    typeof landing === "string" && navFor(profile.role).some((item) => item.href === landing)
+      ? landing
+      : null;
+
+  const density = formData.get("dashboard_density") === "compact" ? "compact" : "comfortable";
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ dashboard_landing: validLanding, dashboard_density: density })
+    .eq("id", profile.id);
+
+  if (error) redirect(`${base}?error=${encodeURIComponent(error.message)}`);
+
+  revalidatePath("/dashboard", "layout");
+  redirect(`${base}?updated=preferences`);
 }

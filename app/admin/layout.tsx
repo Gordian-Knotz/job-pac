@@ -19,6 +19,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     <DashboardShell
       role="admin"
       name={displayApplicant(profile.full_name, profile.email)}
+      density={profile.dashboard_density}
     >
       {children}
     </DashboardShell>

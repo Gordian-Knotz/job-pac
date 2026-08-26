@@ -7,13 +7,42 @@ import { CvLink } from "@/components/cv-link";
 import { PageHead } from "@/components/dashboard-shell";
 import { Avatar, Flash } from "@/components/dashboard-ui";
 import { completeness, profileChecklist } from "@/lib/profile";
-import { cv as cvCopy, dash } from "@/lib/content";
+import { cv as cvCopy, dash, educationLevelLabels, noticePeriodLabels } from "@/lib/content";
 import { updateProfile, uploadAvatar, uploadCv } from "../actions";
+import {
+  addEducation,
+  addWorkExperience,
+  deleteEducation,
+  deleteWorkExperience,
+} from "../hiring-profile-actions";
+import type { EducationLevel, NoticePeriod } from "@/types/database";
+
+const EDUCATION_LEVELS: EducationLevel[] = [
+  "high_school",
+  "certificate",
+  "diploma",
+  "bachelors",
+  "masters",
+  "doctorate",
+];
+const NOTICE_PERIODS: NoticePeriod[] = [
+  "immediate",
+  "two_weeks",
+  "one_month",
+  "two_months",
+  "three_plus_months",
+];
 
 export default async function SeekerProfilePage({
   searchParams,
 }: {
-  searchParams: Promise<{ saved?: string; cv?: string; avatar?: string; error?: string }>;
+  searchParams: Promise<{
+    saved?: string;
+    cv?: string;
+    avatar?: string;
+    error?: string;
+    locked?: string;
+  }>;
 }) {
   const { supabase, profile } = await requireProfile("seeker");
   const params = await searchParams;
@@ -21,6 +50,21 @@ export default async function SeekerProfilePage({
   const avatarSrc = await avatarUrl(supabase, profile.avatar_url);
   const cvSt = cvStatus(profile.cv_url);
   const hasUsableCv = cvSt === "ready";
+
+  const [{ data: categories }, { data: educationRows }, { data: experienceRows }] =
+    await Promise.all([
+      supabase.from("job_categories").select("id, name").order("name").limit(300),
+      supabase
+        .from("profile_education")
+        .select("*")
+        .eq("profile_id", profile.id)
+        .order("end_year", { ascending: false, nullsFirst: true }),
+      supabase
+        .from("profile_work_experience")
+        .select("*")
+        .eq("profile_id", profile.id)
+        .order("end_date", { ascending: false, nullsFirst: true }),
+    ]);
 
   const checks = profileChecklist(profile, hasUsableCv);
   const progress = completeness(checks);
@@ -48,6 +92,19 @@ export default async function SeekerProfilePage({
                   : null
         }
       />
+
+      {params.locked && dash.seeker.lockedFeatureNames[params.locked] && (
+        <div className="clay relative mb-8 overflow-hidden p-6">
+          <div aria-hidden className="absolute inset-y-0 left-0 w-[3px] bg-accent" />
+          <p className="eyebrow">Locked</p>
+          <p className="mt-1 font-display text-lg font-600 text-ink">
+            {dash.seeker.lockedFeatureNames[params.locked]} isn&apos;t unlocked yet
+          </p>
+          <p className="mt-1 max-w-lg text-sm leading-relaxed text-muted">
+            {dash.seeker.lockedBanner(dash.seeker.lockedFeatureNames[params.locked])}
+          </p>
+        </div>
+      )}
 
       {/* COMPLETENESS -------------------------------------------------
           Named against what an employer sees, not against database columns,
@@ -237,6 +294,84 @@ export default async function SeekerProfilePage({
           hint="A full link or just your handle — both work."
         />
 
+        {/* HIRING DETAILS (migration 033) — informational, not gating; the
+            profile-completion gate (lib/auth.ts requireCompleteSeekerProfile)
+            only checks name/phone/CV, none of these. */}
+        <div className="grid gap-5 sm:grid-cols-2">
+          <Field
+            label={dash.seeker.yearsExperience}
+            name="years_experience"
+            type="number"
+            defaultValue={profile.years_experience?.toString() ?? null}
+          />
+          <div>
+            <label htmlFor="education_level" className="eyebrow mb-2 block">
+              {dash.seeker.educationLevel}
+            </label>
+            <select
+              id="education_level"
+              name="education_level"
+              defaultValue={profile.education_level ?? ""}
+              className="field"
+            >
+              <option value="">{dash.seeker.selectPlaceholder}</option>
+              {EDUCATION_LEVELS.map((level) => (
+                <option key={level} value={level}>
+                  {educationLevelLabels[level]}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="industry_category_id" className="eyebrow mb-2 block">
+              {dash.seeker.industry}
+            </label>
+            <select
+              id="industry_category_id"
+              name="industry_category_id"
+              defaultValue={profile.industry_category_id ?? ""}
+              className="field"
+            >
+              <option value="">{dash.seeker.selectPlaceholder}</option>
+              {(categories ?? []).map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="notice_period" className="eyebrow mb-2 block">
+              {dash.seeker.noticePeriod}
+            </label>
+            <select
+              id="notice_period"
+              name="notice_period"
+              defaultValue={profile.notice_period ?? ""}
+              className="field"
+            >
+              <option value="">{dash.seeker.selectPlaceholder}</option>
+              {NOTICE_PERIODS.map((period) => (
+                <option key={period} value={period}>
+                  {noticePeriodLabels[period]}
+                </option>
+              ))}
+            </select>
+          </div>
+          <Field
+            label={dash.seeker.expectedSalary}
+            name="expected_salary"
+            type="number"
+            defaultValue={profile.expected_salary?.toString() ?? null}
+          />
+          <Field
+            label={dash.seeker.currentSalary}
+            name="current_salary"
+            type="number"
+            defaultValue={profile.current_salary?.toString() ?? null}
+          />
+        </div>
+
         <div className="flex flex-wrap items-center gap-4 pt-1">
           <button type="submit" className="btn-primary">
             {dash.common.save}
@@ -244,6 +379,143 @@ export default async function SeekerProfilePage({
           <span className="text-xs text-muted">Signed in as {profile.email}</span>
         </div>
       </form>
+
+      {/* EDUCATION ----------------------------------------------------- */}
+      <section className="clay mt-8 max-w-2xl p-6">
+        <h2 className="font-display text-lg font-600 text-ink">{dash.seeker.educationTitle}</h2>
+        {(educationRows ?? []).length === 0 ? (
+          <p className="mt-2 text-sm text-muted">{dash.seeker.educationEmpty}</p>
+        ) : (
+          <ul className="mt-4 divide-y divide-line">
+            {(educationRows ?? []).map((entry) => (
+              <li key={entry.id} className="flex items-center justify-between gap-3 py-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-500 text-ink">{entry.school_name}</p>
+                  <p className="truncate text-xs text-muted">
+                    {[
+                      entry.field_of_study,
+                      entry.level ? educationLevelLabels[entry.level as EducationLevel] : null,
+                      entry.start_year || entry.end_year
+                        ? `${entry.start_year ?? "?"}–${entry.end_year ?? "present"}`
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
+                </div>
+                <form action={deleteEducation}>
+                  <input type="hidden" name="id" value={entry.id} />
+                  <button type="submit" className="btn-ghost shrink-0 text-xs">
+                    {dash.seeker.entryRemove}
+                  </button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <form action={addEducation} className="mt-5 grid gap-3 sm:grid-cols-2">
+          <input
+            name="school_name"
+            required
+            placeholder={dash.seeker.educationSchool}
+            className="field sm:col-span-2"
+          />
+          <input
+            name="field_of_study"
+            placeholder={dash.seeker.educationField}
+            className="field"
+          />
+          <select name="level" defaultValue="" className="field">
+            <option value="">{dash.seeker.selectPlaceholder}</option>
+            {EDUCATION_LEVELS.map((level) => (
+              <option key={level} value={level}>
+                {educationLevelLabels[level]}
+              </option>
+            ))}
+          </select>
+          <input
+            name="start_year"
+            type="number"
+            placeholder={dash.seeker.educationStartYear}
+            className="field"
+          />
+          <input
+            name="end_year"
+            type="number"
+            placeholder={dash.seeker.educationEndYear}
+            className="field"
+          />
+          <button type="submit" className="btn-secondary sm:col-span-2">
+            {dash.seeker.educationAdd}
+          </button>
+        </form>
+      </section>
+
+      {/* WORK EXPERIENCE ------------------------------------------------ */}
+      <section className="clay mt-8 max-w-2xl p-6">
+        <h2 className="font-display text-lg font-600 text-ink">{dash.seeker.experienceTitle}</h2>
+        {(experienceRows ?? []).length === 0 ? (
+          <p className="mt-2 text-sm text-muted">{dash.seeker.experienceEmpty}</p>
+        ) : (
+          <ul className="mt-4 divide-y divide-line">
+            {(experienceRows ?? []).map((entry) => (
+              <li key={entry.id} className="flex items-center justify-between gap-3 py-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-500 text-ink">
+                    {entry.job_title} · {entry.company_name}
+                  </p>
+                  <p className="truncate text-xs text-muted">
+                    {[entry.start_date, entry.end_date ?? "Present"].filter(Boolean).join(" – ")}
+                  </p>
+                </div>
+                <form action={deleteWorkExperience}>
+                  <input type="hidden" name="id" value={entry.id} />
+                  <button type="submit" className="btn-ghost shrink-0 text-xs">
+                    {dash.seeker.entryRemove}
+                  </button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <form action={addWorkExperience} className="mt-5 grid gap-3 sm:grid-cols-2">
+          <input
+            name="company_name"
+            required
+            placeholder={dash.seeker.experienceCompany}
+            className="field"
+          />
+          <input
+            name="job_title"
+            required
+            placeholder={dash.seeker.experienceJobTitle}
+            className="field"
+          />
+          <input
+            name="start_date"
+            type="date"
+            aria-label={dash.seeker.experienceStartDate}
+            className="field"
+          />
+          <input
+            name="end_date"
+            type="date"
+            aria-label={dash.seeker.experienceEndDate}
+            className="field"
+          />
+          <textarea
+            name="description"
+            rows={3}
+            placeholder={dash.seeker.experienceDescription}
+            className="field resize-y sm:col-span-2"
+          />
+          <button type="submit" className="btn-secondary sm:col-span-2">
+            {dash.seeker.experienceAdd}
+          </button>
+        </form>
+      </section>
     </div>
   );
 }
@@ -254,12 +526,14 @@ function Field({
   defaultValue,
   placeholder,
   hint,
+  type = "text",
 }: {
   label: string;
   name: string;
   defaultValue: string | null;
   placeholder?: string;
   hint?: string;
+  type?: "text" | "number";
 }) {
   return (
     <div>
@@ -269,7 +543,8 @@ function Field({
       <input
         id={name}
         name={name}
-        type="text"
+        type={type}
+        min={type === "number" ? 0 : undefined}
         defaultValue={defaultValue ?? ""}
         placeholder={placeholder}
         aria-describedby={hint ? `${name}-hint` : undefined}

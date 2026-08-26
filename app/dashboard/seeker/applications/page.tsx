@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Send } from "lucide-react";
-import { requireProfile } from "@/lib/auth";
+import { requireCompleteSeekerProfile } from "@/lib/auth";
 import { PageHead } from "@/components/dashboard-shell";
 import {
   EmptyState,
@@ -67,7 +67,7 @@ export default async function SeekerApplications({
 }: {
   searchParams: Promise<Params>;
 }) {
-  const { supabase } = await requireProfile("seeker");
+  const { supabase } = await requireCompleteSeekerProfile("applications");
   const params = await searchParams;
 
   const page = Math.max(1, Number.parseInt(params.page ?? "1", 10) || 1);
@@ -103,7 +103,7 @@ export default async function SeekerApplications({
         .from("applications")
         .select(
           `id, applicant_name, applicant_email, applicant_phone, cover_letter, cv_url,
-           status, employer_note, applied_at, wp_post_id, wp_job_title,
+           status, employer_note, applied_at, wp_post_id, wp_job_title, meets_requirements,
            job:jobs(id, title, slug)`
         )
         .eq("id", openId)

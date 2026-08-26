@@ -15,6 +15,7 @@ import {
 import { UNIQUE_VIOLATION } from "@/lib/job-form";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { notifyApplicationReceived, notifyApplicantApplicationReceived } from "@/lib/notify";
+import { dataConsent } from "@/lib/content";
 
 /**
  * Submitting an application.
@@ -62,6 +63,8 @@ type ApplyError =
   | "duplicate"
   | "rate_limited"
   | "phone_invalid"
+  | "experience_required"
+  | "consent_required"
   | "failed";
 
 function fail(slug: string, code: ApplyError): never {
@@ -77,6 +80,16 @@ function text(formData: FormData, key: string, max: number): string | null {
   // mistake worth throwing an application away over. The columns are `text`, so
   // this is about keeping one submission from carrying a megabyte of prose.
   return trimmed.slice(0, max);
+}
+
+/** Non-negative integer or null — used for the years-of-experience/salary
+ * snapshot fields (migration 033), which are required but still validated
+ * gracefully rather than throwing on a malformed value. */
+function positiveInt(formData: FormData, key: string): number | null {
+  const raw = formData.get(key);
+  if (typeof raw !== "string" || raw.trim() === "") return null;
+  const n = Number.parseInt(raw, 10);
+  return Number.isFinite(n) && n >= 0 ? n : null;
 }
 
 const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
@@ -179,6 +192,26 @@ export async function submitApplication(formData: FormData) {
   if (!email || !EMAIL.test(email)) fail(slug, "email_invalid");
   if (phone && !PHONE.test(phone)) fail(slug, "phone_invalid");
 
+  // ── Experience/salary snapshot (migration 033) ────────────────
+  // Required at the form layer (components/apply-form.tsx marks them
+  // required), re-checked here since that's a UI convenience, not the gate.
+  const yearsExperience = positiveInt(formData, "years_experience");
+  const expectedSalary = positiveInt(formData, "expected_salary");
+  const currentSalary = positiveInt(formData, "current_salary");
+  if (yearsExperience === null || expectedSalary === null || currentSalary === null) {
+    fail(slug, "experience_required");
+  }
+
+  // ── Data consent (migration 033) ──────────────────────────────
+  // The checkbox in components/consent-clause.tsx is the UX; this is the
+  // actual gate — a request with no `consent` field, scripted or otherwise,
+  // is rejected regardless of what the client-side scroll gate allowed.
+  if (formData.get("consent") !== "on") {
+    fail(slug, "consent_required");
+  }
+  const consentedAt = new Date().toISOString();
+  const consentVersion = dataConsent.version;
+
   // ── The CV ─────────────────────────────────────────────────
   const reuse = formData.get("reuse_cv") === "on";
   const file = formData.get("cv");
@@ -227,6 +260,11 @@ export async function submitApplication(formData: FormData) {
       cv_url: cvPath,
       wp_job_title: jobRow.title,
       status: "pending" as const,
+      years_experience: yearsExperience,
+      expected_salary: expectedSalary,
+      current_salary: currentSalary,
+      consented_at: consentedAt,
+      consent_version: consentVersion,
     });
 
     if (error) {
@@ -243,6 +281,11 @@ export async function submitApplication(formData: FormData) {
       p_cover_letter: cover,
       p_cv_url: cvPath,
       p_job_title: jobRow.title,
+      p_years_experience: yearsExperience,
+      p_expected_salary: expectedSalary,
+      p_current_salary: currentSalary,
+      p_consented_at: consentedAt,
+      p_consent_version: consentVersion,
     });
 
     if (error) {

@@ -13,6 +13,14 @@
 export function authErrorMessage(raw: string): string {
   const message = raw.toLowerCase();
 
+  if (message.includes("work_email_required")) {
+    // Backstop branch for migration 031's trigger exception, reached only if
+    // someone bypasses the client-side check in lib/employer-email.ts (e.g. a
+    // direct API call). Not confirmed against the live project whether
+    // Supabase passes this text through verbatim or wraps it in a generic
+    // "Database error saving new user" — see migrations/031's plan notes.
+    return "Please sign up with your work email address rather than a personal one.";
+  }
   if (message.includes("captcha")) {
     // Every captcha failure mode looks the same to the person in front of it,
     // and all of them are fixed by trying again with a fresh challenge — except

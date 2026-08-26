@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Bookmark } from "lucide-react";
-import { requireProfile } from "@/lib/auth";
+import { requireCompleteSeekerProfile } from "@/lib/auth";
 import { PageHead } from "@/components/dashboard-shell";
 import { EmptyState } from "@/components/dashboard-ui";
 import { JobCard } from "@/components/job-card";
@@ -18,7 +18,7 @@ import type { Job } from "@/types/database";
  * survives, so if the employer reopens the role it reappears here.
  */
 export default async function SavedJobs() {
-  const { supabase } = await requireProfile("seeker");
+  const { supabase } = await requireCompleteSeekerProfile("saved");
 
   const { data } = await supabase
     .from("saved_jobs")

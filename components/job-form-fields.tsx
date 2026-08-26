@@ -1,7 +1,16 @@
 import { JOB_TYPE_LABELS } from "@/lib/utils";
-import { job as jobCopy } from "@/lib/content";
+import { job as jobCopy, educationLevelLabels } from "@/lib/content";
 import { RichTextEditor } from "@/components/rich-text-editor";
-import type { Job, JobCategory, JobLocation } from "@/types/database";
+import type { EducationLevel, Job, JobCategory, JobLocation } from "@/types/database";
+
+const EDUCATION_LEVELS: EducationLevel[] = [
+  "high_school",
+  "certificate",
+  "diploma",
+  "bachelors",
+  "masters",
+  "doctorate",
+];
 
 const LEVELS = [
   { value: "entry", label: "Entry level" },
@@ -95,6 +104,80 @@ export function JobFormFields({
           minHeight={130}
         />
       </div>
+
+      <div>
+        <label htmlFor="required_skills" className="eyebrow mb-2 block">
+          Required skills
+        </label>
+        <input
+          id="required_skills"
+          name="required_skills"
+          defaultValue={job?.required_skills?.join(", ") ?? ""}
+          placeholder="Comma separated — e.g. Excel, QuickBooks, IFRS"
+          className="field"
+        />
+        <p className="mt-1.5 text-xs text-muted">
+          Optional. Powers the match% shown to seekers and the admin candidate search — leave
+          blank if this role has no specific skill requirements to match against.
+        </p>
+      </div>
+
+      <div className="grid sm:grid-cols-3 gap-4">
+        <div>
+          <label htmlFor="required_years_experience" className="eyebrow block mb-2">
+            Min. years experience
+          </label>
+          <input
+            id="required_years_experience"
+            name="required_years_experience"
+            type="number"
+            min={0}
+            defaultValue={job?.required_years_experience ?? ""}
+            placeholder="Any"
+            className="field"
+          />
+        </div>
+        <div>
+          <label htmlFor="required_education_level" className="eyebrow block mb-2">
+            Min. education level
+          </label>
+          <select
+            id="required_education_level"
+            name="required_education_level"
+            defaultValue={job?.required_education_level ?? ""}
+            className="field"
+          >
+            <option value="">Any</option>
+            {EDUCATION_LEVELS.map((level) => (
+              <option key={level} value={level}>
+                {educationLevelLabels[level]}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="required_industry_category_id" className="eyebrow block mb-2">
+            Required industry
+          </label>
+          <select
+            id="required_industry_category_id"
+            name="required_industry_category_id"
+            defaultValue={job?.required_industry_category_id ?? ""}
+            className="field"
+          >
+            <option value="">Any</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+      <p className="-mt-2 text-xs text-muted">
+        All three optional. Set any of them to have matching applications flagged for you in the
+        admin queue — nothing is ever auto-rejected.
+      </p>
 
       <div className="grid sm:grid-cols-2 gap-4">
         <div>
