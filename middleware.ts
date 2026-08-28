@@ -168,7 +168,10 @@ export async function middleware(request: NextRequest) {
       },
     });
 
-    await supabase.auth.getUser();
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("getUser timed out")), 4000)
+    );
+    await Promise.race([supabase.auth.getUser(), timeout]);
   } catch (error) {
     console.error("[middleware] session refresh failed:", error);
     return applyCsp(NextResponse.next({ request: { headers: requestHeaders } }));
