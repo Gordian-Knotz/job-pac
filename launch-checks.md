@@ -50,6 +50,8 @@ Every item below states its handbook code, its current status against the actual
 
 CSP already allows Turnstile's frame/script/connect origin — confirmed in `middleware.ts`, no further change needed there.
 
+**Postmortem, Aug 2026 Vercel account migration:** captcha silently stayed off on the new project because the var was entered as `NEXT_PUBLIC_CAPTHA_SITE_KEY` (missing the "C") — an exact string match against `process.env.NEXT_PUBLIC_CAPTCHA_SITE_KEY`, so the typo'd var is invisible to the app rather than erroring. `captchaConfigured` (`components/captcha.tsx:44`) silently renders nothing when unset, which is correct behavior for local dev but means a typo in Vercel produces no error anywhere — just an absent widget and, once the client-side gate in `login-form.tsx`/`signup-form.tsx` is reached, "Please complete the security check first." When re-adding this var on any future account/project move, copy-paste the name from `components/captcha.tsx` rather than retyping it, and verify by checking page source for a `challenges.cloudflare.com` script tag after deploy — not just that *a* variable with a similar name exists in the dashboard.
+
 **S14 Validate all input** — not audited yet against a schema library (Zod or equivalent) at every API boundary. `lib/job-form.ts` (`parseJobFields`) sanitises rich text but confirm structural validation exists on every server action, not just the rich-text fields.
 
 **S17 Trim API responses** — not audited. Check the ten most-used endpoints for `select('*')` or over-fetching, particularly anything touching `applications` or `profiles`, which carry applicant PII.
