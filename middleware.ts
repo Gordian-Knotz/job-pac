@@ -64,6 +64,28 @@ const DEV = process.env.NODE_ENV === "development";
  */
 const CAPTCHA_HOSTS = "https://challenges.cloudflare.com";
 
+/**
+ * Same list as app/robots.ts. These are welcome — one drives real referral
+ * traffic, and being indexed by the AI-search ones is wanted — so this
+ * throttles rather than blocks. Enforced here (not just robots.txt) because
+ * most of these ignore robots.txt entirely.
+ *
+ * Aug 2026's edge-request spike that tripped the Vercel Hobby cap and paused
+ * the whole site came from this traffic being uncapped, so the goal is
+ * capping request rate, not presence. One request per isolate per crawler
+ * family per CRAWLER_MIN_INTERVAL_MS; anything faster gets a 429 with
+ * Retry-After, which the better-behaved crawlers (OpenAI, Common Crawl) back
+ * off on. This is in-memory and per-isolate, not a global counter — with
+ * several warm isolates across regions the real aggregate rate is some
+ * multiple of this, but it turns an unbounded crawl into a bounded one
+ * without needing an external store.
+ */
+const BLOCKED_USER_AGENTS =
+  /GPTBot|ChatGPT-User|CCBot|Google-Extended|Bytespider|PerplexityBot|Amazonbot|Applebot-Extended|ClaudeBot|Claude-Web|meta-externalagent|Diffbot/i;
+
+const CRAWLER_MIN_INTERVAL_MS = 2000;
+const crawlerLastSeen = new Map<string, number>();
+
 function buildCsp(nonce: string): string {
   return [
     `default-src 'self'`,
@@ -102,6 +124,21 @@ function buildCsp(nonce: string): string {
 }
 
 export async function middleware(request: NextRequest) {
+  const userAgent = request.headers.get("user-agent") ?? "";
+  const crawlerMatch = userAgent.match(BLOCKED_USER_AGENTS);
+  if (crawlerMatch) {
+    const key = crawlerMatch[0].toLowerCase();
+    const now = Date.now();
+    const last = crawlerLastSeen.get(key) ?? 0;
+    if (now - last < CRAWLER_MIN_INTERVAL_MS) {
+      return new NextResponse("Too Many Requests", {
+        status: 429,
+        headers: { "Retry-After": "5" },
+      });
+    }
+    crawlerLastSeen.set(key, now);
+  }
+
   const nonce = crypto.randomUUID().replace(/-/g, "");
   const csp = buildCsp(nonce);
   const cspHeader = CSP_ENFORCE
