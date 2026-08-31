@@ -1,6 +1,6 @@
 import { requireProfile } from "@/lib/auth";
 import { PageHead } from "@/components/dashboard-shell";
-import { Flash } from "@/components/dashboard-ui";
+import { ToastFromSearchParams } from "@/components/toast-from-search-params";
 import { IMAGE_ACCEPT, logoUrl } from "@/lib/avatar";
 import { dash } from "@/lib/content";
 import { upsertCompany, uploadLogo } from "../actions";
@@ -39,7 +39,7 @@ export default async function CompanyProfilePage({
         sub={dash.employer.companySub}
       />
 
-      <Flash
+      <ToastFromSearchParams
         error={params.error}
         success={
           params.error

@@ -102,7 +102,9 @@ export default withSentryConfig(nextConfig, {
   silent: true,
   widenClientFileUpload: true,
   webpack: {
-    removeDebugLogging: true,
     automaticVercelMonitors: true,
+    treeshake: {
+      removeDebugLogging: true,
+    },
   },
 });

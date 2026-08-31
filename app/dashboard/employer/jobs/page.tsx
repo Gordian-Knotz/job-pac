@@ -4,13 +4,13 @@ import { requireProfile } from "@/lib/auth";
 import { PageHead } from "@/components/dashboard-shell";
 import {
   EmptyState,
-  Flash,
   RowLink,
   TableFrame,
   Td,
   Th,
   Tr,
 } from "@/components/dashboard-ui";
+import { ToastFromSearchParams } from "@/components/toast-from-search-params";
 import { JobStatusBadge } from "@/components/status-badge";
 import { setOwnJobStatus } from "../actions";
 import { dash, jobStatusLabels } from "@/lib/content";
@@ -97,7 +97,7 @@ export default async function EmployerJobs({
         }
       />
 
-      <Flash
+      <ToastFromSearchParams
         error={params.error}
         success={
           params.updated === "paused"

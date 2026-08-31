@@ -2,10 +2,10 @@ import Link from "next/link";
 import { Inbox, Search } from "lucide-react";
 import { requireProfile } from "@/lib/auth";
 import { PageHead } from "@/components/dashboard-shell";
-import { Avatar, EmptyState, Flash, TableFrame, Td, Th, Tr, RowLink } from "@/components/dashboard-ui";
+import { Avatar, EmptyState, TableFrame, Td, Th, Tr, RowLink } from "@/components/dashboard-ui";
 import { ApplicationStatusBadge, ReviewStatusBadge } from "@/components/status-badge";
 import { Drawer } from "@/components/drawer";
-import { Toast } from "@/components/toast";
+import { ToastFromSearchParams } from "@/components/toast-from-search-params";
 import {
   ApplicationDetailBody,
   type ApplicantProfileDetail,
@@ -243,8 +243,6 @@ export default async function EmployerInbox({
         title={dash.employer.inboxTitle}
         sub={dash.employer.inboxSub}
       />
-
-      <Flash error={params.error} />
 
       {/* FILTERS ------------------------------------------------------- */}
       <form action={BASE} className="mb-4 flex flex-wrap items-end gap-2.5">
@@ -518,8 +516,9 @@ export default async function EmployerInbox({
         )}
       </Drawer>
 
-      <Toast
-        message={
+      <ToastFromSearchParams
+        error={params.error}
+        success={
           params.updated === "status"
             ? dash.drawer.statusUpdated
             : params.updated === "note"

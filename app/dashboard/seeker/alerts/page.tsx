@@ -1,7 +1,8 @@
 import { Bell } from "lucide-react";
 import { requireCompleteSeekerProfile } from "@/lib/auth";
 import { PageHead } from "@/components/dashboard-shell";
-import { EmptyState, Flash } from "@/components/dashboard-ui";
+import { EmptyState } from "@/components/dashboard-ui";
+import { ToastFromSearchParams } from "@/components/toast-from-search-params";
 import { dash, jobTypeLabels } from "@/lib/content";
 import { createJobAlert, deleteJobAlert, toggleJobAlert } from "./actions";
 import type { JobAlert, JobCategory, JobLocation, JobType } from "@/types/database";
@@ -39,7 +40,7 @@ export default async function JobAlerts({
         sub={dash.seeker.alertsSub}
       />
 
-      <Flash
+      <ToastFromSearchParams
         error={params.error}
         success={
           params.created ? "Alert created." : params.deleted ? "Alert deleted." : null

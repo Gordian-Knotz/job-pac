@@ -2,7 +2,8 @@ import Link from "next/link";
 import { ShieldCheck } from "lucide-react";
 import { requireProfile } from "@/lib/auth";
 import { PageHead } from "@/components/dashboard-shell";
-import { EmptyState, Flash } from "@/components/dashboard-ui";
+import { EmptyState } from "@/components/dashboard-ui";
+import { ToastFromSearchParams } from "@/components/toast-from-search-params";
 import { ConfirmAction } from "@/components/confirm-action";
 import { dash } from "@/lib/content";
 import { plainSnippet, timeAgo } from "@/lib/utils";
@@ -58,7 +59,7 @@ export default async function ModerationQueue({
         sub={dash.admin.moderationSub}
       />
 
-      <Flash
+      <ToastFromSearchParams
         error={params.error}
         success={
           params.updated === "published"

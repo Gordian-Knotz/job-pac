@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Download, Shield, Trash2 } from "lucide-react";
-import { Flash } from "@/components/dashboard-ui";
+import { ToastFromSearchParams } from "@/components/toast-from-search-params";
 import { AppearancePicker } from "@/components/appearance-picker";
 import { dash, site } from "@/lib/content";
 import { navFor, roleLabel } from "@/lib/dashboard-nav";
@@ -38,7 +38,7 @@ export function SettingsPanel({
 }) {
   return (
     <div className="max-w-2xl space-y-6">
-      <Flash
+      <ToastFromSearchParams
         error={error}
         success={
           updated === "password"

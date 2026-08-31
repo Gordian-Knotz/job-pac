@@ -4,13 +4,13 @@ import { requireProfile } from "@/lib/auth";
 import { PageHead } from "@/components/dashboard-shell";
 import {
   EmptyState,
-  Flash,
   RowLink,
   TableFrame,
   Td,
   Th,
   Tr,
 } from "@/components/dashboard-ui";
+import { ToastFromSearchParams } from "@/components/toast-from-search-params";
 import { Drawer } from "@/components/drawer";
 import { ConfirmAction } from "@/components/confirm-action";
 import { JobStatusBadge } from "@/components/status-badge";
@@ -129,7 +129,7 @@ export default async function AdminEmployers({
         sub={dash.admin.employersSub}
       />
 
-      <Flash
+      <ToastFromSearchParams
         error={params.error}
         success={
           params.updated === "suspended"

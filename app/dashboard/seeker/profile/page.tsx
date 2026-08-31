@@ -5,7 +5,8 @@ import { CV_ACCEPT, CV_MAX_BYTES, cvStatus } from "@/lib/cv";
 import { avatarUrl, IMAGE_ACCEPT } from "@/lib/avatar";
 import { CvLink } from "@/components/cv-link";
 import { PageHead } from "@/components/dashboard-shell";
-import { Avatar, Flash } from "@/components/dashboard-ui";
+import { Avatar } from "@/components/dashboard-ui";
+import { ToastFromSearchParams } from "@/components/toast-from-search-params";
 import { completeness, profileChecklist } from "@/lib/profile";
 import { cv as cvCopy, dash, educationLevelLabels, noticePeriodLabels } from "@/lib/content";
 import { updateProfile, uploadAvatar, uploadCv } from "../actions";
@@ -78,7 +79,7 @@ export default async function SeekerProfilePage({
         sub={dash.seeker.profileSub}
       />
 
-      <Flash
+      <ToastFromSearchParams
         error={params.error}
         success={
           params.error

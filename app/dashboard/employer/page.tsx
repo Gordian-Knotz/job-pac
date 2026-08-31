@@ -2,7 +2,8 @@ import Link from "next/link";
 import { Briefcase, CheckCircle2, Inbox, Trophy } from "lucide-react";
 import { requireProfile } from "@/lib/auth";
 import { PageHead } from "@/components/dashboard-shell";
-import { Avatar, EmptyState, Flash, StatCard } from "@/components/dashboard-ui";
+import { Avatar, EmptyState, StatCard } from "@/components/dashboard-ui";
+import { ToastFromSearchParams } from "@/components/toast-from-search-params";
 import { ApplicationStatusBadge } from "@/components/status-badge";
 import { applicantCards } from "@/lib/applicant-cards";
 import { timeAgo, displayApplicant } from "@/lib/utils";
@@ -112,7 +113,7 @@ export default async function EmployerOverview({
         }
       />
 
-      <Flash
+      <ToastFromSearchParams
         error={params.error}
         success={
           params.posted
