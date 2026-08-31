@@ -9,6 +9,7 @@ import { PageTransition } from "@/components/page-transition";
 import { CookieNotice } from "@/components/cookie-notice";
 import { ThemeProvider } from "@/components/theme";
 import { Toaster } from "@/components/toaster";
+import { ScrollRestoration } from "@/components/scroll-restoration";
 import { site } from "@/lib/content";
 
 /**
@@ -60,6 +61,7 @@ export default function RootLayout({
         className={`${display.variable} ${body.variable} ${mono.variable} font-body antialiased`}
       >
         <ThemeProvider>
+          <ScrollRestoration />
           <AmbientBackground />
           <SiteHeader />
           <main className="min-h-screen">
