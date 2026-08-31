@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 
 /**
  * Two jobs: refresh the Supabase session cookie, and set the per-request
@@ -211,6 +212,7 @@ export async function middleware(request: NextRequest) {
     await Promise.race([supabase.auth.getUser(), timeout]);
   } catch (error) {
     console.error("[middleware] session refresh failed:", error);
+    Sentry.captureException(error);
     return applyCsp(NextResponse.next({ request: { headers: requestHeaders } }));
   }
 

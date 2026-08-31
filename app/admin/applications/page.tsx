@@ -5,7 +5,7 @@ import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { PageHead } from "@/components/dashboard-shell";
-import { EmptyState, Flash } from "@/components/dashboard-ui";
+import { EmptyState } from "@/components/dashboard-ui";
 import { CvLink } from "@/components/cv-link";
 import { Drawer } from "@/components/drawer";
 import {
@@ -17,7 +17,7 @@ import {
 import { signApplicationCv } from "@/lib/cv-actions";
 import { setApplicationStatusAdmin } from "@/app/admin/actions";
 import { StatusSelect, NoteForm } from "@/components/application-status-form";
-import { Toast } from "@/components/toast";
+import { ToastFromSearchParams } from "@/components/toast-from-search-params";
 import { RequirementsBadge, ReviewStatusBadge } from "@/components/status-badge";
 import { ReviewPanel } from "@/components/review-panel";
 import { applicantCards } from "@/lib/applicant-cards";
@@ -311,8 +311,6 @@ export default async function AdminApplicationsPage({
         title={dash.admin.applicationsTitle}
         sub={dash.admin.applicationsSub}
       />
-
-      <Flash error={error?.message} />
 
       {/* SEARCH ------------------------------------------------------- */}
       <form action="/admin/applications" className="flex flex-col sm:flex-row gap-2.5 mt-6">
@@ -702,8 +700,9 @@ export default async function AdminApplicationsPage({
         )}
       </Drawer>
 
-      <Toast
-        message={
+      <ToastFromSearchParams
+        error={error?.message}
+        success={
           params.updated === "status"
             ? dash.drawer.statusUpdated
             : params.updated === "note"

@@ -17,6 +17,26 @@ Run in numerical order. Every file is idempotent — safe to re-run.
 | 011 | `011_stats_not_public.sql` | revoke `stats()` from `anon` — counts are off the hero | **applied** |
 | 012 | `012_job_publish_and_cv_access_guards.sql` | publish bypass, company impersonation, CV read path | **applied** |
 | 013 | `013_tighten_cvs_and_dedupe_applications.sql` | cvs back to 5 MB/PDF, one application per job+email | **applied** |
+| 014 | `014_status_vocabulary.sql` | application status vocabulary cleanup | **applied** |
+| 015 | `015_qualifications_and_confidential_employers.sql` | rename `benefits`→`qualifications`, confidential employer flag | **applied** |
+| 016 | `016_companies_not_public.sql` | drop public read on `companies` | **applied** |
+| 017 | `017_dashboard_support.sql` | `application_events` log, suspension columns, `increment_job_view` | **applied** |
+| 018 | `018_avatars_and_logos.sql` | private `avatars` bucket, public `logos` bucket | **applied** |
+| 019 | `019_resume_after_pause.sql` | `approved_at` on jobs, resume-after-pause without re-review | **applied** |
+| 020 | `020_applicant_cards.sql` | `applicant_cards()` RPC (headline+avatar only, ownership-scoped) | **applied** |
+| 021 | `021_employer_drafts.sql` | employer can insert `draft` jobs | **applied** |
+| 022 | `022_suspension_enforcement.sql` | suspension enforced by trigger, not just a label | **applied** |
+| 023 | `023_fix_suspension_visibility.sql` | `company_suspended()` fix for the 017 policy-subquery bug | **applied** |
+| 024 | `024_close_anon_write_surface.sql` | remove anon write on applications/storage; `submit_guest_application()` | **applied** |
+| 025 | `025_guard_profile_columns.sql` | block self-escalation of `role`/`email`/`company_id` | **applied** |
+| 026 | `026_apply_rate_limit.sql` | hashed-IP rate limiting on the guest apply flow | **applied** (confirmed 2026-08-31) |
+| 027 | `027_top_categories_rpc.sql` | `top_job_categories()` RPC for the homepage | **applied** (confirmed 2026-08-31) |
+| 028 | `028_notification_preferences.sql` | `notify_email`/`notify_new_jobs`/`notify_pending_review` on profiles | **applied** (confirmed 2026-08-31) |
+| 029 | `029_application_reviews.sql` | `application_reviews` append-only log (overview/final) | **applied** (confirmed 2026-08-31) |
+| 030 | `030_dashboard_preferences.sql` | `dashboard_landing`/`dashboard_density` on profiles | **applied** (confirmed 2026-08-31) |
+| 031 | `031_employer_work_email_and_job_skills.sql` | work-email-only employer signup, `jobs.required_skills` | **applied** (confirmed 2026-08-31) |
+| 032 | `032_candidate_matches.sql` | `candidate_matches()` RPC, ranks seekers against a job's required skills | **applied** (confirmed 2026-08-31) |
+| 033 | `033_hiring_profile_and_requirements.sql` | multi-entry education/work experience, job requirements, `meets_requirements` flag, apply-time consent | **applied** (confirmed 2026-08-31) |
 
 ## Why these exist
 
@@ -307,10 +327,11 @@ Cleanup is probabilistic (1 in ~100 calls deletes buckets older than a day)
 rather than a cron job, since the table only ever holds recent windows for
 keys actually being hit.
 
-**Not yet applied or probed against the live project** — written and
-reviewed, but this migration has not been run against Supabase yet (no
-database session was used to build it). Before marking it verified, run it
-and confirm by impersonation, the same way every migration above was:
+**Confirmed applied 2026-08-31** — `public.rate_limits` exists and
+`rate_limit_hit()` is present on the live database (checked directly via
+`information_schema`/`pg_proc`, project `khdvagjfonbiezkybpvh`). The
+behaviour table below is still unprobed by impersonation; only existence has
+been confirmed, not the runtime behaviour:
 
 | behaviour to check | expected |
 |---|---|
@@ -350,7 +371,9 @@ opt-in to hear about the review queue). All self-editable under the existing
 `profiles_update` policy — none of the three touch role, email or company_id,
 so `guard_profile_columns` (025) has no reason to guard them.
 
-**Not yet applied against the live project.**
+**Confirmed applied 2026-08-31** — all three columns exist on the live
+`profiles` table (checked directly, project `khdvagjfonbiezkybpvh`). The
+behaviour table below is still unprobed:
 
 | behaviour to check | expected |
 |---|---|
@@ -358,3 +381,32 @@ so `guard_profile_columns` (025) has no reason to guard them.
 | a seeker opts into `notify_new_jobs`, admin publishes any job | seeker receives one email |
 | an employer flips `notify_email` off, a guest applies to their job | no email sent to the employer |
 | a fresh admin row (default `notify_pending_review = true`) | receives an email the next time a job enters `pending_review` |
+
+## After 029–033
+
+All five confirmed applied and live 2026-08-31 (via direct
+`information_schema`/`pg_proc`/`pg_type` checks against project
+`khdvagjfonbiezkybpvh` — not previously documented here, despite landing in
+commit `c7628ad`, 26 Aug):
+
+- **029** — `application_reviews`, an append-only per-reviewer log
+  (`overview` / `final`), separate from any status field on `applications`.
+- **030** — `dashboard_landing` / `dashboard_density` on `profiles`, cosmetic
+  and self-editable, validated at write time in
+  `app/dashboard/settings-actions.ts` rather than constrained in the schema.
+- **031** — work-email-only employer signup enforced server-side (the
+  client check in `lib/employer-email.ts` is only a fast path), plus
+  `jobs.required_skills`.
+- **032** — `candidate_matches(p_job_id, p_industry_category_id)`, admin-only
+  (gated by `is_admin()` inside the function, same pattern as every other
+  admin RPC), ranks every seeker against a job's `required_skills`.
+- **033** — multi-entry `profile_education` / `profile_work_experience`
+  tables, job-side requirement columns (`required_years_experience`,
+  `required_education_level`, `required_industry_category_id`),
+  application-side snapshot columns (`years_experience`, `expected_salary`,
+  `current_salary`, `consented_at`, `consent_version`, `meets_requirements`).
+  `meets_requirements` is a flag surfaced to admin/employer, never an
+  automatic rejection.
+
+None of these have been probed by role-impersonation yet — only schema
+presence is confirmed. Worth a probe pass before leaning on them further.

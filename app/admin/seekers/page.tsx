@@ -5,13 +5,13 @@ import { PageHead } from "@/components/dashboard-shell";
 import {
   Avatar,
   EmptyState,
-  Flash,
   RowLink,
   TableFrame,
   Td,
   Th,
   Tr,
 } from "@/components/dashboard-ui";
+import { ToastFromSearchParams } from "@/components/toast-from-search-params";
 import { Drawer } from "@/components/drawer";
 import { ConfirmAction } from "@/components/confirm-action";
 import { CvLink } from "@/components/cv-link";
@@ -131,7 +131,7 @@ export default async function AdminSeekers({
         sub={dash.admin.seekersSub}
       />
 
-      <Flash
+      <ToastFromSearchParams
         error={params.error}
         success={
           params.updated === "suspended"

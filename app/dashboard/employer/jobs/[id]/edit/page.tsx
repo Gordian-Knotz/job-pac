@@ -4,7 +4,7 @@ import { requireProfile } from "@/lib/auth";
 import { getJobLookups } from "@/lib/lookups";
 import { JobFormFields } from "@/components/job-form-fields";
 import { PageHead } from "@/components/dashboard-shell";
-import { Flash } from "@/components/dashboard-ui";
+import { ToastFromSearchParams } from "@/components/toast-from-search-params";
 import { JobStatusBadge } from "@/components/status-badge";
 import { dash } from "@/lib/content";
 import { setOwnJobStatus, updateOwnJob } from "../../../actions";
@@ -44,7 +44,7 @@ export default async function EditOwnJobPage({
         action={<JobStatusBadge status={row.status} />}
       />
 
-      <Flash
+      <ToastFromSearchParams
         error={query.error}
         success={
           query.saved === "draft"

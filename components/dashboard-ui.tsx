@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AlertCircle, CheckCircle2, type LucideIcon } from "lucide-react";
+import { type LucideIcon } from "lucide-react";
 import { cn, displayApplicant } from "@/lib/utils";
 
 /**
@@ -85,38 +85,6 @@ export function EmptyState({
         <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted">{body}</p>
       )}
       {action && <div className="mt-6 flex justify-center gap-3">{action}</div>}
-    </div>
-  );
-}
-
-/**
- * Result banner for a server action that redirected with ?error= or ?saved=.
- *
- * Colour alone does not carry it — each variant has its own icon and its own
- * wording, so it is legible without colour vision.
- */
-export function Flash({
-  error,
-  success,
-}: {
-  error?: string | null;
-  success?: string | null;
-}) {
-  if (!error && !success) return null;
-  const isError = Boolean(error);
-  const Icon = isError ? AlertCircle : CheckCircle2;
-  return (
-    <div
-      role={isError ? "alert" : "status"}
-      className={cn(
-        "mb-6 flex items-start gap-2.5 rounded-card border px-4 py-3 text-sm",
-        isError
-          ? "border-red-500/25 bg-red-500/8 text-red-700 dark:text-red-400"
-          : "border-emerald-500/25 bg-emerald-500/8 text-emerald-700 dark:text-emerald-400"
-      )}
-    >
-      <Icon className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-      <span className="min-w-0">{error ?? success}</span>
     </div>
   );
 }

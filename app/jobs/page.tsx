@@ -7,6 +7,7 @@ import { unstable_cache } from "next/cache";
 import { postJobHref } from "@/lib/auth";
 import { JobCard } from "@/components/job-card";
 import { Reveal } from "@/components/reveal";
+import { EmptyState } from "@/components/dashboard-ui";
 import { matchPercent } from "@/lib/match";
 import {
   browse,
@@ -344,22 +345,20 @@ export default async function JobsPage({
               <p className="mt-2 text-sm text-muted">{error.message}</p>
             </div>
           ) : jobs.length === 0 ? (
-            <div className="clay p-10 text-center md:p-14">
-              <p className="font-display text-lg font-600 text-ink">
-                {browse.emptyTitle}
-              </p>
-              <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted">
-                {browse.emptyBody}
-              </p>
-              <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-                <Link href="/jobs" className="btn-primary">
-                  {browse.clearAll}
-                </Link>
-                <Link href={postJobHref(role)} className="btn-ghost">
-                  {browse.emptyEmployerNudge}
-                </Link>
-              </div>
-            </div>
+            <EmptyState
+              title={browse.emptyTitle}
+              body={browse.emptyBody}
+              action={
+                <>
+                  <Link href="/jobs" className="btn-primary">
+                    {browse.clearAll}
+                  </Link>
+                  <Link href={postJobHref(role)} className="btn-ghost">
+                    {browse.emptyEmployerNudge}
+                  </Link>
+                </>
+              }
+            />
           ) : (
             <>
               <div className="grid gap-4 sm:grid-cols-2">

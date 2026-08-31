@@ -3,7 +3,7 @@ import { requireProfile } from "@/lib/auth";
 import { getJobLookups } from "@/lib/lookups";
 import { JobFormFields } from "@/components/job-form-fields";
 import { PageHead } from "@/components/dashboard-shell";
-import { Flash } from "@/components/dashboard-ui";
+import { ToastFromSearchParams } from "@/components/toast-from-search-params";
 import { dash } from "@/lib/content";
 import { createJob } from "../actions";
 
@@ -32,7 +32,7 @@ export default async function PostJobPage({
         sub="PAC Africa reads every listing before it goes live. Save a draft if you are not finished."
       />
 
-      <Flash error={params.error} />
+      <ToastFromSearchParams error={params.error} />
 
       <form action={createJob} className="clay max-w-2xl space-y-5 p-6">
         <JobFormFields categories={lookups.categories} locations={lookups.locations} />

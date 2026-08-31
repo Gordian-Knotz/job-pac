@@ -5,13 +5,13 @@ import { getJobLookups } from "@/lib/lookups";
 import { PageHead } from "@/components/dashboard-shell";
 import {
   EmptyState,
-  Flash,
   RowLink,
   TableFrame,
   Td,
   Th,
   Tr,
 } from "@/components/dashboard-ui";
+import { ToastFromSearchParams } from "@/components/toast-from-search-params";
 import { JobStatusBadge } from "@/components/status-badge";
 import { ConfirmAction } from "@/components/confirm-action";
 import { dash, jobStatusLabels } from "@/lib/content";
@@ -132,7 +132,7 @@ export default async function AdminJobsPage({
         }
       />
 
-      <Flash
+      <ToastFromSearchParams
         error={params.error}
         success={
           params.error

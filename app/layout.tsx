@@ -8,6 +8,7 @@ import { AmbientBackground } from "@/components/ambient-background";
 import { PageTransition } from "@/components/page-transition";
 import { CookieNotice } from "@/components/cookie-notice";
 import { ThemeProvider } from "@/components/theme";
+import { Toaster } from "@/components/toaster";
 import { site } from "@/lib/content";
 
 /**
@@ -66,6 +67,7 @@ export default function RootLayout({
           </main>
           <SiteFooter />
           <CookieNotice />
+          <Toaster />
           <WebAnalytics />
         </ThemeProvider>
       </body>

@@ -2,7 +2,8 @@ import Link from "next/link";
 import { ArrowRight, Bookmark, CheckCircle2, Send, Sparkles } from "lucide-react";
 import { requireProfile } from "@/lib/auth";
 import { PageHead } from "@/components/dashboard-shell";
-import { EmptyState, Flash, StatCard } from "@/components/dashboard-ui";
+import { EmptyState, StatCard } from "@/components/dashboard-ui";
+import { ToastFromSearchParams } from "@/components/toast-from-search-params";
 import { ApplicationStatusBadge } from "@/components/status-badge";
 import { timeAgo, displayApplicant } from "@/lib/utils";
 import { dash } from "@/lib/content";
@@ -116,7 +117,7 @@ export default async function SeekerOverview({
         }
       />
 
-      <Flash
+      <ToastFromSearchParams
         error={params.error}
         success={
           params.claimed && Number(params.claimed) > 0
