@@ -6,9 +6,12 @@ import { createPublicClient } from "@/lib/supabase/public";
 import { unstable_cache } from "next/cache";
 import { postJobHref } from "@/lib/auth";
 import { JobCard } from "@/components/job-card";
+import { JobsSplitView } from "@/components/jobs-split-view";
+import { JobDetailPanel } from "@/components/job-detail-panel";
 import { Reveal } from "@/components/reveal";
 import { EmptyState } from "@/components/dashboard-ui";
 import { matchPercent } from "@/lib/match";
+import type { ApplyViewer } from "@/components/apply-form";
 import {
   browse,
   jobTypeLabels,
@@ -130,13 +133,14 @@ function href(current: Params, changes: Partial<Record<keyof Params, string | nu
 /**
  * Browse Jobs (brief §5).
  *
- * Sidebar filters on desktop, a <details> panel on mobile — no JavaScript, so
- * filtering works before hydration and with JS off. Every filter lives in the
- * URL, which makes any result set shareable.
+ * Filter pills row plus a "More filters" popover on desktop, a <details>
+ * panel on mobile — no JavaScript, so filtering works before hydration and
+ * with JS off. Every filter lives in the URL, which makes any result set
+ * shareable.
  *
- * Card grid with pagination, not the two-pane master-detail this page used to
- * be: the brief is explicit that a card click goes to the job page rather than
- * opening a drawer.
+ * Desktop is a two-pane split view (list left, sticky detail right, click a
+ * card to swap the pane in place). Mobile falls back to a plain card grid
+ * where each card links to /jobs/[slug], same as before this redesign.
  *
  * Categories and locations stay as selects driven by the live 165 and 65 rows
  * rather than a curated checkbox list — a decision taken deliberately so no
@@ -183,15 +187,7 @@ export default async function JobsPage({
     }
   }
 
-  // Salary is optional, so unpriced roles sort last rather than first — a null
-  // is "not stated", not "pays nothing".
-  if (params.sort === "salary") {
-    query = query
-      .order("salary_max", { ascending: false, nullsFirst: false })
-      .order("created_at", { ascending: false });
-  } else {
-    query = query.order("created_at", { ascending: params.sort === "oldest" });
-  }
+  query = query.order("created_at", { ascending: params.sort === "oldest" });
 
   const [{ data, count, error }, filters, savedRow, roleRow] = await Promise.all([
     query.range(from, from + PER_PAGE - 1),
@@ -206,7 +202,11 @@ export default async function JobsPage({
       ? supabase.from("saved_jobs").select("job_id")
       : Promise.resolve({ data: null }),
     user
-      ? supabase.from("profiles").select("role, skills").eq("id", user.id).single()
+      ? supabase
+          .from("profiles")
+          .select("id, role, skills, full_name, email, phone, cv_url")
+          .eq("id", user.id)
+          .single()
       : Promise.resolve({ data: null }),
   ]);
 
@@ -216,9 +216,65 @@ export default async function JobsPage({
   const savedIds = new Set(
     ((savedRow?.data as { job_id: string }[] | null) ?? []).map((s) => s.job_id)
   );
-  const role = (roleRow?.data?.role as UserRole | undefined) ?? null;
-  const seekerSkills =
-    role === "seeker" ? ((roleRow?.data as { skills: string[] | null })?.skills ?? null) : null;
+  type ProfileRow = {
+    id: string;
+    role: UserRole;
+    skills: string[] | null;
+    full_name: string | null;
+    email: string;
+    phone: string | null;
+    cv_url: string | null;
+  };
+  const profile = (roleRow?.data as ProfileRow | undefined) ?? null;
+  const role = profile?.role ?? null;
+  const seekerSkills = role === "seeker" ? (profile?.skills ?? null) : null;
+  const viewer: ApplyViewer | null =
+    profile && profile.role === "seeker"
+      ? {
+          id: profile.id,
+          role: profile.role,
+          fullName: profile.full_name,
+          email: profile.email,
+          phone: profile.phone,
+          cvUrl: profile.cv_url,
+        }
+      : null;
+
+  // Split view's detail panel needs "already applied" state per job on this
+  // page, same as /jobs/[slug] does for a single job — batched here instead.
+  const appliedMap = new Map<string, string>();
+  if (user && jobs.length > 0) {
+    const { data: appliedRows } = await supabase
+      .from("applications")
+      .select("job_id, applied_at")
+      .eq("applicant_id", user.id)
+      .in(
+        "job_id",
+        jobs.map((j) => j.id)
+      );
+    for (const row of (appliedRows as { job_id: string; applied_at: string }[] | null) ?? []) {
+      appliedMap.set(row.job_id, row.applied_at);
+    }
+  }
+  const matchPercents = new Map(
+    jobs.map((j) => [j.id, matchPercent(j.required_skills, seekerSkills)])
+  );
+
+  const returnTo = href(params, {});
+  const detailPanels = Object.fromEntries(
+    jobs.map((j) => [
+      j.id,
+      <JobDetailPanel
+        key={j.id}
+        job={j}
+        saved={savedIds.has(j.id)}
+        matchPercent={matchPercents.get(j.id) ?? null}
+        appliedAt={appliedMap.get(j.id) ?? null}
+        viewer={viewer}
+        returnTo={returnTo}
+      />,
+    ])
+  );
 
   const active = [
     params.q && { label: `“${params.q}”`, clear: href(params, { q: null, page: null }) },
@@ -250,8 +306,31 @@ export default async function JobsPage({
     },
   ].filter(Boolean) as { label: string; clear: string }[];
 
-  const filterPanel = (
-    <FilterPanel params={params} filters={filters} />
+  const employmentTypePills = (
+    <FilterGroup title={browse.employmentType}>
+      {Object.entries(jobTypeLabels).map(([value, label]) => (
+        <ChipLink
+          key={value}
+          label={label}
+          active={params.type === value}
+          to={href(params, { type: params.type === value ? null : value, page: null })}
+        />
+      ))}
+    </FilterGroup>
+  );
+
+  const remotePill = (
+    <FilterGroup title="Remote">
+      <ChipLink
+        label={browse.remoteOnly}
+        active={params.remote === "1"}
+        to={href(params, { remote: params.remote === "1" ? null : "1", page: null })}
+      />
+    </FilterGroup>
+  );
+
+  const moreFiltersPanel = (
+    <MoreFiltersPanel params={params} filters={filters} />
   );
 
   return (
@@ -301,111 +380,129 @@ export default async function JobsPage({
         </div>
       )}
 
-      <div className="mt-8 grid gap-8 lg:grid-cols-[240px_minmax(0,1fr)]">
-        {/* FILTERS — sidebar on desktop, disclosure on mobile ------- */}
-        <aside className="lg:sticky lg:top-28 lg:self-start">
-          <details className="clay group p-4 lg:hidden">
-            <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-medium text-ink">
-              <SlidersHorizontal className="h-4 w-4" aria-hidden />
-              {browse.filtersCta}
-            </summary>
-            <div className="mt-5">{filterPanel}</div>
-          </details>
-          <div className="hidden lg:block">{filterPanel}</div>
-        </aside>
-
-        {/* RESULTS -------------------------------------------------- */}
-        <div>
-          <div className="mb-5 flex flex-wrap items-baseline justify-between gap-3">
-            <h1 className="font-display text-xl font-600 tracking-tight text-ink">
-              {browse.resultCount(total)}
-            </h1>
-            <div className="flex items-center gap-1.5">
-              <span className="eyebrow">{browse.sortBy}</span>
-              {sortOptions.map((opt) => {
-                const on = (params.sort ?? "recent") === opt.value;
-                return (
-                  <Link
-                    key={opt.value}
-                    href={href(params, { sort: opt.value, page: null })}
-                    className={`rounded-pill px-2.5 py-1 text-xs transition-colors duration-150 ease-out ${
-                      on ? "text-accent-text font-medium" : "text-muted hover:text-ink"
-                    }`}
-                  >
-                    {opt.label}
-                  </Link>
-                );
-              })}
+      {/* FILTER PILLS ROW — replaces the old sidebar (brief change, per current
+          request). Employment Type and Remote are always visible; the rest of
+          the same filter set moves into "More filters", an anchored popover
+          rather than a drawer. */}
+      <div className="mt-6 flex flex-wrap items-start gap-4">
+        {employmentTypePills}
+        {remotePill}
+        <details className="clay group p-3">
+          <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-medium text-ink">
+            <SlidersHorizontal className="h-4 w-4" aria-hidden />
+            {browse.moreFilters}
+          </summary>
+          <div className="relative">
+            <div className="clay absolute left-0 top-2 z-10 w-72 space-y-6 p-5 shadow-clay-lifted">
+              {moreFiltersPanel}
             </div>
           </div>
+        </details>
+      </div>
 
-          {error ? (
-            <div className="clay p-10 text-center">
-              <p className="font-display text-lg font-600 text-ink">Search failed</p>
-              <p className="mt-2 text-sm text-muted">{error.message}</p>
-            </div>
-          ) : jobs.length === 0 ? (
-            <EmptyState
-              title={browse.emptyTitle}
-              body={browse.emptyBody}
-              action={
-                <>
-                  <Link href="/jobs" className="btn-primary">
-                    {browse.clearAll}
-                  </Link>
-                  <Link href={postJobHref(role)} className="btn-ghost">
-                    {browse.emptyEmployerNudge}
-                  </Link>
-                </>
-              }
-            />
-          ) : (
-            <>
-              <div className="grid gap-4 sm:grid-cols-2">
-                {jobs.map((row, i) => (
-                  <Reveal key={row.id} delay={Math.min(i * 0.03, 0.18)}>
-                    <JobCard
-                      job={row}
-                      saved={savedIds.has(row.id)}
-                      showSave={Boolean(user)}
-                      returnTo={href(params, {})}
-                      matchPercent={matchPercent(row.required_skills, seekerSkills)}
-                    />
-                  </Reveal>
-                ))}
-              </div>
-
-              <div className="mt-8 flex items-center justify-between gap-4">
-                <p className="text-xs text-muted">
-                  {browse.showingRange(from + 1, from + jobs.length, total)}
-                </p>
-                {lastPage > 1 && (
-                  <div className="flex items-center gap-2">
-                    <PageLink
-                      to={page > 1 ? href(params, { page: page === 2 ? null : String(page - 1) }) : null}
-                      label={browse.prev}
-                      icon="prev"
-                    />
-                    <span className="font-mono text-xs text-muted">
-                      {page} / {lastPage}
-                    </span>
-                    <PageLink
-                      to={page < lastPage ? href(params, { page: String(page + 1) }) : null}
-                      label={browse.next}
-                      icon="next"
-                    />
-                  </div>
-                )}
-              </div>
-            </>
-          )}
+      <div className="mt-8">
+        <div className="mb-5 flex flex-wrap items-baseline justify-between gap-3">
+          <h1 className="font-display text-xl font-600 tracking-tight text-ink">
+            {browse.resultCount(total)}
+          </h1>
+          <div className="flex items-center gap-1.5">
+            <span className="eyebrow">{browse.sortBy}</span>
+            {sortOptions.map((opt) => {
+              const on = (params.sort ?? "recent") === opt.value;
+              return (
+                <Link
+                  key={opt.value}
+                  href={href(params, { sort: opt.value, page: null })}
+                  className={`rounded-pill px-2.5 py-1 text-xs transition-colors duration-150 ease-out ${
+                    on ? "text-accent-text font-medium" : "text-muted hover:text-ink"
+                  }`}
+                >
+                  {opt.label}
+                </Link>
+              );
+            })}
+          </div>
         </div>
+
+        {error ? (
+          <div className="clay p-10 text-center">
+            <p className="font-display text-lg font-600 text-ink">Search failed</p>
+            <p className="mt-2 text-sm text-muted">{error.message}</p>
+          </div>
+        ) : jobs.length === 0 ? (
+          <EmptyState
+            title={browse.emptyTitle}
+            body={browse.emptyBody}
+            action={
+              <>
+                <Link href="/jobs" className="btn-primary">
+                  {browse.clearAll}
+                </Link>
+                <Link href={postJobHref(role)} className="btn-ghost">
+                  {browse.emptyEmployerNudge}
+                </Link>
+              </>
+            }
+          />
+        ) : (
+          <>
+            {/* Desktop: two-pane split view, click a card to swap the detail
+                pane in place, no navigation. */}
+            <JobsSplitView
+              jobs={jobs}
+              savedIds={savedIds}
+              matchPercents={matchPercents}
+              showSave={Boolean(user)}
+              returnTo={returnTo}
+              detailPanels={detailPanels}
+            />
+
+            {/* Mobile: unchanged from before this redesign — a plain card
+                grid where each card is a real link to /jobs/[slug]. */}
+            <div className="grid gap-4 sm:grid-cols-2 lg:hidden">
+              {jobs.map((row, i) => (
+                <Reveal key={row.id} delay={Math.min(i * 0.03, 0.18)}>
+                  <JobCard
+                    job={row}
+                    saved={savedIds.has(row.id)}
+                    showSave={Boolean(user)}
+                    returnTo={returnTo}
+                    matchPercent={matchPercents.get(row.id) ?? null}
+                  />
+                </Reveal>
+              ))}
+            </div>
+
+            <div className="mt-8 flex items-center justify-between gap-4">
+              <p className="text-xs text-muted">
+                {browse.showingRange(from + 1, from + jobs.length, total)}
+              </p>
+              {lastPage > 1 && (
+                <div className="flex items-center gap-2">
+                  <PageLink
+                    to={page > 1 ? href(params, { page: page === 2 ? null : String(page - 1) }) : null}
+                    label={browse.prev}
+                    icon="prev"
+                  />
+                  <span className="font-mono text-xs text-muted">
+                    {page} / {lastPage}
+                  </span>
+                  <PageLink
+                    to={page < lastPage ? href(params, { page: String(page + 1) }) : null}
+                    label={browse.next}
+                    icon="next"
+                  />
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
 }
 
-function FilterPanel({
+function MoreFiltersPanel({
   params,
   filters,
 }: {
@@ -466,17 +563,6 @@ function FilterPanel({
         </button>
       </form>
 
-      <FilterGroup title={browse.employmentType}>
-        {Object.entries(jobTypeLabels).map(([value, label]) => (
-          <ChipLink
-            key={value}
-            label={label}
-            active={params.type === value}
-            to={href(params, { type: params.type === value ? null : value, page: null })}
-          />
-        ))}
-      </FilterGroup>
-
       <FilterGroup title={browse.experience}>
         {Object.entries(employmentLevelLabels).map(([value, label]) => (
           <ChipLink
@@ -500,14 +586,6 @@ function FilterPanel({
             })}
           />
         ))}
-      </FilterGroup>
-
-      <FilterGroup title="Remote">
-        <ChipLink
-          label={browse.remoteOnly}
-          active={params.remote === "1"}
-          to={href(params, { remote: params.remote === "1" ? null : "1", page: null })}
-        />
       </FilterGroup>
     </div>
   );

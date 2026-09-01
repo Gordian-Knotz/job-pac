@@ -29,6 +29,9 @@ export function JobCard({
   returnTo = "/jobs",
   showSave = true,
   matchPercent = null,
+  variant = "default",
+  active = false,
+  onSelect,
 }: {
   job: Job;
   saved?: boolean;
@@ -40,17 +43,33 @@ export function JobCard({
    * the job has no required_skills to grade against — never shown as 0%.
    */
   matchPercent?: number | null;
+  /**
+   * "compact" is the split-view list-pane density: tighter spacing, plus a
+   * benefit-tag pill row (employment type, remote, top required skills).
+   * Every other call site (homepage, related jobs, saved jobs, dashboard
+   * recommendations) omits this and keeps today's shape exactly.
+   */
+  variant?: "default" | "compact";
+  /** Compact-variant only: highlights the card as the split view's current selection. */
+  active?: boolean;
+  /**
+   * Compact-variant only: swaps the card's navigating <Link> for a click
+   * handler that selects the job in the split view instead of leaving the
+   * page. Cards without this still navigate to /jobs/[slug] as always.
+   */
+  onSelect?: () => void;
 }) {
   const location = job.is_remote
     ? "Remote"
     : (job.location?.name ?? job.location_text ?? "Kenya");
+  const compact = variant === "compact";
+  const skillPills = compact ? (job.required_skills ?? []).slice(0, 3) : [];
 
   return (
     <article
-      className="group clay relative isolate h-full overflow-hidden p-5
-                 transition-[transform,box-shadow] duration-200 ease-out
-                 hover:-translate-y-1 hover:shadow-clay-lifted
-                 focus-within:-translate-y-1 focus-within:shadow-clay-lifted"
+      className={`group clay relative isolate h-full overflow-hidden transition-[transform,box-shadow] duration-200 ease-out hover:-translate-y-1 hover:shadow-clay-lifted focus-within:-translate-y-1 focus-within:shadow-clay-lifted ${
+        compact ? "p-4" : "p-5"
+      } ${active ? "ring-2 ring-accent" : ""}`}
     >
       {/* The vetting stamp, carried over from the previous design — the one mark
           in here that is ours. Fades in on hover. */}
@@ -61,18 +80,29 @@ export function JobCard({
                    group-hover:opacity-100 group-focus-within:opacity-100"
       />
 
-      {/* prefetch off: this link scrolls into view on every listing page for
-          every visitor, and the RSC prefetch fetch is a real edge request —
-          with a dozen cards per page that adds up fast for a link people
-          mostly never click. */}
-      <Link
-        href={`/jobs/${job.slug}`}
-        className="absolute inset-0 z-0"
-        aria-label={job.title}
-        prefetch={false}
-      >
-        <span className="sr-only">{job.title}</span>
-      </Link>
+      {onSelect ? (
+        <button
+          type="button"
+          onClick={onSelect}
+          className="absolute inset-0 z-0"
+          aria-label={job.title}
+        >
+          <span className="sr-only">{job.title}</span>
+        </button>
+      ) : (
+        // prefetch off: this link scrolls into view on every listing page for
+        // every visitor, and the RSC prefetch fetch is a real edge request —
+        // with a dozen cards per page that adds up fast for a link people
+        // mostly never click.
+        <Link
+          href={`/jobs/${job.slug}`}
+          className="absolute inset-0 z-0"
+          aria-label={job.title}
+          prefetch={false}
+        >
+          <span className="sr-only">{job.title}</span>
+        </Link>
+      )}
 
       <div className="pointer-events-none relative z-[1] pr-9">
         <span className="eyebrow block truncate">
@@ -98,17 +128,33 @@ export function JobCard({
           <span className="truncate">{location}</span>
         </p>
 
-        {/* Salary is optional — when it is unset the card says nothing about
-            pay rather than showing a "not disclosed" placeholder, which reads
-            as a gap. Seniority holds the line either way. */}
-        {job.salary_min || job.salary_max ? (
-          <p className="mt-1.5 text-sm font-medium text-ink">
-            {formatSalary(job.salary_min, job.salary_max, job.salary_currency)}
-          </p>
-        ) : (
-          <p className="mt-1 text-sm text-muted">
-            {employmentLevelLabels[job.employment_level] ?? job.employment_level} level
-          </p>
+        {!compact &&
+          (job.salary_min || job.salary_max ? (
+            <p className="mt-1.5 text-sm font-medium text-ink">
+              {formatSalary(job.salary_min, job.salary_max, job.salary_currency)}
+            </p>
+          ) : (
+            <p className="mt-1 text-sm text-muted">
+              {employmentLevelLabels[job.employment_level] ?? job.employment_level} level
+            </p>
+          ))}
+
+        {compact && (skillPills.length > 0 || job.is_remote) && (
+          <div className="mt-3 flex flex-wrap items-center gap-1.5">
+            {job.is_remote && (
+              <span className="clay-raised rounded-pill px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-accent-text">
+                Remote
+              </span>
+            )}
+            {skillPills.map((skill) => (
+              <span
+                key={skill}
+                className="clay-raised rounded-pill px-2.5 py-1 text-[10px] text-muted"
+              >
+                {skill}
+              </span>
+            ))}
+          </div>
         )}
 
         <div className="mt-4 flex items-center justify-between gap-3">

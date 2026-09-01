@@ -82,6 +82,7 @@ export const browse = {
   searchCta: "Search",
   filtersTitle: "Filters",
   filtersCta: "Filters",
+  moreFilters: "More filters",
   clearAll: "Clear all",
   filteredBy: "Filtered by",
   removeFilter: "Remove filter",
@@ -116,7 +117,6 @@ export const browse = {
  */
 export const sortOptions = [
   { value: "recent", label: "Most Recent" },
-  { value: "salary", label: "Highest Pay" },
   { value: "oldest", label: "Oldest First" },
 ] as const;
 
