@@ -80,8 +80,6 @@ export function JobDetail({
         )}
       </dl>
 
-      {apply && <div className="mt-6">{apply}</div>}
-
       <div className="mt-8 space-y-7">
         <Section title={jobCopy.about} html={job.description} />
         {job.requirements && (
@@ -91,6 +89,8 @@ export function JobDetail({
           <Section title={jobCopy.qualifications} html={job.qualifications} />
         )}
       </div>
+
+      {apply && <div className="mt-8">{apply}</div>}
     </article>
   );
 }

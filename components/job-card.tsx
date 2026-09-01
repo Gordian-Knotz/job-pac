@@ -67,8 +67,8 @@ export function JobCard({
 
   return (
     <article
-      className={`group clay relative isolate h-full overflow-hidden transition-[transform,box-shadow] duration-200 ease-out hover:-translate-y-1 hover:shadow-clay-lifted focus-within:-translate-y-1 focus-within:shadow-clay-lifted ${
-        compact ? "p-4" : "p-5"
+      className={`group clay relative isolate overflow-hidden transition-[transform,box-shadow] duration-200 ease-out hover:-translate-y-1 hover:shadow-clay-lifted focus-within:-translate-y-1 focus-within:shadow-clay-lifted ${
+        compact ? "p-4" : "h-full p-5"
       } ${active ? "ring-2 ring-accent" : ""}`}
     >
       {/* The vetting stamp, carried over from the previous design — the one mark
