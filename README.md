@@ -1,27 +1,37 @@
-# jobs.pac.africa — Rebuild
+<div align="center">
 
-Next.js 15 + Supabase job board, rebuilt to replace the WordPress/Jobmonster theme
+# jobs.pac.africa
 
+### Africa's job board for the people building it.
 
-## Stack
-- Next.js 15 (App Router, Server Components)
-- Supabase (Postgres + Auth + Storage)
-- Tailwind CSS — PAC brand tokens (orange `#E8532E`, Source Serif 4 + IBM Plex Sans)
-- TypeScript
+**[Browse Jobs](https://jobs.pac.africa) · [Post a Job](https://jobs.pac.africa)**
 
+</div>
 
+---
 
-## What's built so far
+## Find your next role, or your next hire
 
-- [x] Homepage — hero, live stats, featured jobs
-- [x] Job listings — search + filter by category/location/type
-- [x] Job detail page — full description + inline apply form
-- [x] Auth — login, register (seeker/employer role selection)
-- [x] Admin dashboard — stats, pending job approvals, recent applications
-- [x] Employer dashboard — post jobs, manage applicants (next)
-- [x] Seeker dashboard — profile, CV upload, application tracking (next)
-- [ ] Job approval actions (wire up Approve/Reject buttons to Supabase)
-- [x] Email notifications (Resend integration)
-- [x] CV file upload to Supabase Storage
-- [ ] CSV export for admin
+jobs.pac.africa connects job seekers with employers across Africa — from
+graduate roles to senior leadership positions, across every industry.
 
+### For job seekers
+
+- **Search smarter** — filter by category, location, and job type to find roles that fit
+- **Apply in minutes** — build a profile once, apply everywhere
+- **Stay in the loop** — job alerts and application tracking, so nothing slips through
+- **Get discovered** — a complete profile puts you in front of employers actively hiring
+
+### For employers
+
+- **Post with confidence** — reach a growing, engaged pool of African talent
+- **Manage applicants** — review, shortlist, and respond, all in one dashboard
+- **Move fast** — from job post to hire, without the back-and-forth
+
+---
+
+<div align="center">
+
+Built by [PAC](https://pac.africa)
+
+</div>
