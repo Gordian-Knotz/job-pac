@@ -9,9 +9,19 @@ import { isLegacyCvUrl } from "@/lib/cv";
  * forget. The pitch is a real, already-shipped mechanic (app/jobs/[slug]/page.tsx
  * prefills the apply form from a complete profile), not an invented reward.
  */
-export function ProfileNudge({ profile }: { profile: Profile }) {
+export function ProfileNudge({
+  profile,
+  hasEducation,
+  hasWorkExperience,
+}: {
+  profile: Profile;
+  hasEducation: boolean;
+  hasWorkExperience: boolean;
+}) {
   const hasUsableCv = Boolean(profile.cv_url) && !isLegacyCvUrl(profile.cv_url);
-  const progress = completeness(profileChecklist(profile, hasUsableCv));
+  const progress = completeness(
+    profileChecklist(profile, hasUsableCv, hasEducation, hasWorkExperience)
+  );
 
   if (progress.percent >= 100) return null;
 

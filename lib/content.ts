@@ -427,9 +427,10 @@ export const dash = {
       saved: "Saved jobs",
       alerts: "Job alerts",
       applications: "Applications",
+      apply: "Applying",
     } as Record<string, string>,
     lockedBanner: (feature: string) =>
-      `Add your name, phone number and CV below to unlock ${feature}.`,
+      `Finish your profile below to unlock ${feature}.`,
     hiringTitle: "Experience & career details",
     hiringHint: "Helps employers judge fit, and powers the requirements filter for admin.",
     yearsExperience: "Years of experience",

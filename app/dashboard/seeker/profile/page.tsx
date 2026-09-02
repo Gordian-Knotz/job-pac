@@ -67,7 +67,9 @@ export default async function SeekerProfilePage({
         .order("end_date", { ascending: false, nullsFirst: true }),
     ]);
 
-  const checks = profileChecklist(profile, hasUsableCv);
+  const hasEducation = (educationRows?.length ?? 0) > 0;
+  const hasWorkExperience = (experienceRows?.length ?? 0) > 0;
+  const checks = profileChecklist(profile, hasUsableCv, hasEducation, hasWorkExperience);
   const progress = completeness(checks);
   const outstanding = checks.filter((c) => !c.done);
 

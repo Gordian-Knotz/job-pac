@@ -15,7 +15,12 @@ export type ProfileCheck = {
  * would show a permanently incomplete profile to someone who has finished.
  * A checklist you cannot finish is noise.
  */
-export function profileChecklist(profile: Profile, hasCv: boolean): ProfileCheck[] {
+export function profileChecklist(
+  profile: Profile,
+  hasCv: boolean,
+  hasEducation: boolean,
+  hasWorkExperience: boolean
+): ProfileCheck[] {
   return [
     {
       label: "Your name",
@@ -62,17 +67,47 @@ export function profileChecklist(profile: Profile, hasCv: boolean): ProfileCheck
       done: profile.industry_category_id !== null,
       why: "Helps us point you at roles in your field.",
     },
+    {
+      label: "Education history",
+      done: hasEducation,
+      why: "At least one entry — school, field of study, and years attended.",
+    },
+    {
+      label: "Work experience",
+      done: hasWorkExperience,
+      why: "At least one entry — employer, title, and dates.",
+    },
   ];
 }
 
 /**
  * The smaller "must-have" subset of profileChecklist that actually gates
- * dashboard features (Saved, Alerts, Applications — see lib/auth.ts). Kept
- * separate from the full 6-item checklist so ProfileNudge's percentage is
- * unaffected: headline/skills/location stay optional nudges, never gates.
+ * dashboard features (Saved, Alerts, Applications, and applying — see
+ * lib/auth.ts and app/jobs/actions.ts). Widened beyond name/phone/CV to also
+ * require the migration-033 hiring fields, after too many profiles were left
+ * unfinished once those fields launched as nudge-only. Kept as its own
+ * function (rather than "checklist 100%") so bio/headline/skills/location
+ * stay optional nudges, never gates — only the items below actually block.
  */
-export function isProfileGateComplete(profile: Profile, hasCv: boolean): boolean {
-  return Boolean(profile.full_name?.trim()) && Boolean(profile.phone?.trim()) && hasCv;
+export function isProfileGateComplete(
+  profile: Pick<
+    Profile,
+    "full_name" | "phone" | "years_experience" | "education_level" | "industry_category_id"
+  >,
+  hasCv: boolean,
+  hasEducation: boolean,
+  hasWorkExperience: boolean
+): boolean {
+  return (
+    Boolean(profile.full_name?.trim()) &&
+    Boolean(profile.phone?.trim()) &&
+    hasCv &&
+    profile.years_experience !== null &&
+    profile.education_level !== null &&
+    profile.industry_category_id !== null &&
+    hasEducation &&
+    hasWorkExperience
+  );
 }
 
 export function completeness(checks: ProfileCheck[]): {

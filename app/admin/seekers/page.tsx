@@ -113,13 +113,37 @@ export default async function AdminSeekers({
     }
   }
 
+  // Same batching for the two migration-033 tables that now feed
+  // profileChecklist/isProfileGateComplete — existence only, not full rows,
+  // one query each for the whole page rather than per row.
+  const educationIds = new Set<string>();
+  const workExperienceIds = new Set<string>();
+  if (rows.length > 0) {
+    const ids = rows.map((r) => r.id);
+    const [{ data: educationRows }, { data: experienceRows }] = await Promise.all([
+      supabase.from("profile_education").select("profile_id").in("profile_id", ids),
+      supabase.from("profile_work_experience").select("profile_id").in("profile_id", ids),
+    ]);
+    for (const row of ((educationRows as { profile_id: string }[] | null) ?? [])) {
+      educationIds.add(row.profile_id);
+    }
+    for (const row of ((experienceRows as { profile_id: string }[] | null) ?? [])) {
+      workExperienceIds.add(row.profile_id);
+    }
+  }
+
   // DRAWER ------------------------------------------------------------
   const open = params.id ? (rows.find((r) => r.id === params.id) ?? null) : null;
   const openCvStatus = open ? cvStatus(open.cv_url) : "none";
   const openAvatar = open ? await avatarUrl(supabase, open.avatar_url) : null;
   const openProgress = open
     ? completeness(
-        profileChecklist(open, Boolean(open.cv_url) && !isLegacyCvUrl(open.cv_url))
+        profileChecklist(
+          open,
+          Boolean(open.cv_url) && !isLegacyCvUrl(open.cv_url),
+          educationIds.has(open.id),
+          workExperienceIds.has(open.id)
+        )
       )
     : null;
 
@@ -210,7 +234,12 @@ export default async function AdminSeekers({
               {rows.map((row) => {
                 const name = displayApplicant(row.full_name, row.email);
                 const progress = completeness(
-                  profileChecklist(row, Boolean(row.cv_url) && !isLegacyCvUrl(row.cv_url))
+                  profileChecklist(
+                    row,
+                    Boolean(row.cv_url) && !isLegacyCvUrl(row.cv_url),
+                    educationIds.has(row.id),
+                    workExperienceIds.has(row.id)
+                  )
                 );
                 return (
                   <Tr key={row.id}>

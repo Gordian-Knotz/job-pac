@@ -16,6 +16,9 @@ import { UNIQUE_VIOLATION } from "@/lib/job-form";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { notifyApplicationReceived, notifyApplicantApplicationReceived } from "@/lib/notify";
 import { dataConsent } from "@/lib/content";
+import { isProfileGateComplete } from "@/lib/profile";
+import { hasHiringProfileEntries } from "@/lib/auth";
+import type { EducationLevel } from "@/types/database";
 
 /**
  * Submitting an application.
@@ -136,7 +139,9 @@ export async function submitApplication(formData: FormData) {
   if (user) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("role, cv_url, suspended_at")
+      .select(
+        "role, cv_url, suspended_at, full_name, phone, years_experience, education_level, industry_category_id"
+      )
       .eq("id", user.id)
       .single();
 
@@ -145,6 +150,11 @@ export async function submitApplication(formData: FormData) {
       role: string;
       cv_url: string | null;
       suspended_at: string | null;
+      full_name: string | null;
+      phone: string | null;
+      years_experience: number | null;
+      education_level: EducationLevel | null;
+      industry_category_id: string | null;
     };
 
     // Both are also enforced in the database (migration 022 for suspension, the
@@ -153,6 +163,19 @@ export async function submitApplication(formData: FormData) {
     if (p.suspended_at) redirect("/auth/suspended");
     if (p.role !== "seeker") {
       fail(slug, "not_seeker");
+    }
+
+    // Same gate as Saved/Alerts/Applications (lib/auth.ts
+    // requireCompleteSeekerProfile) — a signed-in seeker with an unfinished
+    // profile is sent to finish it instead of applying with, e.g., no CV.
+    // Guests skip this entirely; they have no profile to gate.
+    const hasCv = Boolean(p.cv_url) && !isLegacyCvUrl(p.cv_url);
+    const [hasEducation, hasWorkExperience] = await hasHiringProfileEntries(
+      supabase,
+      user.id
+    );
+    if (!isProfileGateComplete(p, hasCv, hasEducation, hasWorkExperience)) {
+      redirect("/dashboard/seeker/profile?locked=apply");
     }
 
     // From auth.users via the verified session, NOT from profiles.email.
