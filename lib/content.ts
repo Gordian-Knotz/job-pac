@@ -172,9 +172,7 @@ export const dataConsent = {
   version: "2026-09-19-v1",
   checkboxLabel: "I have read this and I consent.",
   scrollHint: "Scroll to the bottom to continue.",
-  clauseText: `Applicant Declaration and Data Consent
-
-I represent that the information given in this application, and in any resume or supporting documents submitted with it, is true and complete to the best of my knowledge. I understand that any incomplete, misleading, or false statement in my application, resume, or during an interview may result in disqualification from consideration or, if I am hired, termination of my employment.
+  clauseText: `I represent that the information given in this application, and in any resume or supporting documents submitted with it, is true and complete to the best of my knowledge. I understand that any incomplete, misleading, or false statement in my application, resume, or during an interview may result in disqualification from consideration or, if I am hired, termination of my employment.
 
 I authorize PAC Africa and the hiring employer to verify the information I have provided and to carry out any background checks reasonably necessary, including employment history, education, and reference checks, and, where applicable and permitted by law, criminal history checks, both at the time of application and, if I am hired, during my employment.
 
