@@ -62,12 +62,19 @@ export const home = {
   browseCta: "Browse roles",
   postCta: "Post a job",
   popular: "Popular",
-  // Trust without numbers — the counts were deliberately removed.
+  // Trust without exact numbers. Migration 011 deliberately took the precise
+  // application count off this page (and off the API) — commercially
+  // sensitive, and an exact figure also advertises exactly how much personal
+  // data sits behind the site. `activityRecent`/`activityTotal` below are the
+  // narrower replacement: both banded server-side (migration 034), never
+  // exact, so this stays true to that decision rather than reversing it.
   trust: [
     "Every listing reviewed before it publishes",
     "Apply once, track it in one place",
     "Your CV is never public",
   ],
+  activityRecent: (band: number) => `${band.toLocaleString()}+ applications this week`,
+  activityTotal: (band: number) => `${band.toLocaleString()}+ since launch`,
   latest: "Latest roles",
   viewAll: "View all jobs",
   emptyTitle: "No roles are live right now",

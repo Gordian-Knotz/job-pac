@@ -85,6 +85,24 @@ const getTopCategories = unstable_cache(
 );
 
 /**
+ * Banded (never exact) applications-this-week / applications-total figures.
+ * See migration 034 — a narrower replacement for the stat bar migration 011
+ * deliberately removed, not a reversal of that decision: the numbers here
+ * are rounded server-side and can't be sharpened by calling the RPC directly.
+ */
+const getActivityBands = unstable_cache(
+  async (): Promise<{ recentBand: number | null; totalBand: number | null }> => {
+    const supabase = createPublicClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data } = await (supabase as any).rpc("activity_bands");
+    const row = (data as { recent_band: number | null; total_band: number | null }[] | null)?.[0];
+    return { recentBand: row?.recent_band ?? null, totalBand: row?.total_band ?? null };
+  },
+  ["homepage-activity-bands"],
+  { revalidate: 120 }
+);
+
+/**
  * Homepage.
  *
  * The hero leads with search rather than only the two pills the brief describes.
@@ -97,7 +115,11 @@ const getTopCategories = unstable_cache(
  * there is no hero image.
  */
 export default async function HomePage() {
-  const [rows, topCategories] = await Promise.all([getFeedJobs(), getTopCategories()]);
+  const [rows, topCategories, activityBands] = await Promise.all([
+    getFeedJobs(),
+    getTopCategories(),
+    getActivityBands(),
+  ]);
 
   return (
     <>
@@ -178,6 +200,16 @@ export default async function HomePage() {
                 </li>
               ))}
             </ul>
+            {(activityBands.recentBand || activityBands.totalBand) && (
+              <p className="mt-4 text-center text-xs text-muted sm:text-left">
+                {[
+                  activityBands.recentBand && home.activityRecent(activityBands.recentBand),
+                  activityBands.totalBand && home.activityTotal(activityBands.totalBand),
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </p>
+            )}
           </Reveal>
         </div>
       </section>
