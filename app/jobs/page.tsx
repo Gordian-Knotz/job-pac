@@ -4,6 +4,8 @@ import { Search, X, SlidersHorizontal, ChevronLeft, ChevronRight } from "lucide-
 import { createPublicClient } from "@/lib/supabase/public";
 import { unstable_cache } from "next/cache";
 import { ResultsEmpty, ResultsGrid } from "@/components/jobs-results";
+import { JobsSplitView } from "@/components/jobs-split-view";
+import { JobDetailPanel } from "@/components/job-detail-panel";
 import {
   browse,
   jobTypeLabels,
@@ -326,7 +328,24 @@ export default async function JobsPage({
             <ResultsEmpty />
           ) : (
             <>
-              <ResultsGrid jobs={jobs} returnTo={href(params, {})} />
+              {/* Desktop: two-pane split view, click a card to swap the detail
+                  pane in place, no navigation. */}
+              <JobsSplitView
+                jobs={jobs}
+                returnTo={href(params, {})}
+                detailPanels={Object.fromEntries(
+                  jobs.map((j) => [
+                    j.id,
+                    <JobDetailPanel key={j.id} job={j} returnTo={href(params, {})} />,
+                  ])
+                )}
+              />
+
+              {/* Mobile: unchanged — plain card grid, each card a real link
+                  to /jobs/[slug]. */}
+              <div className="lg:hidden">
+                <ResultsGrid jobs={jobs} returnTo={href(params, {})} />
+              </div>
 
               <div className="mt-8 flex items-center justify-between gap-4">
                 <p className="text-xs text-muted">
