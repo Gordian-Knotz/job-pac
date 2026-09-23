@@ -169,3 +169,33 @@ would render.
 - Any backend/DB change (explicit hard constraint)
 - Admin/applications filter page decluttering (deferred, separate task)
 - Infinite scroll (pagination stays numbered pages)
+
+## Status (2026-09-23)
+
+Original implementation shipped on `origin/jobs-split-view` (commits
+`77d0f01`, `2bb657a`) against the pre-caching `/jobs` page (cookie-bound
+`createClient()`, server-side auth/saved/match resolution). It was left
+unmerged because by the time it was reviewed, `main` had moved to the
+client-side-personalization caching architecture (see this session's work
+on `app/page.tsx`, `app/jobs/page.tsx`, `app/jobs/[slug]/page.tsx` —
+`unstable_cache` + anon-key `createPublicClient()`, viewer state resolved
+client-side via `useViewer`/`app/api/viewer/route.ts`) and a straight merge
+would have reverted that caching fix.
+
+Re-implemented from scratch on branch `jobs-split-view-v2` (PR
+[#2](https://github.com/PAC-Africa/job-pac/pull/2), commit `cb81118`)
+instead of merging — same UI/UX as designed above, but `JobsSplitView`
+(`components/jobs-split-view.tsx`) resolves save state, match%, and auth via
+`useViewer` client-side rather than server props, and `JobDetailPanel`
+(`components/job-detail-panel.tsx`) is server-rendered per job (needed for
+`lib/sanitize.ts`, `server-only`) with `SaveToggle`
+(`components/save-toggle.tsx`) and `MatchBadge`
+(`components/match-badge.tsx`) as new small client pieces inside it.
+`app/jobs/page.tsx` stayed on the anon-key client — no auth/cookies
+reintroduced. `npm run build` clean.
+
+Preview: https://jobs-5p5r17nw1-pac21.vercel.app (Vercel preview deploy off
+PR #2). **Not merged to `main`/prod** — awaiting user review per their
+explicit "prod needs my review and approval" instruction. Original
+`origin/jobs-split-view` branch left untouched/unmerged; `jobs-split-view-v2`
+is the one to act on going forward.
